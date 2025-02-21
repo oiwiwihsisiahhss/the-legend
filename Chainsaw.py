@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-# Character Data
 characters = {
     "Himeno": {
         "health": 85, "attack": 60, "defense": 70,
@@ -54,22 +53,25 @@ def initialize_user(user_id):
         cursor.execute("INSERT INTO users (user_id) VALUES (?)", (user_id,))
         conn.commit()
 
-# /start function
+# /start function with welcome image
 @bot.message_handler(commands=['start'])
 def start(message):
     user_id = message.from_user.id
     initialize_user(user_id)
 
+    # Check if the user has already started the bot
     cursor.execute("SELECT has_started FROM users WHERE user_id=?", (user_id,))
     has_started = cursor.fetchone()[0]
 
     if has_started:
-        bot.send_message(user_id, "❌ You have already started the bot.")
+        bot.send_message(user_id, "❌ You have already started the bot. Inline keyboards will be disabled.")
         return
 
+    # Mark the user as started
     cursor.execute("UPDATE users SET has_started = 1 WHERE user_id = ?", (user_id,))
     conn.commit()
 
+    # Creating Inline Button for "Choose Character"
     keyboard = InlineKeyboardMarkup()
     choose_char_button = InlineKeyboardButton("🎭 Choose Character", callback_data="choose_char")
     keyboard.add(choose_char_button)
@@ -82,6 +84,7 @@ def start(message):
 ━━━━━━━━━━━━━
 """
 
+    # Send welcome message with the image
     bot.send_photo(user_id, "https://files.catbox.moe/qeqy19.jpg", caption=start_msg, parse_mode="Markdown", reply_markup=keyboard)
 
 # /choose_char function
@@ -96,7 +99,7 @@ def choose_char(call):
     bot.answer_callback_query(call.id)
     bot.send_message(user_id, "🎭 *Choose your character:*", reply_markup=keyboard, parse_mode="Markdown")
 
-# Character selection
+# Character selection handler
 @bot.callback_query_handler(func=lambda call: call.data in characters)
 def handle_char_selection(call):
     user_id = call.from_user.id
@@ -122,37 +125,19 @@ def handle_char_selection(call):
     bot.answer_callback_query(call.id)
     bot.send_photo(user_id, char["image"], caption=stats, parse_mode="Markdown")
 
-# /stats function
+# /stats command to show character stats
 @bot.message_handler(commands=['stats'])
 def stats(message):
-    user_id = message.from_user.id
+    user_id = message.chat.id
     initialize_user(user_id)
 
-    command_parts = message.text.split(maxsplit=1)
-
-    if len(command_parts) < 2:
-        bot.send_message(user_id, "❌ Please specify a character name. Example: `/stats Himeno`", parse_mode="Markdown")
-        return
-
-    requested_character = command_parts[1].strip()
-
     cursor.execute("SELECT selected_character FROM users WHERE user_id=?", (user_id,))
-    user_character = cursor.fetchone()
+    char = cursor.fetchone()[0]
 
-    if not user_character or not user_character[0]:
-        bot.send_message(user_id, "❌ You haven't selected a character yet. Use /choose_char to select one.")
-        return
-
-    selected_character = user_character[0]
-
-    if requested_character.lower() != selected_character.lower():
-        bot.send_message(user_id, f"❌ You don't own {requested_character}. You have `{selected_character}`.", parse_mode="Markdown")
-        return
-
-    if selected_character in characters:
-        char_stats = characters[selected_character]
-        stats_message = f"""
-🩸 _{selected_character}_ 🩸
+    if char and char in characters:
+        char_stats = characters[char]
+        stats = f"""
+🩸 _{char}_ 🩸
 ━━━━━━━━━━━━━
 ❤️ Health: 〘 {char_stats['health']} HP 〙
 ⚔️ Attack: 〘 {char_stats['attack']} 〙
@@ -160,14 +145,15 @@ def stats(message):
 👻 Special Ability: _{char_stats['special_ability']}_ 
 🔺 EXP Needed: 〘 {char_stats['exp_needed']} 〙
 ━━━━━━━━━━━━━
-💀 *{char_stats['description']}*
 """
-        bot.send_photo(user_id, char_stats["image"], caption=stats_message, parse_mode="Markdown")
+        bot.send_photo(user_id, char_stats['image'], caption=stats, parse_mode="Markdown")
+    else:
+        bot.send_message(user_id, "❌ You haven't selected a character yet. Use /choose_char to select one.")
 
-# /balance command
+# /balance command to show inventory balance (gems, yens, exp)
 @bot.message_handler(commands=['balance'])
 def balance(message):
-    user_id = message.from_user.id
+    user_id = message.chat.id
     initialize_user(user_id)
 
     cursor.execute("SELECT gems, yens, exp, level FROM users WHERE user_id=?", (user_id,))
@@ -177,24 +163,35 @@ def balance(message):
 ╔════════════════════╗
       🎭 HUNTER'S BALANCE 🎭
 ╚════════════════════╝
-💴 Yens: ❲ {user_data[1]} ❳  
-💎 Gems: ❲ {user_data[0]} ❳  
-📊 Level: ❲ {user_data[3]} ❳  
-🔺 EXP: ❲ {user_data[2]} ❳  
+🆔 User ID: {user_id}
+👤 Username: @{message.from_user.username}
+
+💴 Yens: ─── ❲ {user_data[1]} ❳  
+💎 Gems: ─── ❲ {user_data[0]} ❳  
+📊 Level: ─── ❲ {user_data[3]} ❳  
+🔺 EXP: ─── ❲ {user_data[2]} ❳  
 ━━━━━━━━━━━━━━━━━━━━━
 ⚡ Keep pushing forward, hunter! ⚡  
+🎯 Stronger devils await your blade!
 """
 
     bot.send_message(user_id, balance_msg, parse_mode="Markdown")
 
-# /daily function
+# /daily command to claim daily rewards in an official group
 @bot.message_handler(commands=['daily'])
 def daily(message):
     user_id = message.chat.id
-    group_id = -1002369433935
+    group_id = -1002369433935  # Official group ID
 
     if message.chat.id != group_id:
         bot.send_message(user_id, "❌ You can only claim the daily reward in the official group!")
+        return
+
+    cursor.execute("SELECT last_daily_claim FROM users WHERE user_id=?", (user_id,))
+    last_claim = cursor.fetchone()[0]
+
+    if last_claim and datetime.strptime(last_claim, "%Y-%m-%d %H:%M:%S") > datetime.now() - timedelta(days=1):
+        bot.send_message(user_id, "❌ You can claim your daily reward only once every 24 hours!")
         return
 
     cursor.execute("UPDATE users SET gems = gems + 100, yens = yens + 150, last_daily_claim = ? WHERE user_id = ?",
