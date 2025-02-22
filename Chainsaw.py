@@ -1,50 +1,50 @@
 import telebot
-import random
-import time
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# Bot Token (Replace with your own token)
 TOKEN = "7215821191:AAH7YBa2FQi-0lfNHAnZMQtBAENTO1paw6A"
 bot = telebot.TeleBot(TOKEN)
 
-# Group ID where /daily is allowed
-OFFICIAL_GROUP_ID = -1002369433935
+# Store user data (Replace with a database for persistence)
+user_data = {}
 
-# Character Data
-characters = {
+# Character Stats
+character_stats = {
     "Himeno": {
-        "health": 85, "attack": 60, "special_ability": "Phantom Strike", "exp_needed": 1000,
-        "description": "A relentless hunter who walks the line between the living and the dead.",
-        "image": "https://files.catbox.moe/i3vcf7.jpg"
+        "Health": 85,
+        "Attack": 60,
+        "Defense": 70,
+        "Special Ability": "Phantom Strike",
+        "Level": 0,
+        "EXP": "200 / 1000",
+        "Description": "A relentless hunter who walks the line between the living and the dead.",
+        "Image": "https://files.catbox.moe/i3vcf7.jpg"
     },
     "Hirokazu": {
-        "health": 75, "attack": 65, "special_ability": "Shield Bash", "exp_needed": 1000,
-        "description": "A determined warrior with unwavering loyalty.",
-        "image": "https://files.catbox.moe/2l5fw0.jpg"
+        "Health": 75,
+        "Attack": 65,
+        "Defense": 60,
+        "Special Ability": "Bullet Barrage",
+        "Level": 0,
+        "EXP": "150 / 1000",
+        "Description": "A determined fighter with a sharp aim.",
+        "Image": "https://files.catbox.moe/2l5fw0.jpg"
     },
     "Kishibe": {
-        "health": 90, "attack": 70, "special_ability": "Demon Slayer", "exp_needed": 1000,
-        "description": "A battle-hardened veteran feared by devils.",
-        "image": "https://files.catbox.moe/xg6bdl.jpg"
+        "Health": 90,
+        "Attack": 80,
+        "Defense": 75,
+        "Special Ability": "Devil Slayer",
+        "Level": 0,
+        "EXP": "250 / 1000",
+        "Description": "A veteran devil hunter feared by both devils and humans.",
+        "Image": "https://files.catbox.moe/xg6bdl.jpg"
     }
 }
 
-# User Data (Temporary, Replace with Database Later)
-user_data = {}
-daily_claims = {}
-
-# /start Command (Works only in DM)
+# /start Command (Only Works Once)
 @bot.message_handler(commands=['start'])
 def start(message):
-    if message.chat.type != "private":
-        bot.send_message(message.chat.id, "❌ Please start the bot in DM.")
-        return
-
     user_id = message.chat.id
-    user_data[user_id] = {"character": None, "gems": 0, "yens": 0, "exp": 0, "level": 1, "owned_characters": []}
-
-    keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton("🎭 Choose Character", callback_data="choose_char"))
 
     start_msg = """
 🔥 *Welcome to the Chainsaw Man Game!* 🔥
@@ -54,46 +54,59 @@ def start(message):
 ━━━━━━━━━━━━━
 """
 
-    bot.send_photo(user_id, "https://files.catbox.moe/qeqy19.jpg", caption=start_msg, parse_mode="Markdown", reply_markup=keyboard)
+    if user_id not in user_data:
+        user_data[user_id] = {"started": True, "character": None}
+
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton("🎭 Choose Character", callback_data="choose_char"))
+
+        bot.send_photo(user_id, "https://files.catbox.moe/qeqy19.jpg", caption=start_msg, parse_mode="Markdown", reply_markup=keyboard)
+    else:
+        note = "⚠️ *You've already started the game!* Continue your journey by exploring the available commands."
+        bot.send_photo(user_id, "https://files.catbox.moe/qeqy19.jpg", caption=f"{start_msg}\n{note}", parse_mode="Markdown")
 
 # /choose_char Command
 @bot.callback_query_handler(func=lambda call: call.data == "choose_char")
 def choose_char(call):
-    if call.message.chat.type != "private":
-        bot.answer_callback_query(call.id, "❌ Choose your character in DM!")
-        return
-
     user_id = call.from_user.id
+
+    bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+
     keyboard = InlineKeyboardMarkup()
-    for char_name in characters.keys():
-        keyboard.add(InlineKeyboardButton(char_name, callback_data=char_name))
+    keyboard.add(InlineKeyboardButton("Himeno", callback_data="Himeno"))
+    keyboard.add(InlineKeyboardButton("Hirokazu", callback_data="Hirokazu"))
+    keyboard.add(InlineKeyboardButton("Kishibe", callback_data="Kishibe"))
 
     bot.answer_callback_query(call.id)
     bot.send_message(user_id, "🎭 *Choose your character:*", reply_markup=keyboard, parse_mode="Markdown")
 
-# Character Selection
-@bot.callback_query_handler(func=lambda call: call.data in characters)
-def handle_char_selection(call):
+# Character Selection & Stats Display
+@bot.callback_query_handler(func=lambda call: call.data in character_stats)
+def select_character(call):
     user_id = call.from_user.id
-    character_name = call.data
-    user_data[user_id]["character"] = character_name
-    user_data[user_id]["owned_characters"].append(character_name)
+    chosen_character = call.data
 
-    char = characters[character_name]
-    stats = f"""
-🩸 _{character_name}_ 🩸
+    user_data[user_id]["character"] = chosen_character  # Save character choice
+
+    char_info = character_stats[chosen_character]
+    stats_msg = f"""
+🎭 *You have chosen {chosen_character}!* 🎭
 ━━━━━━━━━━━━━
-❤️ Health: 〘 {char['health']} HP 〙
-⚔️ Attack: 〘 {char['attack']} 〙
-👻 Special Ability: _{char['special_ability']}_ 
-🔺 EXP Needed: 〘 {char['exp_needed']} 〙
+❤️ *Health:* {char_info["Health"]}
+⚔️ *Attack:* {char_info["Attack"]}
+🛡️ *Defense:* {char_info["Defense"]}
+✨ *Special Ability:* {char_info["Special Ability"]}
+🔰 *Level:* {char_info["Level"]}
+📈 *EXP:* {char_info["EXP"]}
+📖 *Description:* {char_info["Description"]}
 ━━━━━━━━━━━━━
-💀 *{char['description']}*
 """
 
-    bot.answer_callback_query(call.id)
-    bot.send_photo(user_id, char["image"], caption=stats, parse_mode="Markdown")
+    bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+    bot.send_photo(user_id, char_info["Image"], caption=stats_msg, parse_mode="Markdown")
 
+# Start the bot
+bot.polling()
 # /daily Command
 @bot.message_handler(commands=['daily'])
 def daily(message):
