@@ -1,6 +1,6 @@
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-
+import time
 TOKEN = "7215821191:AAH7YBa2FQi-0lfNHAnZMQtBAENTO1paw6A"
 bot = telebot.TeleBot(TOKEN)
 
@@ -106,8 +106,12 @@ def select_character(call):
     bot.send_photo(user_id, char_info["Image"], caption=stats_msg, parse_mode="Markdown")
 
 # Start the bot
-bot.polling()
 # /daily Command
+
+
+OFFICIAL_GROUP_ID = -1002369433935  # Replace with your actual group ID
+daily_claims = {}  # Store the last claimed time of users
+
 @bot.message_handler(commands=['daily'])
 def daily(message):
     if message.chat.id != OFFICIAL_GROUP_ID:
@@ -122,24 +126,38 @@ def daily(message):
         bot.send_message(message.chat.id, f"⏳ You already claimed your daily reward! Try again in {remaining_time} hours.")
         return
 
+    # Ensure user data is properly initialized
     if user_id not in user_data:
-        user_data[user_id] = {"character": None, "gems": 0, "yens": 0, "exp": 0, "level": 1, "owned_characters": []}
+        user_data[user_id] = {"character": None, "yens": 0, "gems": 0, "exp": 0, "level": 1, "owned_characters": []}
 
+    # Add rewards
     user_data[user_id]["yens"] += 150
     user_data[user_id]["gems"] += 100
     daily_claims[user_id] = current_time
 
     bot.send_message(message.chat.id, "🎁 You received *150 Yens* and *100 Gems*! Come back tomorrow for more.", parse_mode="Markdown")
 
-# /balance Command
 @bot.message_handler(commands=['balance'])
 def balance(message):
     user_id = message.from_user.id
+
+    # Ensure user data is properly initialized
     if user_id not in user_data:
         bot.send_message(message.chat.id, "❌ You haven't started the game yet. Use /start.")
         return
 
+    # Ensure all required fields exist
+    if "yens" not in user_data[user_id]:
+        user_data[user_id]["yens"] = 0
+    if "gems" not in user_data[user_id]:
+        user_data[user_id]["gems"] = 0
+    if "exp" not in user_data[user_id]:
+        user_data[user_id]["exp"] = 0
+    if "level" not in user_data[user_id]:
+        user_data[user_id]["level"] = 1
+
     user = user_data[user_id]
+    
     balance_msg = f"""
 ╔════════════════════════════╗
 ║     💰 HUNTER'S TREASURY 💰     ║
@@ -161,12 +179,6 @@ def balance(message):
     keyboard = InlineKeyboardMarkup()
     keyboard.add(InlineKeyboardButton("❌ Exit", callback_data="exit_balance"))
     bot.send_message(message.chat.id, balance_msg, parse_mode="Markdown", reply_markup=keyboard)
-
-@bot.callback_query_handler(func=lambda call: call.data == "exit_balance")
-def exit_balance(call):
-    bot.delete_message(call.message.chat.id, call.message.message_id)
-    bot.send_message(call.message.chat.id, "✅ Balance closed.")
-
 # /mycharacters Command
 @bot.message_handler(commands=['mycharacters'])
 def mycharacters(message):
