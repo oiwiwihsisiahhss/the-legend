@@ -1,80 +1,49 @@
 import telebot
-import sqlite3
-from datetime import datetime, timedelta
+import time
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # Bot Token
 TOKEN = "7215821191:AAH7YBa2FQi-0lfNHAnZMQtBAENTO1paw6A"
 bot = telebot.TeleBot(TOKEN)
 
-# Database Setup
-conn = sqlite3.connect("bot_data.db", check_same_thread=False)
-cursor = conn.cursor()
+# Group ID where /daily is allowed
+OFFICIAL_GROUP_ID = -1002369433935
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    user_id INTEGER PRIMARY KEY,
-    selected_character TEXT,
-    gems INTEGER DEFAULT 0,
-    yens INTEGER DEFAULT 0,
-    exp INTEGER DEFAULT 0,
-    level INTEGER DEFAULT 1,
-    last_daily_claim TEXT,
-    has_started INTEGER DEFAULT 0
-)
-""")
-conn.commit()
-
+# Character Data
 characters = {
     "Himeno": {
-        "health": 85, "attack": 60, "defense": 70,
-        "special_ability": "Phantom Strike", "exp_needed": 1000,
+        "health": 85, "attack": 60, "special_ability": "Phantom Strike", "exp_needed": 1000,
         "description": "A relentless hunter who walks the line between the living and the dead.",
         "image": "https://files.catbox.moe/i3vcf7.jpg"
     },
     "Hirokazu": {
-        "health": 75, "attack": 65, "defense": 60,
-        "special_ability": "Shield Bash", "exp_needed": 1000,
+        "health": 75, "attack": 65, "special_ability": "Shield Bash", "exp_needed": 1000,
         "description": "A determined warrior with unwavering loyalty.",
         "image": "https://files.catbox.moe/2l5fw0.jpg"
     },
     "Kishibe": {
-        "health": 90, "attack": 70, "defense": 80,
-        "special_ability": "Demon Slayer", "exp_needed": 1000,
+        "health": 90, "attack": 70, "special_ability": "Demon Slayer", "exp_needed": 1000,
         "description": "A battle-hardened veteran feared by devils.",
         "image": "https://files.catbox.moe/xg6bdl.jpg"
     }
 }
 
-# Initialize user in the database
-def initialize_user(user_id):
-    cursor.execute("SELECT * FROM users WHERE user_id=?", (user_id,))
-    if not cursor.fetchone():
-        cursor.execute("INSERT INTO users (user_id) VALUES (?)", (user_id,))
-        conn.commit()
+# User Data (Temporary, Replace with Database Later)
+user_data = {}
+daily_claims = {}
 
-# /start function with welcome image
+# /start Command (Only in DM)
 @bot.message_handler(commands=['start'])
 def start(message):
-    user_id = message.from_user.id
-    initialize_user(user_id)
-
-    # Check if the user has already started the bot
-    cursor.execute("SELECT has_started FROM users WHERE user_id=?", (user_id,))
-    has_started = cursor.fetchone()[0]
-
-    if has_started:
-        bot.send_message(user_id, "❌ You have already started the bot. Inline keyboards will be disabled.")
+    if message.chat.type != "private":
+        bot.send_message(message.chat.id, "❌ Please start the bot in DM.")
         return
 
-    # Mark the user as started
-    cursor.execute("UPDATE users SET has_started = 1 WHERE user_id = ?", (user_id,))
-    conn.commit()
+    user_id = message.chat.id
+    user_data[user_id] = {"character": None, "gems": 0, "yens": 0, "exp": 0, "level": 1}
 
-    # Creating Inline Button for "Choose Character"
     keyboard = InlineKeyboardMarkup()
-    choose_char_button = InlineKeyboardButton("🎭 Choose Character", callback_data="choose_char")
-    keyboard.add(choose_char_button)
+    keyboard.add(InlineKeyboardButton("🎭 Choose Character", callback_data="choose_char"))
 
     start_msg = """
 🔥 *Welcome to the Chainsaw Man Game!* 🔥
@@ -84,14 +53,16 @@ def start(message):
 ━━━━━━━━━━━━━
 """
 
-    # Send welcome message with the image
     bot.send_photo(user_id, "https://files.catbox.moe/qeqy19.jpg", caption=start_msg, parse_mode="Markdown", reply_markup=keyboard)
 
-# /choose_char function
+# /choose_char (Only in DM)
 @bot.callback_query_handler(func=lambda call: call.data == "choose_char")
 def choose_char(call):
-    user_id = call.from_user.id
+    if call.message.chat.type != "private":
+        bot.answer_callback_query(call.id, "❌ Choose your character in DM!")
+        return
 
+    user_id = call.from_user.id
     keyboard = InlineKeyboardMarkup()
     for char_name in characters.keys():
         keyboard.add(InlineKeyboardButton(char_name, callback_data=char_name))
@@ -99,15 +70,12 @@ def choose_char(call):
     bot.answer_callback_query(call.id)
     bot.send_message(user_id, "🎭 *Choose your character:*", reply_markup=keyboard, parse_mode="Markdown")
 
-# Character selection handler
+# Character Selection
 @bot.callback_query_handler(func=lambda call: call.data in characters)
 def handle_char_selection(call):
     user_id = call.from_user.id
     character_name = call.data
-    initialize_user(user_id)
-
-    cursor.execute("UPDATE users SET selected_character = ? WHERE user_id = ?", (character_name, user_id))
-    conn.commit()
+    user_data[user_id]["character"] = character_name
 
     char = characters[character_name]
     stats = f"""
@@ -115,7 +83,6 @@ def handle_char_selection(call):
 ━━━━━━━━━━━━━
 ❤️ Health: 〘 {char['health']} HP 〙
 ⚔️ Attack: 〘 {char['attack']} 〙
-🛡 Defense: 〘 {char['defense']} 〙
 👻 Special Ability: _{char['special_ability']}_ 
 🔺 EXP Needed: 〘 {char['exp_needed']} 〙
 ━━━━━━━━━━━━━
@@ -125,80 +92,82 @@ def handle_char_selection(call):
     bot.answer_callback_query(call.id)
     bot.send_photo(user_id, char["image"], caption=stats, parse_mode="Markdown")
 
-# /stats command to show character stats
-@bot.message_handler(commands=['stats'])
-def stats(message):
-    user_id = message.chat.id
-    initialize_user(user_id)
+# /daily Command (Only in Group, Once Every 24 Hours)
+@bot.message_handler(commands=['daily'])
+def daily(message):
+    if message.chat.type != "supergroup" and message.chat.id != OFFICIAL_GROUP_ID:
+        bot.send_message(message.chat.id, "❌ You can only claim daily rewards in the official group.")
+        return
 
-    cursor.execute("SELECT selected_character FROM users WHERE user_id=?", (user_id,))
-    char = cursor.fetchone()[0]
+    user_id = message.from_user.id
+    current_time = time.time()
 
-    if char and char in characters:
-        char_stats = characters[char]
-        stats = f"""
-🩸 _{char}_ 🩸
-━━━━━━━━━━━━━
-❤️ Health: 〘 {char_stats['health']} HP 〙
-⚔️ Attack: 〘 {char_stats['attack']} 〙
-🛡 Defense: 〘 {char_stats['defense']} 〙
-👻 Special Ability: _{char_stats['special_ability']}_ 
-🔺 EXP Needed: 〘 {char_stats['exp_needed']} 〙
-━━━━━━━━━━━━━
-"""
-        bot.send_photo(user_id, char_stats['image'], caption=stats, parse_mode="Markdown")
-    else:
-        bot.send_message(user_id, "❌ You haven't selected a character yet. Use /choose_char to select one.")
+    # Check if user has already claimed within the last 24 hours
+    if user_id in daily_claims:
+        last_claim = daily_claims[user_id]
+        time_passed = current_time - last_claim
 
-# /balance command to show inventory balance (gems, yens, exp)
+        if time_passed < 86400:  # 24 hours = 86400 seconds
+            remaining_time = int((86400 - time_passed) / 3600)
+            bot.send_message(message.chat.id, f"⏳ You already claimed your daily reward! Try again in {remaining_time} hours.")
+            return
+
+    # Give rewards
+    if user_id not in user_data:
+        user_data[user_id] = {"character": None, "gems": 0, "yens": 0, "exp": 0, "level": 1}
+
+    user_data[user_id]["yens"] += 150
+    user_data[user_id]["gems"] += 100
+    daily_claims[user_id] = current_time
+
+    bot.send_message(message.chat.id, "🎁 You received *150 Yens* and *100 Gems*! Come back tomorrow for more.", parse_mode="Markdown")
+
+# /balance Command with Exit Button
 @bot.message_handler(commands=['balance'])
 def balance(message):
     user_id = message.chat.id
-    initialize_user(user_id)
+    if user_id not in user_data:
+        bot.send_message(user_id, "❌ You haven't started the game yet. Use /start.")
+        return
 
-    cursor.execute("SELECT gems, yens, exp, level FROM users WHERE user_id=?", (user_id,))
-    user_data = cursor.fetchone()
+    user = user_data[user_id]
 
     balance_msg = f"""
-╔════════════════════╗
-      🎭 HUNTER'S BALANCE 🎭
-╚════════════════════╝
-🆔 User ID: {user_id}
-👤 Username: @{message.from_user.username}
-
-💴 Yens: ─── ❲ {user_data[1]} ❳  
-💎 Gems: ─── ❲ {user_data[0]} ❳  
-📊 Level: ─── ❲ {user_data[3]} ❳  
-🔺 EXP: ─── ❲ {user_data[2]} ❳  
-━━━━━━━━━━━━━━━━━━━━━
-⚡ Keep pushing forward, hunter! ⚡  
-🎯 Stronger devils await your blade!
+╔════════════════════════════════╗
+║        💰 HUNTER'S TREASURY 💰        ║
+╠════════════════════════════════╣
+║ 🎭 *Hunter Profile*                           ║
+║ ────────────────────── ║
+║ 📌 User ID      │ `{user_id}`             ║
+║ 📝 Name         │ `{message.from_user.first_name}`         ║
+╠════════════════════════════════╣
+║ 💴 *Wealth & Currency*                     ║
+║ ────────────────────── ║
+║ 💰 Yens        │ `{user['yens']}`                 ║
+║ 💎 Gems      │ `{user['gems']}`                 ║
+╠════════════════════════════════╣
+║ ⚔️ *Combat Stats*                         ║
+║ ────────────────────── ║
+║ 📊 Level       │ `{user['level']}`                 ║
+║ 🔺 EXP       │ `{user['exp']}` / 1000         ║
+║ ❤️ Health  │ `100%`                  ║
+╠════════════════════════════════╣
+║ ⚡ *Hunter’s Journey*                       ║
+║ _"The path of a hunter is filled with danger and glory."_  ║
+║ 🎯 *Keep hunting, grow stronger, and claim your destiny!* ║
+╚════════════════════════════════╝
 """
 
-    bot.send_message(user_id, balance_msg, parse_mode="Markdown")
+    keyboard = InlineKeyboardMarkup()
+    keyboard.add(InlineKeyboardButton("❌ Exit", callback_data="exit_balance"))
 
-# /daily command to claim daily rewards in an official group
-@bot.message_handler(commands=['daily'])
-def daily(message):
-    user_id = message.chat.id
-    group_id = -1002369433935  # Official group ID
+    bot.send_message(user_id, balance_msg, parse_mode="Markdown", reply_markup=keyboard)
 
-    if message.chat.id != group_id:
-        bot.send_message(user_id, "❌ You can only claim the daily reward in the official group!")
-        return
+# Exit Balance Message
+@bot.callback_query_handler(func=lambda call: call.data == "exit_balance")
+def exit_balance(call):
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+    bot.send_message(call.message.chat.id, "✅ Balance closed.")
 
-    cursor.execute("SELECT last_daily_claim FROM users WHERE user_id=?", (user_id,))
-    last_claim = cursor.fetchone()[0]
-
-    if last_claim and datetime.strptime(last_claim, "%Y-%m-%d %H:%M:%S") > datetime.now() - timedelta(days=1):
-        bot.send_message(user_id, "❌ You can claim your daily reward only once every 24 hours!")
-        return
-
-    cursor.execute("UPDATE users SET gems = gems + 100, yens = yens + 150, last_daily_claim = ? WHERE user_id = ?",
-                   (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user_id))
-    conn.commit()
-
-    bot.send_message(user_id, "🎉 You've claimed your daily rewards! \n💎 100 Gems\n💰 150 Yens")
-
-# Start the bot
+# Start Bot
 bot.polling()
