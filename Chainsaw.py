@@ -231,4 +231,5 @@ def mycharacters(message):
 """
 
     bot.send_message(message.chat.id, response, parse_mode="Markdown")
-    bot.polling() 
+#start the bot
+bot.polling() 
