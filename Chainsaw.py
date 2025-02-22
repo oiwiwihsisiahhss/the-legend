@@ -62,7 +62,7 @@ def start(message):
 
         bot.send_photo(user_id, "https://files.catbox.moe/qeqy19.jpg", caption=start_msg, parse_mode="Markdown", reply_markup=keyboard)
     else:
-        note = "⚠️ *You've already started the game!* Continue your journey by exploring the available commands."
+        note = "⚠️ *You've already started the game!* Continue your journey by exploring the available commands \n You are also invited to join our main group for future update and more-https://t.me/chainsawman_main_gc."
         bot.send_photo(user_id, "https://files.catbox.moe/qeqy19.jpg", caption=f"{start_msg}\n{note}", parse_mode="Markdown")
 
 # /choose_char Command
