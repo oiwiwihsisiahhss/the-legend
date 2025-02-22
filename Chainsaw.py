@@ -170,4 +170,37 @@ def exit_balance(call):
     bot.send_message(call.message.chat.id, "✅ Balance closed.")
 
 # Start Bot
+@bot.message_handler(commands=['stats'])
+def stats(message):
+    args = message.text.split(maxsplit=1)  # Split command and argument
+
+    if len(args) < 2:
+        bot.send_message(message.chat.id, "❌ Usage: `/stats <character_name>`", parse_mode="Markdown")
+        return
+
+    character_name = args[1].strip()
+
+    # Exact match check
+    if character_name in characters:
+        char = characters[character_name]
+
+        stats_msg = f"""
+🩸 *{character_name}* 🩸
+━━━━━━━━━━━━━
+❤️ Health: 〘 {char['health']} HP 〙
+⚔️ Attack: 〘 {char['attack']} 〙
+👻 Special Ability: _{char['special_ability']}_ 
+🔺 EXP Needed: 〘 {char['exp_needed']} 〙
+━━━━━━━━━━━━━
+💀 *{char['description']}*
+"""
+
+        bot.send_photo(message.chat.id, char["image"], caption=stats_msg, parse_mode="Markdown")
+
+    # Spelling mistake check
+    elif any(name.lower() == character_name.lower() for name in characters.keys()):
+        bot.send_message(message.chat.id, "⚠️ *Spelling error!* Check the name and try again.", parse_mode="Markdown")
+
+    else:
+        bot.send_message(message.chat.id, "❌ *Error!* Character not found.", parse_mode="Markdown")
 bot.polling()
