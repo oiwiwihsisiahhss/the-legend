@@ -134,35 +134,31 @@ def balance(message):
     user = user_data[user_id]
 
     balance_msg = f"""
-╔════════════════════════════════╗
-║        💰 HUNTER'S TREASURY 💰        ║
-╠════════════════════════════════╣
-║ 🎭 *Hunter Profile*                           ║
-║ ────────────────────── ║
-║ 📌 User ID      │ `{user_id}`             ║
-║ 📝 Name         │ `{message.from_user.first_name}`         ║
-╠════════════════════════════════╣
-║ 💴 *Wealth & Currency*                     ║
-║ ────────────────────── ║
-║ 💰 Yens        │ `{user['yens']}`                 ║
-║ 💎 Gems      │ `{user['gems']}`                 ║
-╠════════════════════════════════╣
-║ ⚔️ *Combat Stats*                         ║
-║ ────────────────────── ║
-║ 📊 Level       │ `{user['level']}`                 ║
-║ 🔺 EXP       │ `{user['exp']}` / 1000         ║
-║ ❤️ Health  │ `100%`                  ║
-╠════════════════════════════════╣
-║ ⚡ *Hunter’s Journey*                       ║
-║ _"The path of a hunter is filled with danger and glory."_  ║
-║ 🎯 *Keep hunting, grow stronger, and claim your destiny!* ║
-╚════════════════════════════════╝
+╔════════════════════════════╗
+║     💰 HUNTER'S TREASURY 💰     ║
+╠════════════════════════════╣
+║ 🎭 *Hunter Profile*             ║
+║ 📌 ID   │ `{user_id}`           ║
+║ 📝 Name │ `{message.from_user.first_name}`   ║
+╠════════════════════════════╣
+║ 💴 *Wealth*                      ║
+║ 💰 Yens   │ `{user['yens']}`    ║
+║ 💎 Gems  │ `{user['gems']}`     ║
+╠════════════════════════════╣
+║ ⚔️ *Combat Stats*               ║
+║ 📊 Level │ `{user['level']}`    ║
+║ 🔺 EXP   │ `{user['exp']}` / 1000  ║
+╚════════════════════════════╝
 """
 
     keyboard = InlineKeyboardMarkup()
     keyboard.add(InlineKeyboardButton("❌ Exit", callback_data="exit_balance"))
 
-    bot.send_message(user_id, balance_msg, parse_mode="Markdown", reply_markup=keyboard)
+    # Check if the message is from a group or DM
+    if message.chat.type in ['group', 'supergroup']:
+        bot.send_message(message.chat.id, balance_msg, parse_mode="Markdown", reply_markup=keyboard)
+    else:
+        bot.send_message(user_id, balance_msg, parse_mode="Markdown", reply_markup=keyboard)
 
 # Exit Balance Message
 @bot.callback_query_handler(func=lambda call: call.data == "exit_balance")
@@ -205,7 +201,7 @@ def stats(message):
     else:
         bot.send_message(message.chat.id, "❌ *Error!* Character not found.", parse_mode="Markdown")
 
-import random
+
 
 # /mycharacters Command - Shows user's owned characters with count (Works in both Groups and DMs)
 @bot.message_handler(commands=['mycharacters'])
