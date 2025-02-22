@@ -205,9 +205,9 @@ def stats(message):
     else:
         bot.send_message(message.chat.id, "❌ *Error!* Character not found.", parse_mode="Markdown")
 
+import random
 
-
-# /mycharacters Command - Shows user's owned characters (Works in both Groups and DMs)
+# /mycharacters Command - Shows user's owned characters with count (Works in both Groups and DMs)
 @bot.message_handler(commands=['mycharacters'])
 def mycharacters(message):
     user_id = message.from_user.id
@@ -226,7 +226,15 @@ def mycharacters(message):
     # Assign ordered numbers (1, 2, 3...)
     char_list = "\n".join([f"{i + 1}️⃣ {char}" for i, char in enumerate(owned_characters)])
     
-    response = f"📜 *Your Character Collection* 📜\n━━━━━━━━━━━━━━━━━━━\n{char_list}\n━━━━━━━━━━━━━━━━━━━"
-    
+    response = f"""
+📜 *Your Character Collection* 📜
+━━━━━━━━━━━━━━━━━━━
+🔢 *Total Characters:* {len(owned_characters)}
+{char_list}
+━━━━━━━━━━━━━━━━━━━
+"""
+
     bot.send_message(message.chat.id, response, parse_mode="Markdown")
+
+
     bot.polling() 
