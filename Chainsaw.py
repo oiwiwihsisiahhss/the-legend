@@ -4,7 +4,7 @@ import time
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # Bot Token (Replace with your own token)
-TOKEN = "YOUR_BOT_TOKEN_HERE"
+TOKEN = "7215821191:AAH7YBa2FQi-0lfNHAnZMQtBAENTO1paw6A"
 bot = telebot.TeleBot(TOKEN)
 
 # Group ID where /daily is allowed
