@@ -1,4 +1,5 @@
 import telebot
+import random
 import time
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -203,4 +204,29 @@ def stats(message):
 
     else:
         bot.send_message(message.chat.id, "❌ *Error!* Character not found.", parse_mode="Markdown")
-bot.polling()
+
+
+
+# /mycharacters Command - Shows user's owned characters (Works in both Groups and DMs)
+@bot.message_handler(commands=['mycharacters'])
+def mycharacters(message):
+    user_id = message.from_user.id
+
+    if user_id not in user_data:
+        user_data[user_id] = {"owned_characters": []}  # Ensure data structure exists
+
+    owned_characters = user_data[user_id].get("owned_characters", [])
+
+    if not owned_characters:
+        bot.send_message(message.chat.id, "❌ You don't own any characters yet.\nStart your journey and collect powerful hunters!")
+        return
+
+    random.shuffle(owned_characters)  # Shuffle characters only
+
+    # Assign ordered numbers (1, 2, 3...)
+    char_list = "\n".join([f"{i + 1}️⃣ {char}" for i, char in enumerate(owned_characters)])
+    
+    response = f"📜 *Your Character Collection* 📜\n━━━━━━━━━━━━━━━━━━━\n{char_list}\n━━━━━━━━━━━━━━━━━━━"
+    
+    bot.send_message(message.chat.id, response, parse_mode="Markdown")
+    bot.polling() 
