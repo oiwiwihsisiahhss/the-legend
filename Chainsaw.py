@@ -134,7 +134,6 @@ def daily(message):
     daily_claims[user_id] = current_time
 
     bot.send_message(message.chat.id, "🎁 You received *150 Yens* and *100 Gems*!", parse_mode="Markdown")
-
 @bot.message_handler(commands=['balance'])
 def balance(message):
     user_id = message.from_user.id
@@ -168,7 +167,15 @@ def balance(message):
     markup.add(exit_button)
 
     bot.send_message(message.chat.id, balance_msg, parse_mode="Markdown", reply_markup=markup)
-# /
+
+
+# Handle exit button click
+@bot.callback_query_handler(func=lambda call: call.data == "exit_balance")
+def exit_balance(call):
+    try:
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+    except Exception as e:
+        print(f"Error deleting message: {e}")
 
 
 @bot.message_handler(commands=['mycharacters'])
