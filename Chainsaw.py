@@ -269,4 +269,82 @@ def stats_command(message):
         bot.send_photo(message.chat.id, char_info["Image"], caption=stats_msg, parse_mode="Markdown")
     else:
         bot.send_message(message.chat.id, stats_msg, parse_mode="Markdown")
+@bot.message_handler(commands=['add'])
+def add_resources(message):
+    # Check if the sender is the admin (you)
+    admin_id = 6306216999  # Replace with your Telegram user ID
+    if message.from_user.id != admin_id:
+        bot.send_message(message.chat.id, "❌ You are not authorized to add resources.")
+        return
+
+    # Split the message into action and target
+    parts = message.text.split()
+    if len(parts) < 3:
+        bot.send_message(message.chat.id, "❌ Invalid command format. Usage: /add <resource> <amount> <user_id>")
+        return
+
+    action = parts[1].lower()  # yens, gems, char
+    amount = parts[2]  # Amount to add (could be negative)
+    target_user_id = int(parts[3])  # Target user's ID
+
+    if action not in ["yens", "gems", "char"]:
+        bot.send_message(message.chat.id, "❌ Invalid resource type. Use 'yens', 'gems', or 'char'.")
+        return
+
+    # Ensure the target user exists in the data
+    if target_user_id not in user_data:
+        bot.send_message(message.chat.id, f"❌ User with ID {target_user_id} does not exist.")
+        return
+
+    # Handle adding Yens
+    if action == "yens":
+        try:
+            amount = int(amount)
+            user_balance = user_data[target_user_id]["yens"]
+            
+            # Modify the balance by adding or subtracting the amount
+            user_data[target_user_id]["yens"] = user_balance + amount
+            
+            # Send a confirmation message
+            if amount < 0:
+                bot.send_message(message.chat.id, f"✅ {abs(amount)} Yens have been subtracted from user {target_user_id}'s balance.")
+            else:
+                bot.send_message(message.chat.id, f"✅ {amount} Yens have been added to user {target_user_id}'s balance.")
+        except ValueError:
+            bot.send_message(message.chat.id, "❌ Invalid amount specified for Yens.")
+            return
+
+    # Handle adding Gems
+    elif action == "gems":
+        try:
+            amount = int(amount)
+            user_balance = user_data[target_user_id]["gems"]
+            
+            # Modify the balance by adding or subtracting the amount
+            user_data[target_user_id]["gems"] = user_balance + amount
+            
+            # Send a confirmation message
+            if amount < 0:
+                bot.send_message(message.chat.id, f"✅ {abs(amount)} Gems have been subtracted from user {target_user_id}'s balance.")
+            else:
+                bot.send_message(message.chat.id, f"✅ {amount} Gems have been added to user {target_user_id}'s balance.")
+        except ValueError:
+            bot.send_message(message.chat.id, "❌ Invalid amount specified for Gems.")
+            return
+
+    # Handle adding Characters (ensure the character exists)
+    elif action == "char":
+        character_name = amount.lower()  # Get the character name from the command
+        available_characters = ["himeno", "hiro", "kishibe"]  # Add more characters as needed
+
+        if character_name not in available_characters:
+            bot.send_message(message.chat.id, "❌ Invalid character name.")
+            return
+
+        # Add the character to the user's owned characters list
+        if character_name not in user_data[target_user_id]["owned_characters"]:
+            user_data[target_user_id]["owned_characters"].append(character_name)
+            bot.send_message(message.chat.id, f"✅ {character_name.title()} has been added to user {target_user_id}'s character list.")
+        else:
+            bot.send_message(message.chat.id, f"❌ User {target_user_id} already owns the character {character_name.title()}.")        
 bot.polling()
