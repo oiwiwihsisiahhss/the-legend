@@ -239,5 +239,10 @@ def stats_command(message):
 📖 *Description:* {char_info["Description"]}
 ━━━━━━━━━━━━━
     """
-    bot.send_message(message.chat.id, stats_msg, parse_mode="Markdown")
+
+    # Send character image along with stats
+    if "Image" in char_info:  # Ensure an image exists for the character
+        bot.send_photo(message.chat.id, char_info["Image"], caption=stats_msg, parse_mode="Markdown")
+    else:
+        bot.send_message(message.chat.id, stats_msg, parse_mode="Markdown")
 bot.polling()
