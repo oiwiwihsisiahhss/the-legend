@@ -271,54 +271,46 @@ def stats_command(message):
         bot.send_message(message.chat.id, stats_msg, parse_mode="Markdown")
 @bot.message_handler(commands=['add'])
 def add_resources(message):
-    # Check if the sender is the authorized admin (You, with user ID)
-    admin_user_id = 6306216999  # Your user ID
-    if message.from_user.id != admin_user_id:
-        bot.send_message(message.chat.id, "❌ You are not authorized to use this command.")
+    user_id = message.from_user.id
+    command = message.text.split()
+
+    # Ensure the command has enough parts
+    if len(command) < 3:
+        bot.reply_to(message, "⚠️ Please provide the correct command. Example: /add yens 100")
         return
 
-    # Split the command into parts (e.g., /add yens 100)
-    parts = message.text.split()
-    
-    # Ensure the command is formatted correctly
-    if len(parts) < 3:
-        bot.send_message(message.chat.id, "❌ Invalid command format. Use: /add <type> <amount>")
-        return
-    
-    resource_type = parts[1].lower()  # e.g., "yens" or "gems"
-    amount = int(parts[2])  # amount to add
+    resource_type = command[1].lower()
+    amount = command[2]
 
-    # Check if a user is being replied to
-    if message.reply_to_message is None:
-        bot.send_message(message.chat.id, "❌ Please reply to the user you want to add resources to.")
-        return
-    
-    # Get the user ID of the person you're replying to
-    target_user_id = message.reply_to_message.from_user.id
-    
-    # Check if the target user is registered (logged in)
-    if target_user_id not in user_data:
-        bot.send_message(message.chat.id, "❌ This user is not part of the journey. Please make sure they have started with /start.")
-        return
+    try:
+        amount = int(amount)  # Try to convert amount to integer
 
-    # Adding resources to the target user
-    if resource_type == "yens":
-        user_data[target_user_id]["yens"] += amount
-    elif resource_type == "gems":
-        user_data[target_user_id]["gems"] += amount
-    else:
-        bot.send_message(message.chat.id, "❌ Invalid resource type. Only 'yens' or 'gems' are allowed.")
-        return
-    
-    # Send a confirmation message
-    bot.send_message(
-        message.chat.id, 
-        f"✅ Successfully added {amount} {resource_type} to user {target_user_id}!"
-    )
-    
-    # Optionally, send the updated balance
-    bot.send_message(
-        message.chat.id, 
-        f"Updated balance for user {target_user_id}:\nYens: {user_data[target_user_id]['yens']}\nGems: {user_data[target_user_id]['gems']}")
-    
+        if resource_type == "yens":
+            if amount < 0 and user_data[user_id]["yens"] + amount < 0:
+                bot.reply_to(message, "⚠️ You cannot subtract more Yens than you have.")
+                return
+            user_data[user_id]["yens"] += amount
+            bot.reply_to(message, f"✅ You have successfully updated your Yens. New balance: {user_data[user_id]['yens']} Yens.")
+
+        elif resource_type == "gems":
+            if amount < 0 and user_data[user_id]["gems"] + amount < 0:
+                bot.reply_to(message, "⚠️ You cannot subtract more Gems than you have.")
+                return
+            user_data[user_id]["gems"] += amount
+            bot.reply_to(message, f"✅ You have successfully updated your Gems. New balance: {user_data[user_id]['gems']} Gems.")
+
+        elif resource_type == "char" and len(command) > 3:
+            character_name = command[3].lower()
+            # Check if the character exists in your dictionary
+            if character_name in characters:
+                user_data[user_id]["character"] = characters[character_name]
+                bot.reply_to(message, f"✅ You have successfully added the character: {character_name}.")
+            else:
+                bot.reply_to(message, "⚠️ The character you entered does not exist. Please check the name.")
+
+        else:
+            bot.reply_to(message, "⚠️ Invalid command or resource type. Please use: /add yens <amount>, /add gems <amount>, or /add char <character_name>.")
+
+    except ValueError:
+        bot.reply_to(message, "⚠️ The amount must be a valid number.")
 bot.polling()
