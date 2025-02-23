@@ -1,11 +1,17 @@
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import time
-TOKEN = "7215821191:AAH7YBa2FQi-0lfNHAnZMQtBAENTO1paw6A"
+import random
+
+TOKEN = "YOUR_BOT_TOKEN"
 bot = telebot.TeleBot(TOKEN)
 
-# Store user data (Replace with a database for persistence)
+# Official Group ID (Replace if needed)
+OFFICIAL_GROUP_ID = -1002369433935
+
+# Store user data (Use SQLite for persistence in the future)
 user_data = {}
+daily_claims = {}
 
 # Character Stats
 character_stats = {
@@ -41,10 +47,15 @@ character_stats = {
     }
 }
 
-# /start Command (Only Works Once)
+# /start Command (Only in DM)
 @bot.message_handler(commands=['start'])
 def start(message):
-    user_id = message.chat.id
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+
+    if message.chat.type != "private":
+        bot.send_message(chat_id, f"❌ @{message.from_user.username}, use /start in DM.")
+        return
 
     start_msg = """
 🔥 *Welcome to the Chainsaw Man Game!* 🔥
@@ -55,23 +66,19 @@ def start(message):
 """
 
     if user_id not in user_data:
-        user_data[user_id] = {"started": True, "character": None}
+        user_data[user_id] = {"started": True, "character": None, "yens": 0, "gems": 0, "exp": 0, "level": 1, "owned_characters": []}
 
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("🎭 Choose Character", callback_data="choose_char"))
 
         bot.send_photo(user_id, "https://files.catbox.moe/qeqy19.jpg", caption=start_msg, parse_mode="Markdown", reply_markup=keyboard)
     else:
-        note = "⚠️ *You've already started the game!* Continue your journey by exploring the available commands \n You are also invited to join our main group for future update and more-https://t.me/chainsawman_main_gc."
-        bot.send_photo(user_id, "https://files.catbox.moe/qeqy19.jpg", caption=f"{start_msg}\n{note}", parse_mode="Markdown")
+        bot.send_message(user_id, "⚠️ *You've already started the game!*\n We also invite")
 
 # /choose_char Command
 @bot.callback_query_handler(func=lambda call: call.data == "choose_char")
 def choose_char(call):
     user_id = call.from_user.id
-
-    bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
-
     keyboard = InlineKeyboardMarkup()
     keyboard.add(InlineKeyboardButton("Himeno", callback_data="Himeno"))
     keyboard.add(InlineKeyboardButton("Hirokazu", callback_data="Hirokazu"))
@@ -86,7 +93,9 @@ def select_character(call):
     user_id = call.from_user.id
     chosen_character = call.data
 
-    user_data[user_id]["character"] = chosen_character  # Save character choice
+    user_data[user_id]["character"] = chosen_character
+    if chosen_character not in user_data[user_id]["owned_characters"]:
+        user_data[user_id]["owned_characters"].append(chosen_character)
 
     char_info = character_stats[chosen_character]
     stats_msg = f"""
@@ -105,13 +114,7 @@ def select_character(call):
     bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
     bot.send_photo(user_id, char_info["Image"], caption=stats_msg, parse_mode="Markdown")
 
-# Start the bot
 # /daily Command
-
-
-OFFICIAL_GROUP_ID = -1002369433935  # Replace with your actual group ID
-daily_claims = {}  # Store the last claimed time of users
-
 @bot.message_handler(commands=['daily'])
 def daily(message):
     if message.chat.id != OFFICIAL_GROUP_ID:
@@ -123,38 +126,22 @@ def daily(message):
 
     if user_id in daily_claims and current_time - daily_claims[user_id] < 86400:
         remaining_time = int((86400 - (current_time - daily_claims[user_id])) / 3600)
-        bot.send_message(message.chat.id, f"⏳ You already claimed your daily reward! Try again in {remaining_time} hours.")
+        bot.send_message(message.chat.id, f"⏳ Already claimed! Try again in {remaining_time} hours.")
         return
 
-    # Ensure user data is properly initialized
-    if user_id not in user_data:
-        user_data[user_id] = {"character": None, "yens": 0, "gems": 0, "exp": 0, "level": 1, "owned_characters": []}
-
-    # Add rewards
     user_data[user_id]["yens"] += 150
     user_data[user_id]["gems"] += 100
     daily_claims[user_id] = current_time
 
-    bot.send_message(message.chat.id, "🎁 You received *150 Yens* and *100 Gems*! Come back tomorrow for more.", parse_mode="Markdown")
+    bot.send_message(message.chat.id, "🎁 You received *150 Yens* and *100 Gems*!", parse_mode="Markdown")
 
+# /balance Command
 @bot.message_handler(commands=['balance'])
 def balance(message):
     user_id = message.from_user.id
-
-    # Ensure user data is properly initialized
     if user_id not in user_data:
         bot.send_message(message.chat.id, "❌ You haven't started the game yet. Use /start.")
         return
-
-    # Ensure all required fields exist
-    if "yens" not in user_data[user_id]:
-        user_data[user_id]["yens"] = 0
-    if "gems" not in user_data[user_id]:
-        user_data[user_id]["gems"] = 0
-    if "exp" not in user_data[user_id]:
-        user_data[user_id]["exp"] = 0
-    if "level" not in user_data[user_id]:
-        user_data[user_id]["level"] = 1
 
     user = user_data[user_id]
     
@@ -179,7 +166,10 @@ def balance(message):
     keyboard = InlineKeyboardMarkup()
     keyboard.add(InlineKeyboardButton("❌ Exit", callback_data="exit_balance"))
     bot.send_message(message.chat.id, balance_msg, parse_mode="Markdown", reply_markup=keyboard)
-# /mycharacters Command
+
+# /
+import random
+
 @bot.message_handler(commands=['mycharacters'])
 def mycharacters(message):
     user_id = message.from_user.id
@@ -190,7 +180,12 @@ def mycharacters(message):
     owned_characters = user_data[user_id].get("owned_characters", [])
 
     if not owned_characters:
-        bot.send_message(message.chat.id, "❌ You don't own any characters yet.\nStart your journey and collect powerful hunters!")
+        bot.send_message(
+            message.chat.id,
+            "❌ *You don't own any characters yet.*\n"
+            "Start your journey and collect powerful hunters!",
+            parse_mode="Markdown"
+        )
         return
 
     random.shuffle(owned_characters)
@@ -205,40 +200,5 @@ def mycharacters(message):
 """
 
     bot.send_message(message.chat.id, response, parse_mode="Markdown")
-# /stats Command (Case-Insensitive)
-@bot.message_handler(commands=['stats'])
-def stats(message):
-    args = message.text.split(maxsplit=1)
 
-    if len(args) < 2:
-        bot.send_message(message.chat.id, "❌ Please provide a character name. Example: `/stats Himeno`", parse_mode="Markdown")
-        return
-
-    character_name = args[1].strip().lower()  # Convert input to lowercase
-    matched_character = None
-
-    # Check if the input matches any character (case-insensitive)
-    for char_name in characters.keys():
-        if char_name.lower() == character_name:
-            matched_character = char_name
-            break
-
-    if not matched_character:
-        bot.send_message(message.chat.id, "❌ Character not found! Check the spelling and try again.", parse_mode="Markdown")
-        return
-
-    char = characters[matched_character]
-    stats_message = f"""
-🩸 _{matched_character}_ 🩸
-━━━━━━━━━━━━━
-❤️ Health: 〘 {char['health']} HP 〙
-⚔️ Attack: 〘 {char['attack']} 〙
-👻 Special Ability: _{char['special_ability']}_ 
-🔺 EXP Needed: 〘 {char['exp_needed']} 〙
-━━━━━━━━━━━━━
-💀 *{char['description']}*
-"""
-
-    bot.send_photo(message.chat.id, char["image"], caption=stats_message, parse_mode="Markdown")
-# Start the bot
 bot.polling()
