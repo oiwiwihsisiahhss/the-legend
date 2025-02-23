@@ -172,12 +172,8 @@ def balance(message):
 # Handle exit button click
 @bot.callback_query_handler(func=lambda call: call.data == "exit_balance")
 def exit_balance(call):
-    try:
-        bot.delete_message(call.message.chat.id, call.message.message_id)
-        bot.send_message(call.id, "✅ Balance closed successfully!", show_alert=False)
-    except Exception as e:
-        print(f"Error deleting message: {e}")
-
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+    bot.send_message(call.message.chat.id, "✅ Balance closed successfully!")
 
 @bot.message_handler(commands=['mycharacters'])
 def mycharacters(message):
