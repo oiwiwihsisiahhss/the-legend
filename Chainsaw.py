@@ -320,4 +320,5 @@ def add_resources(message):
     bot.send_message(
         message.chat.id, 
         f"Updated balance for user {target_user_id}:\nYens: {user_data[target_user_id]['yens']}\nGems: {user_data[target_user_id]['gems']}")
-    bot.polling()
+    
+bot.polling()
