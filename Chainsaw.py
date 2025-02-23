@@ -135,7 +135,7 @@ def daily(message):
 
     bot.send_message(message.chat.id, "🎁 You received *150 Yens* and *100 Gems*!", parse_mode="Markdown")
 
-    @bot.message_handler(commands=['balance'])
+@bot.message_handler(commands=['balance'])
 def balance(message):
     user_id = message.from_user.id
     if user_id not in user_data:
