@@ -111,7 +111,11 @@ def select_character(call):
 ━━━━━━━━━━━━━
 """
 
-    bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+    bot.answer_callback_query(call.id)
+
+    # **Remove the inline keyboard after selection**
+    bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
+
     bot.send_photo(user_id, char_info["Image"], caption=stats_msg, parse_mode="Markdown")
 
 # /daily Command
