@@ -73,7 +73,17 @@ def start(message):
 
         bot.send_photo(user_id, "https://files.catbox.moe/qeqy19.jpg", caption=start_msg, parse_mode="Markdown", reply_markup=keyboard)
     else:
-        bot.send_message(user_id, "⚠️ *You've already started the game!*\n We also invite you to join our main group for for updates and discussion- https://t.me/chainsawman_main_gc")
+        bot.send_message(user_id,
+    "⚠ *You have already started the bot!* \n\n"
+    "Welcome back, hunter! You’ve already embarked on your journey in the *Chainsaw Man Game*.\n"
+    "Keep grinding, slaying devils, and becoming stronger!\n\n"
+    "📌 *Stay connected with our community and never miss an update!*\n\n"
+    "🔗 [Join our Group](https://t.me/chainsawman_main_gc) \n"
+    "🔗 [Join Update Channel](https://t.me/chainsaw_man_update_channel)\n\n"
+    "🔥 Keep hunting and prove your strength!"
+)
+
+bot.send_message(chat_id, message_text, parse_mode="MarkdownV2") )
         bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
 # /choose_char Command
 @bot.callback_query_handler(func=lambda call: call.data == "choose_char")
