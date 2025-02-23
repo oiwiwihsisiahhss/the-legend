@@ -83,7 +83,7 @@ def start(message):
     "🔥 Keep hunting and prove your strength!"
 )
 
-bot.send_message(message.chat.id, message_text, parse_mode="MarkdownV2") 
+bot.send_message(call.message.chat.id, message_text, parse_mode="MarkdownV2") 
 bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
 # /choose_char Command
 @bot.callback_query_handler(func=lambda call: call.data == "choose_char")
