@@ -287,31 +287,36 @@ def add_resources(message):
             return
 
         # Handling the 'char' command
-        if parts[1] == 'char':
-            char_name = parts[2].capitalize()  # Ensure the character name is properly capitalized
-            
-            if char_name in character_stats:
-                stats = character_stats[char_name]
-                # Add character to the user's mycharacters list
-                if user_id not in user_data:
-                    user_data[user_id] = {'yens': 0, 'gems': 0, 'mycharacters': []}  # Initialize if not exist
-                
-                if char_name not in user_data[user_id]['mycharacters']:
-                    user_data[user_id]['mycharacters'].append(char_name)
-                    bot.reply_to(message, f"{char_name} has been added to your characters!\n"
-                                          f"Health: {stats['Health']}\n"
-                                          f"Attack: {stats['Attack']}\n"
-                                          f"Defense: {stats['Defense']}\n"
-                                          f"Special Ability: {stats['Special Ability']}\n"
-                                          f"Level: {stats['Level']}\n"
-                                          f"EXP: {stats['EXP']}\n"
-                                          f"Description: {stats['Description']}\n\n"
-                                          f"Image: {stats['Image']}")
-                else:
-                    bot.reply_to(message, f"You already have {char_name} in your characters.")
-            else:
-                bot.reply_to(message, f"Character '{char_name}' is not available. Please check the name and try again.")
+        # Handling the 'char' command
+if parts[1] == 'char':
+    char_name = parts[2].capitalize()  # Ensure the character name is properly capitalized
+    
+    try:
+        if char_name in character_stats:
+            stats = character_stats[char_name]
+            # Add character to the user's mycharacters list
+            if user_id not in user_data:
+                user_data[user_id] = {'yens': 0, 'gems': 0, 'mycharacters': []}  # Initialize if not exist
 
+            if char_name not in user_data[user_id]['mycharacters']:
+                user_data[user_id]['mycharacters'].append(char_name)
+                bot.reply_to(message, f"{char_name} has been added to your characters!\n"
+                                      f"Health: {stats['Health']}\n"
+                                      f"Attack: {stats['Attack']}\n"
+                                      f"Defense: {stats['Defense']}\n"
+                                      f"Special Ability: {stats['Special Ability']}\n"
+                                      f"Level: {stats['Level']}\n"
+                                      f"EXP: {stats['EXP']}\n"
+                                      f"Description: {stats['Description']}\n\n"
+                                      f"Image: {stats['Image']}")
+            else:
+                bot.reply_to(message, f"You already have {char_name} in your characters.")
+        else:
+            bot.reply_to(message, f"Character '{char_name}' is not available. Please check the name and try again.")
+    except KeyError as e:
+        bot.reply_to(message, f"Error with character data: Missing field {e}")
+    except Exception as e:
+        bot.reply_to(message, f"An unexpected error occurred: {str(e)}")
         # Handling 'yens' command
         elif parts[1] == 'yens':
             try:
