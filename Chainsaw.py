@@ -74,7 +74,7 @@ def start(message):
         bot.send_photo(user_id, "https://files.catbox.moe/qeqy19.jpg", caption=start_msg, parse_mode="Markdown", reply_markup=keyboard)
     else:
         bot.send_message(user_id, "⚠️ *You've already started the game!*\n We also invite you to join our main group for for updates and discussion- https://t.me/chainsawman_main_gc")
-
+        bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
 # /choose_char Command
 @bot.callback_query_handler(func=lambda call: call.data == "choose_char")
 def choose_char(call):
