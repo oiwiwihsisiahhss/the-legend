@@ -174,7 +174,7 @@ def balance(message):
 def exit_balance(call):
     try:
         bot.delete_message(call.message.chat.id, call.message.message_id)
-        bot.answer_callback_query(call.id, "✅ Balance closed successfully!", show_alert=False)
+        bot.send_message(call.id, "✅ Balance closed successfully!", show_alert=False)
     except Exception as e:
         print(f"Error deleting message: {e}")
 
