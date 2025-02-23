@@ -135,8 +135,7 @@ def daily(message):
 
     bot.send_message(message.chat.id, "🎁 You received *150 Yens* and *100 Gems*!", parse_mode="Markdown")
 
-# /balance Command
-@bot.message_handler(commands=['balance'])
+    @bot.message_handler(commands=['balance'])
 def balance(message):
     user_id = message.from_user.id
     if user_id not in user_data:
@@ -168,12 +167,9 @@ def balance(message):
     exit_button = InlineKeyboardButton("❌ Exit", callback_data="exit_balance")
     markup.add(exit_button)
 
-    return balance_msg, markup
-@bot.callback_query_handler(func=lambda call: call.data == "exit_balance")
-def exit_balance(call):
-    bot.delete_message(call.message.chat.id, call.message.message_id)    
+    bot.send_message(message.chat.id, balance_msg, parse_mode="Markdown", reply_markup=markup)
 # /
-import random
+
 
 @bot.message_handler(commands=['mycharacters'])
 def mycharacters(message):
