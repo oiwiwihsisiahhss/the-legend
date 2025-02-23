@@ -224,6 +224,11 @@ def stats_command(message):
         bot.reply_to(message, f"❌ Character '{input_name}' not found! Please check the spelling.")
         return
 
+    # Check if the user owns the character
+    if user_id not in user_data or matched_character not in user_data[user_id].get("owned_characters", []):
+        bot.reply_to(message, f"❌ You don’t own '{matched_character}'!")
+        return
+
     # Retrieve stats using the correct character name
     char_info = character_stats[matched_character]
 
