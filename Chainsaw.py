@@ -279,7 +279,7 @@ def add_resources(message):
 
     # Split the message into action and target
     parts = message.text.split()
-    if len(parts) < 3:
+    if len(parts) < 4:
         bot.send_message(message.chat.id, "❌ Invalid command format. Usage: /add <resource> <amount> <user_id>")
         return
 
