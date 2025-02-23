@@ -272,45 +272,85 @@ def stats_command(message):
 @bot.message_handler(commands=['add'])
 def add_resources(message):
     user_id = message.from_user.id
-    command = message.text.split()
-
-    # Ensure the command has enough parts
-    if len(command) < 3:
-        bot.reply_to(message, "⚠️ Please provide the correct command. Example: /add yens 100")
+    
+    if user_id != 6306216999:  # Replace with your user ID (only you can use this)
+        bot.reply_to(message, "You don't have permission to add resources.")
         return
 
-    resource_type = command[1].lower()
-    amount = command[2]
-
     try:
-        amount = int(amount)  # Try to convert amount to integer
+        # Split the command into parts
+        parts = message.text.split()
+        
+        # Check if the user provided the necessary arguments
+        if len(parts) < 3:
+            bot.reply_to(message, "Invalid command format. Please use '/add yens <amount>', '/add gems <amount>', or '/add char <character_name>'.")
+            return
 
-        if resource_type == "yens":
-            if amount < 0 and user_data[user_id]["yens"] + amount < 0:
-                bot.reply_to(message, "⚠️ You cannot subtract more Yens than you have.")
-                return
-            user_data[user_id]["yens"] += amount
-            bot.reply_to(message, f"✅ You have successfully updated your Yens. New balance: {user_data[user_id]['yens']} Yens.")
-
-        elif resource_type == "gems":
-            if amount < 0 and user_data[user_id]["gems"] + amount < 0:
-                bot.reply_to(message, "⚠️ You cannot subtract more Gems than you have.")
-                return
-            user_data[user_id]["gems"] += amount
-            bot.reply_to(message, f"✅ You have successfully updated your Gems. New balance: {user_data[user_id]['gems']} Gems.")
-
-        elif resource_type == "char" and len(command) > 3:
-            character_name = command[3].lower()
-            # Check if the character exists in your dictionary
-            if character_name in characters:
-                user_data[user_id]["character"] = characters[character_name]
-                bot.reply_to(message, f"✅ You have successfully added the character: {character_name}.")
+        # Handling the 'char' command
+        if parts[1] == 'char':
+            char_name = parts[2].capitalize()  # Ensure the character name is properly capitalized
+            
+            if char_name in character_stats:
+                stats = character_stats[char_name]
+                # Add character to the user's mycharacters list
+                if user_id not in user_data:
+                    user_data[user_id] = {'yens': 0, 'gems': 0, 'mycharacters': []}  # Initialize if not exist
+                
+                if char_name not in user_data[user_id]['mycharacters']:
+                    user_data[user_id]['mycharacters'].append(char_name)
+                    bot.reply_to(message, f"{char_name} has been added to your characters!\n"
+                                          f"Health: {stats['Health']}\n"
+                                          f"Attack: {stats['Attack']}\n"
+                                          f"Defense: {stats['Defense']}\n"
+                                          f"Special Ability: {stats['Special Ability']}\n"
+                                          f"Level: {stats['Level']}\n"
+                                          f"EXP: {stats['EXP']}\n"
+                                          f"Description: {stats['Description']}\n\n"
+                                          f"Image: {stats['Image']}")
+                else:
+                    bot.reply_to(message, f"You already have {char_name} in your characters.")
             else:
-                bot.reply_to(message, "⚠️ The character you entered does not exist. Please check the name.")
+                bot.reply_to(message, f"Character '{char_name}' is not available. Please check the name and try again.")
 
+        # Handling 'yens' command
+        elif parts[1] == 'yens':
+            try:
+                amount = int(parts[2])  # Convert the input value to an integer
+            except ValueError:
+                bot.reply_to(message, "Invalid amount. Please provide a valid number for yens.")
+                return
+
+            if user_id not in user_data:
+                user_data[user_id] = {'yens': 0, 'gems': 0, 'mycharacters': []}  # Initialize if not exist
+
+            # Add or subtract the yens (positive or negative)
+            user_data[user_id]['yens'] += amount
+            
+            if amount > 0:
+                bot.reply_to(message, f"{amount} yens have been added to your account.")
+            else:
+                bot.reply_to(message, f"{-amount} yens have been deducted from your account.")
+
+        # Handling 'gems' command
+        elif parts[1] == 'gems':
+            try:
+                amount = int(parts[2])  # Convert the input value to an integer
+            except ValueError:
+                bot.reply_to(message, "Invalid amount. Please provide a valid number for gems.")
+                return
+
+            if user_id not in user_data:
+                user_data[user_id] = {'yens': 0, 'gems': 0, 'mycharacters': []}  # Initialize if not exist
+
+            # Add or subtract the gems (positive or negative)
+            user_data[user_id]['gems'] += amount
+            
+            if amount > 0:
+                bot.reply_to(message, f"{amount} gems have been added to your account.")
+            else:
+                bot.reply_to(message, f"{-amount} gems have been deducted from your account.")
         else:
-            bot.reply_to(message, "⚠️ Invalid command or resource type. Please use: /add yens <amount>, /add gems <amount>, or /add char <character_name>.")
-
-    except ValueError:
-        bot.reply_to(message, "⚠️ The amount must be a valid number.")
+            bot.reply_to(message, "Invalid command format. Please use '/add yens <amount>', '/add gems <amount>', or '/add char <character_name>'.")
+    except Exception as e:
+        bot.reply_to(message, f"An error occurred: {str(e)}")
 bot.polling()
