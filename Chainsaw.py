@@ -48,6 +48,7 @@ character_stats = {
 }
 
 # /start Command (Only in DM)
+# /start Command (Only in DM)
 @bot.message_handler(commands=['start'])
 def start(message):
     user_id = message.from_user.id
@@ -74,27 +75,31 @@ def start(message):
         bot.send_photo(user_id, "https://files.catbox.moe/qeqy19.jpg", caption=start_msg, parse_mode="Markdown", reply_markup=keyboard)
     else:
         bot.send_message(user_id,
-    "⚠ *You have already started the bot!* \n\n"
-    "Welcome back, hunter! You’ve already embarked on your journey in the *Chainsaw Man Game*.\n"
-    "Keep grinding, slaying devils, and becoming stronger!\n\n"
-    "📌 *Stay connected with our community and never miss an update!*\n\n"
-    "🔗 [Join our Group](https://t.me/chainsawman_main_gc) \n"
-    "🔗 [Join Update Channel](https://t.me/chainsaw_man_update_channel)\n\n"
-    "🔥 Keep hunting and prove your strength!"
-)
+        "⚠ *You have already started the bot!* \n\n"
+        "Welcome back, hunter! You’ve already embarked on your journey in the *Chainsaw Man Game*.\n"
+        "Keep grinding, slaying devils, and becoming stronger!\n\n"
+        "📌 *Stay connected with our community and never miss an update!*\n\n"
+        "🔗 [Join our Group](https://t.me/chainsawman_main_gc) \n"
+        "🔗 [Join Update Channel](https://t.me/chainsaw_man_update_channel)\n\n"
+        "🔥 Keep hunting and prove your strength!",
+        parse_mode="Markdown"
+    )
 
-bot.send_message(call.message.chat.id, message_text, parse_mode="MarkdownV2") 
-bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
 # /choose_char Command
 @bot.callback_query_handler(func=lambda call: call.data == "choose_char")
 def choose_char(call):
     user_id = call.from_user.id
+
     keyboard = InlineKeyboardMarkup()
     keyboard.add(InlineKeyboardButton("Himeno", callback_data="Himeno"))
     keyboard.add(InlineKeyboardButton("Hirokazu", callback_data="Hirokazu"))
     keyboard.add(InlineKeyboardButton("Kishibe", callback_data="Kishibe"))
 
     bot.answer_callback_query(call.id)
+
+    # **Remove inline keyboard after choosing character**
+    bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
+
     bot.send_message(user_id, "🎭 *Choose your character:*", reply_markup=keyboard, parse_mode="Markdown")
 
 # Character Selection & Stats Display
@@ -123,7 +128,7 @@ def select_character(call):
 
     bot.answer_callback_query(call.id)
 
-    # **Remove the inline keyboard after selection**
+    # **Remove inline keyboard after character selection**
     bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
 
     bot.send_photo(user_id, char_info["Image"], caption=stats_msg, parse_mode="Markdown")
