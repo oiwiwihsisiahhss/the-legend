@@ -163,10 +163,15 @@ def balance(message):
 ╚════════════════════════════╝
 """
 
-    keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton("❌ Exit", callback_data="exit_balance"))
-    bot.send_message(message.chat.id, balance_msg, parse_mode="Markdown", reply_markup=keyboard)
+    # Add an Exit button
+    markup = InlineKeyboardMarkup()
+    exit_button = InlineKeyboardButton("❌ Exit", callback_data="exit_balance")
+    markup.add(exit_button)
 
+    return balance_msg, markup
+@bot.callback_query_handler(func=lambda call: call.data == "exit_balance")
+def exit_balance(call):
+    bot.delete_message(call.message.chat.id, call.message.message_id)    
 # /
 import random
 
@@ -200,5 +205,39 @@ def mycharacters(message):
 """
 
     bot.send_message(message.chat.id, response, parse_mode="Markdown")
+@bot.message_handler(commands=["stats"])
+def stats_command(message):
+    user_id = message.from_user.id
+    args = message.text.split(maxsplit=1)  # Get command arguments
 
+    # Check if user provided a character name
+    if len(args) < 2:
+        bot.reply_to(message, "❌ Please specify a character name! Example: `/stats Himeno`")
+        return
+
+    input_name = args[1].strip()  # Get the character name and remove spaces
+
+    # Convert input to lowercase for matching
+    matched_character = next((name for name in character_stats if name.lower() == input_name.lower()), None)
+
+    if not matched_character:
+        bot.reply_to(message, f"❌ Character '{input_name}' not found! Please check the spelling.")
+        return
+
+    # Retrieve stats using the correct character name
+    char_info = character_stats[matched_character]
+
+    stats_msg = f"""
+🎭 *Character Stats: {matched_character}* 🎭
+━━━━━━━━━━━━━
+❤️ *Health:* {char_info["Health"]}
+⚔️ *Attack:* {char_info["Attack"]}
+🛡️ *Defense:* {char_info["Defense"]}
+✨ *Special Ability:* {char_info["Special Ability"]}
+🔰 *Level:* {char_info["Level"]}
+📈 *EXP:* {char_info["EXP"]} / 1000
+📖 *Description:* {char_info["Description"]}
+━━━━━━━━━━━━━
+    """
+    bot.send_message(message.chat.id, stats_msg, parse_mode="Markdown")
 bot.polling()
