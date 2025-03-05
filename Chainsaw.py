@@ -314,7 +314,7 @@ def add_resource(message):
             return
         user_data[target_user_id]["gems"] += int(value)
         bot.reply_to(message, f"💎 {value} Gems added to <b>{target_user_id}</b>!", parse_mode="HTML")
-
+   
     elif action == "char":
     char_name = value.capitalize()
 
