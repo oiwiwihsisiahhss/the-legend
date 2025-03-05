@@ -316,16 +316,17 @@ def add_resource(message):
         bot.reply_to(message, f"💎 {value} Gems added to <b>{target_user_id}</b>!", parse_mode="HTML")
    
     elif action == "char":
-    char_name = value.capitalize()
+        char_name = value.capitalize()  # ✅ Correctly indented
 
-    # Ensure "characters" list exists
-    if "characters" not in user_data[target_user_id]:
-        user_data[target_user_id]["characters"] = []
+        # Ensure "characters" list exists
+        if "characters" not in user_data[target_user_id]:
+            user_data[target_user_id]["characters"] = []
 
-    # Add the character if the user doesn't have it
-    if char_name not in user_data[target_user_id]["characters"]:
-        user_data[target_user_id]["characters"].append(char_name)
-        bot.reply_to(message, f"🎭 `{char_name}` has been added to <b>{target_user_id}</b>!", parse_mode="HTML")
-    else:
-        bot.reply_to(message, f"⚠️ User already owns '{char_name}'.")
+        # Add the character if the user doesn't have it
+        if char_name not in user_data[target_user_id]["characters"]:
+            user_data[target_user_id]["characters"].append(char_name)
+            bot.reply_to(message, f"🎭 `{char_name}` has been added to <b>{target_user_id}</b>!", parse_mode="HTML")
+        else:
+            bot.reply_to(message, f"⚠️ User already owns '{char_name}'.")
+
 bot.polling()
