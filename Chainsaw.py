@@ -276,66 +276,59 @@ def stats_command(message):
 # Simulated user data storage (Replace this with an actual database or API)
 
 
-admin_id = 6306216999  # Your Telegram ID (Only you can use this command)
+ADMIN_ID = 6306216999  # Your Telegram ID  # Your Telegram ID (Only you can use this command)
 user_data = {}  # Replace with actual database logic if needed
 
+
+# Replace this with your actual Telegram user ID
+ # Change this to your Telegram ID
+
 @bot.message_handler(commands=['add'])
-def add_resources(message):
-    if message.from_user.id != admin_id:
-        bot.reply_to(message, "❌ You don’t have permission to use this command.")
+def add_resource(message):
+    if message.from_user.id != ADMIN_ID:
+        bot.reply_to(message, "🚫 You are not authorized to use this command!")
         return
 
-    parts = message.text.split(maxsplit=2)
-    
-    if len(parts) < 3:
-        bot.reply_to(message, "❌ Invalid format! Use `/add yens <amount>`, `/add gems <amount>`, or `/add char <character_name>`.")
+    args = message.text.split(maxsplit=3)
+    if len(args) < 3:
+        bot.reply_to(message, "❌ Invalid usage! Use `/add yens <amount>`, `/add gems <amount>`, or `/add char <character_name>`.")
         return
 
-    action = parts[1].lower()
-    value = parts[2]
+    action, value = args[1], args[2]
+    target_user_id = message.reply_to_message.from_user.id if message.reply_to_message else message.from_user.id
 
-    # If the command is a reply, get the replied user's ID
-    if message.reply_to_message:
-        target_user_id = message.reply_to_message.from_user.id  
-    else:
-        try:
-            target_user_id = int(parts[2])  # Get user ID from command
-        except ValueError:
-            bot.reply_to(message, "❌ Invalid user ID format.")
-            return
-
-    # Ensure the user exists in user_data (if using a dictionary)
+    # Ensure user exists in data
     if target_user_id not in user_data:
         user_data[target_user_id] = {"yens": 0, "gems": 0, "characters": []}
 
-    try:
-        if action == "yens":
-            amount = int(value)
-            user_data[target_user_id]["yens"] += amount
-            bot.reply_to(message, f"✅ Added `{amount}` Yens to <b>{target_user_id}</b>.", parse_mode="HTML")
+    if action == "yens":
+        if not value.isdigit():
+            bot.reply_to(message, "⚠️ Amount must be a number!")
+            return
+        user_data[target_user_id]["yens"] += int(value)
+        bot.reply_to(message, f"💰 {value} Yens added to <b>{target_user_id}</b>!", parse_mode="HTML")
 
-        elif action == "gems":
-            amount = int(value)
-            user_data[target_user_id]["gems"] += amount
-            bot.reply_to(message, f"✅ Added `{amount}` Gems to <b>{target_user_id}</b>.", parse_mode="HTML")
+    elif action == "gems":
+        if not value.isdigit():
+            bot.reply_to(message, "⚠️ Amount must be a number!")
+            return
+        user_data[target_user_id]["gems"] += int(value)
+        bot.reply_to(message, f"💎 {value} Gems added to <b>{target_user_id}</b>!", parse_mode="HTML")
 
-        elif action == "char":
-            char_name = value.capitalize()
+    elif action == "char":
+        char_name = value.capitalize()
 
-            if char_name in user_data[target_user_id]["characters"]:
-                bot.reply_to(message, f"⚠️ User already owns '{char_name}'.")
-            else:
-                user_data[target_user_id]["characters"].append(char_name)
-                bot.reply_to(message, f"🎭 `{char_name}` has been added to <b>{target_user_id}</b>!", parse_mode="HTML")
+        # Ensure the 'characters' list exists
+        if "characters" not in user_data[target_user_id]:
+            user_data[target_user_id]["characters"] = []
 
+        # Add the character if the user doesn't have it
+        if char_name not in user_data[target_user_id]["characters"]:
+            user_data[target_user_id]["characters"].append(char_name)
+            bot.reply_to(message, f"🎭 `{char_name}` has been added to <b>{target_user_id}</b>!", parse_mode="HTML")
         else:
-            bot.reply_to(message, "❌ Invalid action! Use `/add yens <amount>`, `/add gems <amount>`, or `/add char <character_name>`.")
+            bot.reply_to(message, f"⚠️ User already owns '{char_name}'.")
 
-    except ValueError:
-        bot.reply_to(message, "❌ Invalid amount! Please enter a number.")
-
-    except Exception as e:
-        bot.reply_to(message, f"❌ An unexpected error occurred: {e}")
-
-bot.polling()
+    else:
+        bot.reply_to(message, "❌ Invalid action! Use `/add yens <amount>`, `/add gems <amount>`, or `/add char <character_name>`.")
 bot.polling()
