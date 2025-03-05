@@ -72,7 +72,7 @@ def start(message):
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("🎭 Choose Character", callback_data="choose_char"))
 
-        bot.send_photo(user_id, "https://files.catbox.moe/4hobw8.jpg", caption=start_msg, parse_mode="Markdown", reply_markup=keyboard)
+        bot.send_photo(user_id, "https://files.catbox.moe/bghkj1.jpg", caption=start_msg, parse_mode="Markdown", reply_markup=keyboard)
     else:
         bot.send_message(user_id,
         "⚠ *You have already started the bot!* \n\n"
