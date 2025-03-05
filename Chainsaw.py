@@ -269,93 +269,73 @@ def stats_command(message):
         bot.send_photo(message.chat.id, char_info["Image"], caption=stats_msg, parse_mode="Markdown")
     else:
         bot.send_message(message.chat.id, stats_msg, parse_mode="Markdown")
+
+
+        # Handling the 'char' command
+        # Handling the 'char' command
+# Simulated user data storage (Replace this with an actual database or API)
+
+
+admin_id = 6306216999  # Your Telegram ID (Only you can use this command)
+user_data = {}  # Replace with actual database logic if needed
+
 @bot.message_handler(commands=['add'])
 def add_resources(message):
-    user_id = message.from_user.id
-    
-    if user_id != 6306216999:  # Replace with your user ID (only you can use this)
-        bot.reply_to(message, "You don't have permission to add resources.")
+    if message.from_user.id != admin_id:
+        bot.reply_to(message, "❌ You don’t have permission to use this command.")
         return
 
-    try:
-        # Split the command into parts
-        parts = message.text.split()
-        
-        # Check if the user provided the necessary arguments
-        if len(parts) < 3:
-            bot.reply_to(message, "Invalid command format. Please use '/add yens <amount>', '/add gems <amount>', or '/add char <character_name>'.")
+    parts = message.text.split(maxsplit=2)
+    
+    if len(parts) < 3:
+        bot.reply_to(message, "❌ Invalid format! Use `/add yens <amount>`, `/add gems <amount>`, or `/add char <character_name>`.")
+        return
+
+    action = parts[1].lower()
+    value = parts[2]
+
+    # If the command is a reply, get the replied user's ID
+    if message.reply_to_message:
+        target_user_id = message.reply_to_message.from_user.id  
+    else:
+        try:
+            target_user_id = int(parts[2])  # Get user ID from command
+        except ValueError:
+            bot.reply_to(message, "❌ Invalid user ID format.")
             return
 
-        # Handling the 'char' command
-        # Handling the 'char' command
-if parts[1] == 'char':
-    char_name = parts[2].capitalize()  # Ensure the character name is properly capitalized
-    
+    # Ensure the user exists in user_data (if using a dictionary)
+    if target_user_id not in user_data:
+        user_data[target_user_id] = {"yens": 0, "gems": 0, "characters": []}
+
     try:
-        if char_name in character_stats:
-            stats = character_stats[char_name]
-            # Add character to the user's mycharacters list
-            if user_id not in user_data:
-                user_data[user_id] = {'yens': 0, 'gems': 0, 'mycharacters': []}  # Initialize if not exist
+        if action == "yens":
+            amount = int(value)
+            user_data[target_user_id]["yens"] += amount
+            bot.reply_to(message, f"✅ Added `{amount}` Yens to <b>{target_user_id}</b>.", parse_mode="HTML")
 
-            if char_name not in user_data[user_id]['mycharacters']:
-                user_data[user_id]['mycharacters'].append(char_name)
-                bot.reply_to(message, f"{char_name} has been added to your characters!\n"
-                                      f"Health: {stats['Health']}\n"
-                                      f"Attack: {stats['Attack']}\n"
-                                      f"Defense: {stats['Defense']}\n"
-                                      f"Special Ability: {stats['Special Ability']}\n"
-                                      f"Level: {stats['Level']}\n"
-                                      f"EXP: {stats['EXP']}\n"
-                                      f"Description: {stats['Description']}\n\n"
-                                      f"Image: {stats['Image']}")
+        elif action == "gems":
+            amount = int(value)
+            user_data[target_user_id]["gems"] += amount
+            bot.reply_to(message, f"✅ Added `{amount}` Gems to <b>{target_user_id}</b>.", parse_mode="HTML")
+
+        elif action == "char":
+            char_name = value.capitalize()
+
+            if char_name in user_data[target_user_id]["characters"]:
+                bot.reply_to(message, f"⚠️ User already owns '{char_name}'.")
             else:
-                bot.reply_to(message, f"You already have {char_name} in your characters.")
+                user_data[target_user_id]["characters"].append(char_name)
+                bot.reply_to(message, f"🎭 `{char_name}` has been added to <b>{target_user_id}</b>!", parse_mode="HTML")
+
         else:
-            bot.reply_to(message, f"Character '{char_name}' is not available. Please check the name and try again.")
-    except KeyError as e:
-        bot.reply_to(message, f"Error with character data: Missing field {e}")
+            bot.reply_to(message, "❌ Invalid action! Use `/add yens <amount>`, `/add gems <amount>`, or `/add char <character_name>`.")
+
+    except ValueError:
+        bot.reply_to(message, "❌ Invalid amount! Please enter a number.")
+
     except Exception as e:
-        bot.reply_to(message, f"An unexpected error occurred: {str(e)}")
-        # Handling 'yens' command
-        elif parts[1] == 'yens':
-            try:
-                amount = int(parts[2])  # Convert the input value to an integer
-            except ValueError:
-                bot.reply_to(message, "Invalid amount. Please provide a valid number for yens.")
-                return
+        bot.reply_to(message, f"❌ An unexpected error occurred: {e}")
 
-            if user_id not in user_data:
-                user_data[user_id] = {'yens': 0, 'gems': 0, 'mycharacters': []}  # Initialize if not exist
-
-            # Add or subtract the yens (positive or negative)
-            user_data[user_id]['yens'] += amount
-            
-            if amount > 0:
-                bot.reply_to(message, f"{amount} yens have been added to your account.")
-            else:
-                bot.reply_to(message, f"{-amount} yens have been deducted from your account.")
-
-        # Handling 'gems' command
-        elif parts[1] == 'gems':
-            try:
-                amount = int(parts[2])  # Convert the input value to an integer
-            except ValueError:
-                bot.reply_to(message, "Invalid amount. Please provide a valid number for gems.")
-                return
-
-            if user_id not in user_data:
-                user_data[user_id] = {'yens': 0, 'gems': 0, 'mycharacters': []}  # Initialize if not exist
-
-            # Add or subtract the gems (positive or negative)
-            user_data[user_id]['gems'] += amount
-            
-            if amount > 0:
-                bot.reply_to(message, f"{amount} gems have been added to your account.")
-            else:
-                bot.reply_to(message, f"{-amount} gems have been deducted from your account.")
-        else:
-            bot.reply_to(message, "Invalid command format. Please use '/add yens <amount>', '/add gems <amount>', or '/add char <character_name>'.")
-    except Exception as e:
-        bot.reply_to(message, f"An error occurred: {str(e)}")
+bot.polling()
 bot.polling()
