@@ -297,9 +297,11 @@ def add_resource(message):
     action, value = args[1], args[2]
     target_user_id = message.reply_to_message.from_user.id if message.reply_to_message else message.from_user.id
 
-    # Ensure user exists in data
+    # ✅ Ensure user data is initialized properly
     if target_user_id not in user_data:
         user_data[target_user_id] = {"yens": 0, "gems": 0, "characters": []}
+    elif "characters" not in user_data[target_user_id]:
+        user_data[target_user_id]["characters"] = []  # ✅ Ensures 'characters' key exists
 
     if action == "yens":
         if not value.isdigit():
@@ -318,14 +320,14 @@ def add_resource(message):
     elif action == "char":
         char_name = value.capitalize()  # Capitalize first letter
 
-        # Reference user's character list
+        # ✅ Reference user's character list safely
         mycharacters = user_data[target_user_id]["characters"]
 
         # Convert to lowercase for case-insensitive comparison
         existing_characters = [c.lower() for c in mycharacters]
 
         if char_name.lower() not in existing_characters:
-            mycharacters.append(char_name)  # Adds character to user's list
+            mycharacters.append(char_name)  # ✅ Adds character safely
             bot.reply_to(message, f"🎭 `{char_name}` has been added to <b>{target_user_id}</b>!", parse_mode="HTML")
         else:
             bot.reply_to(message, f"⚠️ User already owns '{char_name}'.", parse_mode="HTML")
