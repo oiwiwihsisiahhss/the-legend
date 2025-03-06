@@ -314,23 +314,20 @@ def add_resource(message):
             return
         user_data[target_user_id]["gems"] += int(value)
         bot.reply_to(message, f"💎 {value} Gems added to <b>{target_user_id}</b>!", parse_mode="HTML")
-   
+
     elif action == "char":
-    char_name = value.capitalize()  # Capitalize first letter
+        char_name = value.capitalize()  # Capitalize first letter
 
-    # Ensure user exists in data
-    if target_user_id not in user_data:
-        user_data[target_user_id] = {"characters": []}  # Initialize with an empty character list
+        # Reference user's character list
+        mycharacters = user_data[target_user_id]["characters"]
 
-    # Reference user's character list
-    mycharacters = user_data[target_user_id]["characters"]
+        # Convert to lowercase for case-insensitive comparison
+        existing_characters = [c.lower() for c in mycharacters]
 
-    # Convert to lowercase for case-insensitive comparison
-    existing_characters = [c.lower() for c in mycharacters]
+        if char_name.lower() not in existing_characters:
+            mycharacters.append(char_name)  # Adds character to user's list
+            bot.reply_to(message, f"🎭 `{char_name}` has been added to <b>{target_user_id}</b>!", parse_mode="HTML")
+        else:
+            bot.reply_to(message, f"⚠️ User already owns '{char_name}'.", parse_mode="HTML")
 
-    if char_name.lower() not in existing_characters:
-        mycharacters.append(char_name)  # Adds character to user's list
-        bot.reply_to(message, f"🎭 `{char_name}` has been added to <b>{target_user_id}</b>!", parse_mode="HTML")
-    else:
-        bot.reply_to(message, f"⚠️ User already owns '{char_name}'.", parse_mode="HTML")
 bot.polling()
