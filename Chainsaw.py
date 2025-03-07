@@ -277,68 +277,70 @@ def stats_command(message):
 
 
   # Your Telegram ID  # Your Telegram ID (Only you can use this command)
-user_data = {}  # Replace with actual database logic if needed
+ # Replace with actual database logic if needed
 
 
 # Replace this with your actual Telegram user ID
  # Change this to your Telegram ID
 
 # Your Telegram User ID (Replace with your actual Telegram ID)
-BOT_OWNER_ID = 6306216999  # Replace with your Telegram ID
+  # Replace with your Telegram ID
+
+
+
+# Replace with your Telegram user ID
+OWNER_ID = 6306216999  
+
+# Example user data storage
+users_data = {}
 
 @bot.message_handler(commands=['add'])
-def add_resources(message):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-
-    # Only allow the bot owner to use this command
-    if user_id != BOT_OWNER_ID:
-        bot.send_message(chat_id, "❌ You are not authorized to use this command.")
+def add(message):
+    if message.from_user.id != OWNER_ID:
+        bot.reply_to(message, "You don't have permission to use this command.")
+        return
+    
+    if not message.reply_to_message:
+        bot.reply_to(message, "Reply to a user to add resources or a character.")
         return
 
-    try:
-        # Extract command parameters
-        args = message.text.split()
-        if len(args) < 4:
-            bot.send_message(chat_id, "❌ Invalid format! Use: `/add <user_id> <yens/gems/exp/character> <amount/name>`.", parse_mode="Markdown")
+    target_user_id = message.reply_to_message.from_user.id
+    args = message.text.split()[1:]
+
+    if not args:
+        bot.reply_to(message, "Usage: `/add yens 1000` or `/add gems 500` or `/add char CharacterName`")
+        return
+
+    if target_user_id not in users_data:
+        users_data[target_user_id] = {"yens": 0, "gems": 0, "characters": []}
+
+    command = args[0].lower()
+
+    if command in ["yens", "gems"]:
+        if len(args) < 2 or not args[1].isdigit():
+            bot.reply_to(message, "Invalid format. Example: `/add yens 1000`")
             return
 
-        target_user_id = int(args[1])
-        resource = args[2].lower()
-        value = " ".join(args[3:])  # For characters with spaces in names
+        amount = int(args[1])
+        users_data[target_user_id][command] += amount
+        bot.reply_to(message, f"✅ {amount} {command} added to {message.reply_to_message.from_user.first_name}.")
 
-        # Ensure the user exists in the database
-        if target_user_id not in user_data:
-            bot.send_message(chat_id, "❌ User not found.")
+    elif command in ["char", "character"]:
+        if len(args) < 2:
+            bot.reply_to(message, "Invalid format. Example: `/add char Gojo`")
             return
 
-        # Adding Yens, Gems, or EXP
-        if resource == "yens":
-            user_data[target_user_id]["yens"] += int(value)
-        elif resource == "gems":
-            user_data[target_user_id]["gems"] += int(value)
-        elif resource == "exp":
-            user_data[target_user_id]["exp"] += int(value)
-        elif resource == "character":
-            # Ensure user has a character list
-            if "characters" not in user_data[target_user_id]:
-                user_data[target_user_id]["characters"] = []
-            
-            # Add character only if they don't already have it
-            if value in user_data[target_user_id]["characters"]:
-                bot.send_message(chat_id, f"⚠️ User already has {value}.")
-                return
-            
-            user_data[target_user_id]["characters"].append(value)
-        else:
-            bot.send_message(chat_id, "❌ Invalid resource type! Use: `yens`, `gems`, `exp`, or `character`.", parse_mode="Markdown")
+        character_name = " ".join(args[1:])
+
+        if character_name in users_data[target_user_id]["characters"]:
+            bot.reply_to(message, f"⚠️ {message.reply_to_message.from_user.first_name} already has {character_name}.")
             return
 
-        bot.send_message(chat_id, f"✅ Successfully added {value} {resource} to user {target_user_id}.")
-    
-    except ValueError:
-        bot.send_message(chat_id, "❌ Invalid command format! Use: `/add <user_id> <yens/gems/exp/character> <amount/name>`.")
-    except Exception as e:
-        bot.send_message(chat_id, f"❌ Error: {str(e)}")
+        users_data[target_user_id]["characters"].append(character_name)
+        bot.reply_to(message, f"✅ {character_name} added to {message.reply_to_message.from_user.first_name}'s collection.")
+
+    else:
+        bot.reply_to(message, "Invalid resource type. Use `yens`, `gems`, or `char`.")
+
 
 bot.polling()
