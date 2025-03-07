@@ -276,60 +276,69 @@ def stats_command(message):
 # Simulated user data storage (Replace this with an actual database or API)
 
 
-ADMIN_ID = 6306216999  # Your Telegram ID  # Your Telegram ID (Only you can use this command)
+  # Your Telegram ID  # Your Telegram ID (Only you can use this command)
 user_data = {}  # Replace with actual database logic if needed
 
 
 # Replace this with your actual Telegram user ID
  # Change this to your Telegram ID
 
+# Your Telegram User ID (Replace with your actual Telegram ID)
+BOT_OWNER_ID = 6306216999  # Replace with your Telegram ID
+
 @bot.message_handler(commands=['add'])
-def add_resource(message):
-    if message.from_user.id != ADMIN_ID:
-        bot.reply_to(message, "🚫 You are not authorized to use this command!")
+def add_resources(message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+
+    # Only allow the bot owner to use this command
+    if user_id != BOT_OWNER_ID:
+        bot.send_message(chat_id, "❌ You are not authorized to use this command.")
         return
 
-    args = message.text.split(maxsplit=3)
-    if len(args) < 3:
-        bot.reply_to(message, "❌ Invalid usage! Use `/add yens <amount>`, `/add gems <amount>`, or `/add char <character_name>`.")
-        return
-
-    action, value = args[1], args[2]
-    target_user_id = message.reply_to_message.from_user.id if message.reply_to_message else message.from_user.id
-
-    # ✅ Ensure user data is initialized properly
-    if target_user_id not in user_data:
-        user_data[target_user_id] = {"yens": 0, "gems": 0, "characters": []}
-    elif "characters" not in user_data[target_user_id]:
-        user_data[target_user_id]["characters"] = []  # ✅ Ensures 'characters' key exists
-
-    if action == "yens":
-        if not value.isdigit():
-            bot.reply_to(message, "⚠️ Amount must be a number!")
+    try:
+        # Extract command parameters
+        args = message.text.split()
+        if len(args) < 4:
+            bot.send_message(chat_id, "❌ Invalid format! Use: `/add <user_id> <yens/gems/exp/character> <amount/name>`.", parse_mode="Markdown")
             return
-        user_data[target_user_id]["yens"] += int(value)
-        bot.reply_to(message, f"💰 {value} Yens added to <b>{target_user_id}</b>!", parse_mode="HTML")
 
-    elif action == "gems":
-        if not value.isdigit():
-            bot.reply_to(message, "⚠️ Amount must be a number!")
+        target_user_id = int(args[1])
+        resource = args[2].lower()
+        value = " ".join(args[3:])  # For characters with spaces in names
+
+        # Ensure the user exists in the database
+        if target_user_id not in user_data:
+            bot.send_message(chat_id, "❌ User not found.")
             return
-        user_data[target_user_id]["gems"] += int(value)
-        bot.reply_to(message, f"💎 {value} Gems added to <b>{target_user_id}</b>!", parse_mode="HTML")
 
-    elif action == "char":
-        char_name = value.capitalize()  # Capitalize first letter
-
-        # ✅ Reference user's character list safely
-        mycharacters = user_data[target_user_id]["characters"]
-
-        # Convert to lowercase for case-insensitive comparison
-        existing_characters = [c.lower() for c in mycharacters]
-
-        if char_name.lower() not in existing_characters:
-            mycharacters.append(char_name)  # ✅ Adds character safely
-            bot.reply_to(message, f"🎭 `{char_name}` has been added to <b>{target_user_id}</b>!", parse_mode="HTML")
+        # Adding Yens, Gems, or EXP
+        if resource == "yens":
+            user_data[target_user_id]["yens"] += int(value)
+        elif resource == "gems":
+            user_data[target_user_id]["gems"] += int(value)
+        elif resource == "exp":
+            user_data[target_user_id]["exp"] += int(value)
+        elif resource == "character":
+            # Ensure user has a character list
+            if "characters" not in user_data[target_user_id]:
+                user_data[target_user_id]["characters"] = []
+            
+            # Add character only if they don't already have it
+            if value in user_data[target_user_id]["characters"]:
+                bot.send_message(chat_id, f"⚠️ User already has {value}.")
+                return
+            
+            user_data[target_user_id]["characters"].append(value)
         else:
-            bot.reply_to(message, f"⚠️ User already owns '{char_name}'.", parse_mode="HTML")
+            bot.send_message(chat_id, "❌ Invalid resource type! Use: `yens`, `gems`, `exp`, or `character`.", parse_mode="Markdown")
+            return
+
+        bot.send_message(chat_id, f"✅ Successfully added {value} {resource} to user {target_user_id}.")
+    
+    except ValueError:
+        bot.send_message(chat_id, "❌ Invalid command format! Use: `/add <user_id> <yens/gems/exp/character> <amount/name>`.")
+    except Exception as e:
+        bot.send_message(chat_id, f"❌ Error: {str(e)}")
 
 bot.polling()
