@@ -292,7 +292,7 @@ def stats_command(message):
 OWNER_ID = 6306216999  
 
 # Example user data storage
-users_data = {}
+
 
 @bot.message_handler(commands=['add'])
 def add(message):
