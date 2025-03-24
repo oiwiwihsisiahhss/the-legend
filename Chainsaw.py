@@ -289,58 +289,11 @@ def stats_command(message):
 
 
 # Replace with your Telegram user ID
-OWNER_ID = 6306216999  
+
 
 # Example user data storage
 
 
-@bot.message_handler(commands=['add'])
-def add(message):
-    if message.from_user.id != OWNER_ID:
-        bot.reply_to(message, "You don't have permission to use this command.")
-        return
-    
-    if not message.reply_to_message:
-        bot.reply_to(message, "Reply to a user to add resources or a character.")
-        return
-
-    target_user_id = message.reply_to_message.from_user.id
-    args = message.text.split()[1:]
-
-    if not args:
-        bot.reply_to(message, "Usage: `/add yens 1000` or `/add gems 500` or `/add char CharacterName`")
-        return
-
-    if target_user_id not in users_data:
-        users_data[target_user_id] = {"yens": 0, "gems": 0, "characters": []}
-
-    command = args[0].lower()
-
-    if command in ["yens", "gems"]:
-        if len(args) < 2 or not args[1].isdigit():
-            bot.reply_to(message, "Invalid format. Example: `/add yens 1000`")
-            return
-
-        amount = int(args[1])
-        users_data[target_user_id][command] += amount
-        bot.reply_to(message, f"✅ {amount} {command} added to {message.reply_to_message.from_user.first_name}.")
-
-    elif command in ["char", "character"]:
-        if len(args) < 2:
-            bot.reply_to(message, "Invalid format. Example: `/add char Gojo`")
-            return
-
-        character_name = " ".join(args[1:])
-
-        if character_name in users_data[target_user_id]["characters"]:
-            bot.reply_to(message, f"⚠️ {message.reply_to_message.from_user.first_name} already has {character_name}.")
-            return
-
-        users_data[target_user_id]["characters"].append(character_name)
-        bot.reply_to(message, f"✅ {character_name} added to {message.reply_to_message.from_user.first_name}'s collection.")
-
-    else:
-        bot.reply_to(message, "Invalid resource type. Use `yens`, `gems`, or `char`.")
 
 
 bot.polling()
