@@ -151,6 +151,25 @@ def start_in_dm(message):
 
 
 
+
+@bot.message_handler(commands=['open'])
+def open_menu(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    btn1 = types.KeyboardButton("Explore")
+    btn2 = types.KeyboardButton("Close")
+    markup.add(btn1, btn2)
+    bot.send_message(message.chat.id, "Choose an option:", reply_markup=markup)
+
+@bot.message_handler(func=lambda message: message.text == "Close")
+def close_menu(message):
+    hide_markup = types.ReplyKeyboardRemove()
+    bot.send_message(message.chat.id, "Keyboard closed.", reply_markup=hide_markup)
+
+@bot.message_handler(func=lambda message: message.text == "Explore")
+def explore_action(message):
+    bot.send_message(message.chat.id, "You chose to explore!")
+
+
 # Main function to start the bot
 if __name__ == "__main__":
     create_table()  # Create table if not exists
