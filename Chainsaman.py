@@ -158,18 +158,21 @@ def open_menu(message):
     bot.reply_to(message, "This command only works in private messages.")
     return
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    btn1 = types.KeyboardButton("Explore")
-    btn2 = types.KeyboardButton("Close")
+    btn1 = types.KeyboardButton("/explore")
+    btn2 = types.KeyboardButton("/close")
     markup.add(btn1, btn2)
     bot.send_message(message.chat.id, "Choose an option:", reply_markup=markup)
 
-@bot.message_handler(func=lambda message: message.text == "Close")
+@bot.message_handler(func=lambda message: message.text == "/close")
 def close_menu(message):
     hide_markup = types.ReplyKeyboardRemove()
     bot.send_message(message.chat.id, "Keyboard closed.", reply_markup=hide_markup)
 
-@bot.message_handler(func=lambda message: message.text == "Explore")
+@bot.message_handler(func=lambda message: message.text == "/explore")
 def explore_action(message):
+    if message.chat.type != 'private':
+    bot.reply_to(message, "This command only works in private messages.")
+    return
     bot.send_message(message.chat.id, "You chose to explore!")
 
 
