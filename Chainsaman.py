@@ -2,7 +2,7 @@ import telebot
 import time
 import sqlite3
 from telebot import types
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 
 # Initialize bot with your API key
@@ -230,48 +230,52 @@ def is_allowed(message):
     bot_id = bot.get_me().id
     return any(admin.user.id == bot_id for admin in admins)
 
+# Check if user can claim daily reward
+def can_claim_daily(user_id):
+    cursor.execute("SELECT last_claimed FROM daily_rewards WHERE user_id = ?", (user_id,))
+    last_claim = cursor.fetchone()
+    if last_claim:
+        last_claim_time = datetime.strptime(last_claim[0], '%Y-%m-%d %H:%M:%S')
+        if datetime.now() - last_claim_time < timedelta(hours=24):
+            return last_claim_time
+    return None
+
+   # Function to update user's balance (Yens, Gems, Crystals)
+def update_balance(user_id, yens=0, gems=0, crystals=0):
+    # Update the user's balance for Yens, Gems, and Crystals
+    cursor.execute("""
+        UPDATE user_data
+        SET yens = yens + ?, gems = gems + ?, crystals = crystals + ?
+        WHERE user_id = ?
+    """, (yens, gems, crystals, user_id))
+    
+    # Commit the transaction to save the changes
+    conn.commit() 
+  # Handle /daily command
 @bot.message_handler(commands=['daily'])
 def handle_daily(message):
     user_id = message.from_user.id
-    chat_id = message.chat.id
-    now = datetime.now()
 
-    # Only in group
-    if message.chat.type == "private":
-        bot.send_message(
-            chat_id,
-            f"⛔️ You can only claim daily rewards in the official group.\n\n➡️ [Join Group Here]({GROUP_LINK})",
-            parse_mode="Markdown", disable_web_page_preview=True)
-        return
+    last_claim_time = can_claim_daily(user_id)
+    
+    if last_claim_time is None:
+        # User can claim, give rewards (250 Yens and 100 Crystals)
+        update_balance(user_id, yens=250, crystals=100)
+        update_last_claim_time(user_id)
 
-    if chat_id != GROUP9_ID or not is_allowed(message):
-        return  # Only respond if in the right group AND tagged or admin
+        # Send confirmation message to the user
+        bot.reply_to(message, "✅ Daily reward claimed!\n\n"
+                              "+ 250 Yens\n+ 100 Crystals\n\n"
+                              "You can claim again in 24 hours.")
+    else:
+        # Calculate remaining time
+        remaining_time = timedelta(hours=24) - (datetime.now() - last_claim_time)
+        hours, remainder = divmod(remaining_time.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
 
-    # Ensure user exists
-    cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
-    if not cursor.fetchone():
-        cursor.execute("INSERT OR IGNORE INTO user_data (user_id) VALUES (?)", (user_id,))
-        conn.commit()
-
-    # Check last claim
-    cursor.execute("SELECT last_claimed FROM daily_rewards WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-
-    if row and row[0]:
-        last_claimed = datetime.fromisoformat(row[0])
-        if now < last_claimed + timedelta(hours=24):
-            remaining = (last_claimed + timedelta(hours=24)) - now
-            h, rem = divmod(int(remaining.total_seconds()), 3600)
-            m, s = divmod(rem, 60)
-            bot.reply_to(message, f"⏳ Already claimed.\nTry again in: {h:02}:{m:02}:{s:02}")
-            return
-
-    # Grant reward
-    cursor.execute("UPDATE user_data SET crystals = crystals + ? WHERE user_id = ?", (DAILY_CRYSTALS, user_id))
-    cursor.execute("INSERT OR REPLACE INTO daily_rewards (user_id, last_claimed) VALUES (?, ?)", (user_id, now.isoformat()))
-    conn.commit()
-
-    bot.reply_to(message, f"✅ You received {DAILY_CRYSTALS} Crystals!\nCome back tomorrow for more.")
+        # Send message to the user about the time left to claim again
+        bot.reply_to(message, f"⏳ Already claimed today.\n\n"
+                              f"Next claim in {remaining_time.days}d {hours}h {minutes}m {seconds}s.")  
 # Main function to start the bot
 if __name__ == "__main__":
     create_table()  # Create table if not exists
