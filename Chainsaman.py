@@ -73,10 +73,10 @@ def start_in_dm(message):
         cursor.execute("""
             INSERT INTO user_data (
                 user_id, username, level, exp, required_exp, yens,
-                gems, crystals, tickets, energy, max_energy,
+                 crystals, tickets, energy, max_energy,
                 last_energy_time, character
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             user_id, username, 1, 0, 12345, 0,
             0, 0, 0, 10000, 10000,
