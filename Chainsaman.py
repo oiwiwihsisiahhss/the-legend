@@ -116,7 +116,7 @@ def start_in_dm(message):
             caption=start_message,
             reply_markup=choose_btn, 
             parse_mode = "HTML"
-  btn,    )
+  )
 
     else:
         conn.close()
