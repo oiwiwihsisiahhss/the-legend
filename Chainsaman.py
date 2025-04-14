@@ -70,18 +70,18 @@ def start_in_dm(message):
     user = cursor.fetchone()
 
     if not user:
-        cursor.execute("""
-            INSERT INTO user_data (
-                user_id, username, level, exp, required_exp, yens,
-                 crystals, tickets, energy, max_energy,
-                last_energy_time, choosen_character
-            )
-            VALUES (?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            user_id, username, 1, 0, 12345, 0,
-            0, 0, 0, 10000, 10000,
-            int(time.time()), None
-        ))
+ cursor.execute("""
+    INSERT INTO user_data (
+        user_id, username, level, exp, required_exp, yens,
+        crystals, tickets, energy, max_energy,
+        last_energy_time, choosen_character
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+""", (
+    user_id, username, 1, 0, 12345, 250,  # Use 250 for yens per your default
+    0, 0, 10000, 10000,
+    int(time.time()), None
+))
         conn.commit()
         conn.close()
 
