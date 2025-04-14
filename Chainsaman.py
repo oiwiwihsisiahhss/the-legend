@@ -187,10 +187,15 @@ GROUP_ID = -1002680551934 # Replace with your group chat ID
 # Announcement function
 def announce_open_feature():
     message = (
-        "📢 *New Feature Update!*\n\n"
-        "We've added a new command: `/open`\n"
-        "Use it in DM to access the new *Explore* and *Close* options via buttons!\n\n"
-        "Try it now and start exploring!"
+        "🔥 Attention, Devil Hunters! 🔥\n\n"
+        "Your **Daily Reward** is here!\n\n"
+        "💀 Today's reward includes:\n"
+        "- **150 Yens**\n"
+        "- **100 Gems**\n\n"
+        "💎 Stay sharp and claim your rewards every day!\n"
+        "The hunt never stops! 🏹💀\n\n"
+        "Keep battling, and may your chainsaws stay sharp! ⚔️"
+    
     )
     bot.send_message(chat_id=GROUP_ID, text=message, parse_mode='Markdown')
 def on_start():
@@ -199,6 +204,67 @@ def on_start():
 # Call announcement when the bot starts
 on_start()
 
+
+
+GROUP9_ID = -1002680551934
+GROUP_LINK = "https://t.me/chainsaw_man_group69"
+DAILY_CRYSTALS = 250
+
+conn = sqlite3.connect("chainsaw.db", check_same_thread=False)
+cursor = conn.cursor()
+
+# Function to check if bot is admin or tagged
+def is_allowed(message):
+    if message.chat.type != "supergroup":
+        return False
+    if message.reply_to_message and message.reply_to_message.from_user.id == bot.get_me().id:
+        return True
+    admins = bot.get_chat_administrators(message.chat.id)
+    bot_id = bot.get_me().id
+    return any(admin.user.id == bot_id for admin in admins)
+
+@bot.message_handler(commands=['daily'])
+def handle_daily(message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    now = datetime.now()
+
+    # Only in group
+    if message.chat.type == "private":
+        bot.send_message(
+            chat_id,
+            f"⛔️ You can only claim daily rewards in the official group.\n\n➡️ [Join Group Here]({GROUP_LINK})",
+            parse_mode="Markdown", disable_web_page_preview=True)
+        return
+
+    if chat_id != GROUP9_ID or not is_allowed(message):
+        return  # Only respond if in the right group AND tagged or admin
+
+    # Ensure user exists
+    cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
+    if not cursor.fetchone():
+        cursor.execute("INSERT OR IGNORE INTO user_data (user_id) VALUES (?)", (user_id,))
+        conn.commit()
+
+    # Check last claim
+    cursor.execute("SELECT last_claimed FROM daily_rewards WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+
+    if row and row[0]:
+        last_claimed = datetime.fromisoformat(row[0])
+        if now < last_claimed + timedelta(hours=24):
+            remaining = (last_claimed + timedelta(hours=24)) - now
+            h, rem = divmod(int(remaining.total_seconds()), 3600)
+            m, s = divmod(rem, 60)
+            bot.reply_to(message, f"⏳ Already claimed.\nTry again in: {h:02}:{m:02}:{s:02}")
+            return
+
+    # Grant reward
+    cursor.execute("UPDATE user_data SET crystals = crystals + ? WHERE user_id = ?", (DAILY_CRYSTALS, user_id))
+    cursor.execute("INSERT OR REPLACE INTO daily_rewards (user_id, last_claimed) VALUES (?, ?)", (user_id, now.isoformat()))
+    conn.commit()
+
+    bot.reply_to(message, f"✅ You received {DAILY_CRYSTALS} Crystals!\nCome back tomorrow for more.")
 # Main function to start the bot
 if __name__ == "__main__":
     create_table()  # Create table if not exists
