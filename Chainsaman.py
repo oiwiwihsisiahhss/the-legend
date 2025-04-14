@@ -241,11 +241,11 @@ def can_claim_daily(user_id):
     return None
 
    # Function to update user's balance (Yens, Gems, Crystals)
-def update_balance(user_id, yens=0, gems=0, crystals=0):
+def update_balance(user_id, yens=0, crystals=0):
     # Update the user's balance for Yens, Gems, and Crystals
     cursor.execute("""
         UPDATE user_data
-        SET yens = yens + ?, gems = gems + ?, crystals = crystals + ?
+        SET yens = yens + ?, crystals = crystals + ?
         WHERE user_id = ?
     """, (yens, gems, crystals, user_id))
     
