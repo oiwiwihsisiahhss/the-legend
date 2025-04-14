@@ -9,6 +9,8 @@ import os
 API_KEY = '7215821191:AAEzFPwyx8FjlXMr2mpVTbYzpHoMbPsaCDc'
 bot = telebot.TeleBot(API_KEY)
 
+if os.path.exists("chainsaw.db"):
+    os.remove("chainsaw.db")
 # Database Setup
 def create_connection():
     return sqlite3.connect('chainsaw.db')
@@ -181,7 +183,7 @@ def explore_action(message):
     bot.send_message(message.chat.id, "You chose to explore!")
 
 
-  GROUP_ID = -1002680551934, -1002369433935  # Replace with your group chat ID
+  GROUP_ID = -1002680551934 # Replace with your group chat ID
 
 # Announcement function
 def announce_open_feature():
@@ -197,7 +199,7 @@ def on_start():
 
 # Call announcement when the bot starts
 on_start()
-os.remove('chainsaw.db')
+
 # Main function to start the bot
 if __name__ == "__main__":
     create_table()  # Create table if not exists
