@@ -49,7 +49,7 @@ def start_in_group(message):
                 photo="https://files.catbox.moe/qeqy19.jpg",
                 caption=f"<b>{message.from_user.first_name}</b>, to begin your journey, tap below to start privately.",
                 reply_to_message_id=message.message_id,
-                reply_markup=markup
+                reply_markup=markup, 
                 parse_mode = "HTML"
             )
     except Exception as e:
@@ -114,9 +114,9 @@ def start_in_dm(message):
             message.chat.id,
             photo="https://files.catbox.moe/bghkj1.jpg",
             caption=start_message,
-            reply_markup=choose_btn
+            reply_markup=choose_btn, 
             parse_mode = "HTML"
-        )
+  btn,    )
 
     else:
         conn.close()
@@ -140,7 +140,7 @@ def start_in_dm(message):
         bot.send_photo(
             message.chat.id,
             photo="https://files.catbox.moe/bghkj1.jpg",
-            caption=back_message
+            caption=back_message, 
             parse_mode = "HTML"
         )
 
