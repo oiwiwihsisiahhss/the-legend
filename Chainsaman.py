@@ -3,6 +3,7 @@ import time
 import sqlite3
 from telebot import types
 from datetime import datetime
+import os
 
 # Initialize bot with your API key
 API_KEY = '7215821191:AAEzFPwyx8FjlXMr2mpVTbYzpHoMbPsaCDc'
@@ -11,6 +12,7 @@ bot = telebot.TeleBot(API_KEY)
 # Database Setup
 def create_connection():
     return sqlite3.connect('chainsaw.db')
+    
 
 def create_table():
     connection = create_connection()
@@ -34,7 +36,8 @@ def create_table():
     connection.commit()
     connection.close() 
 
-
+os.remove('chainsaw.db')
+    
 # GROUP START HANDLER
 @bot.message_handler(commands=['start'], chat_types=['group', 'supergroup'])
 def start_in_group(message):
@@ -187,6 +190,11 @@ def announce_open_feature():
         "Try it now and start exploring!"
     )
     bot.send_message(chat_id=GROUP_ID, text=message, parse_mode='Markdown')
+def on_start():
+    announce_open_feature()
+
+# Call announcement when the bot starts
+on_start()
 
 # Main function to start the bot
 if __name__ == "__main__":
