@@ -34,7 +34,7 @@ def create_table():
     connection.close()
 
 # Start Command for Groups
-START HANDLER FOR GROUP
+#START HANDLER FOR GROUP
 
 @bot.message_handler(commands=['start'], chat_types=['group', 'supergroup']) def start_in_group(message): try: chat_member = bot.get_chat_member(message.chat.id, bot.get_me().id) if chat_member.status in ['administrator', 'creator'] or message.text.startswith(f"/start@{bot.get_me().username}"): markup = types.InlineKeyboardMarkup() btn = types.InlineKeyboardButton("➡️ Start Your Contract", url=f"https://t.me/{bot.get_me().username}?start=start") markup.add(btn)
 
