@@ -154,6 +154,9 @@ def start_in_dm(message):
 
 @bot.message_handler(commands=['open'])
 def open_menu(message):
+    if message.chat.type != 'private':
+    bot.reply_to(message, "This command only works in private messages.")
+    return
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn1 = types.KeyboardButton("Explore")
     btn2 = types.KeyboardButton("Close")
