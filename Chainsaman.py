@@ -155,8 +155,9 @@ def start_in_dm(message):
 @bot.message_handler(commands=['open'])
 def open_menu(message):
     if message.chat.type != 'private':
-    bot.reply_to(message, "This command only works in private messages.")
-    return
+        bot.reply_to(message, "This command only works in private messages.")
+        return
+
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn1 = types.KeyboardButton("/explore")
     btn2 = types.KeyboardButton("/close")
@@ -171,10 +172,21 @@ def close_menu(message):
 @bot.message_handler(func=lambda message: message.text == "/explore")
 def explore_action(message):
     if message.chat.type != 'private':
-    bot.reply_to(message, "This command only works in private messages.")
-    return
-    bot.send_message(message.chat.id, "You chose to explore!")
+        bot.reply_to(message, "This command only works in private messages.")
+        return
 
+    bot.send_message(message.chat.id, "You chose to explore!")
+    GROUP_ID = -1002680551934, -1002369433935  # Replace with your group chat ID
+
+# Announcement function
+def announce_open_feature():
+    message = (
+        "📢 *New Feature Update!*\n\n"
+        "We've added a new command: `/open`\n"
+        "Use it in DM to access the new *Explore* and *Close* options via buttons!\n\n"
+        "Try it now and start exploring!"
+    )
+    bot.send_message(chat_id=GROUP_ID, text=message, parse_mode='Markdown')
 
 # Main function to start the bot
 if __name__ == "__main__":
