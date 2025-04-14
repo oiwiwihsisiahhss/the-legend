@@ -28,7 +28,7 @@ def create_table():
         tickets INTEGER DEFAULT 0,
         energy INTEGER DEFAULT 10000,
         max_energy INTEGER DEFAULT 10000,
-        last_energy_refill TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_energy_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         chosen_character TEXT DEFAULT NULL
     )''')
     connection.commit()
