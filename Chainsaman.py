@@ -36,7 +36,7 @@ def create_table():
     connection.commit()
     connection.close() 
 
-os.remove('chainsaw.db')
+
     
 # GROUP START HANDLER
 @bot.message_handler(commands=['start'], chat_types=['group', 'supergroup'])
@@ -195,7 +195,7 @@ def on_start():
 
 # Call announcement when the bot starts
 on_start()
-
+os.remove('chainsaw.db')
 # Main function to start the bot
 if __name__ == "__main__":
     create_table()  # Create table if not exists
