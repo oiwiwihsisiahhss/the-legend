@@ -34,99 +34,100 @@ def create_table():
     connection.close()
 
 # Start Command for Groups
-@bot.message_handler(commands=['start'])
-def start_group(message):
-    user = message.from_user
-    if message.chat.type == "private":
-        # Private chat setup (new user or returning user)
-        connection = create_connection()
-        cursor = connection.cursor()
+START HANDLER FOR GROUP
 
-        cursor.execute('SELECT * FROM user_data WHERE user_id = ?', (user.id,))
-        existing_user = cursor.fetchone()
+@bot.message_handler(commands=['start'], chat_types=['group', 'supergroup']) def start_in_group(message): try: chat_member = bot.get_chat_member(message.chat.id, bot.get_me().id) if chat_member.status in ['administrator', 'creator'] or message.text.startswith(f"/start@{bot.get_me().username}"): markup = types.InlineKeyboardMarkup() btn = types.InlineKeyboardButton("➡️ Start Your Contract", url=f"https://t.me/{bot.get_me().username}?start=start") markup.add(btn)
 
-        if not existing_user:
-            # Add new user to the database
-            cursor.execute('''
-            INSERT INTO user_data (user_id, username) VALUES (?, ?)
-            ''', (user.id, user.username))
-            connection.commit()
-
-            # Send Welcome Message
-            bot.send_message(
-                message.chat.id,
-                f"🔥 Welcome to the Chainsaw Man Game, {user.first_name}! 🔥\n\n"
-                "⚔️ Fight devils, earn rewards, and become the strongest hunter! ⚔️",
-                parse_mode="HTML"
-            )
-
-            # Send Character Selection
-            markup = types.InlineKeyboardMarkup()
-            markup.add(types.InlineKeyboardButton("Choose Character", callback_data="choose_char"))
-            bot.send_message(message.chat.id, "Click below to choose your character!", reply_markup=markup)
-
-            bot.send_photo(message.chat.id, "https://files.catbox.moe/qeqy19.jpg")
-        else:
-            # If user exists
-            bot.send_message(
-                message.chat.id,
-                "Welcome Back! Please join the group to continue playing.",
-                parse_mode="HTML"
-            )
-        connection.close()
-
-    else:
-        # Group message setup
-        bot.send_message(
+bot.send_photo(
             message.chat.id,
-            f"🔥 Welcome to the Chainsaw Man Game, {user.first_name}! 🔥\n\n"
-            "⚔️ Fight devils, earn rewards, and become the strongest hunter! ⚔️",
-            parse_mode="HTML"
+            photo="https://files.catbox.moe/qeqy19.jpg",
+            caption=f"<b>{message.from_user.first_name}</b>, to begin your journey, tap below to start privately.",
+            parse_mode="HTML",
+            reply_to_message_id=message.message_id,
+            reply_markup=markup
         )
+except Exception as e:
+    print(e)
 
-        # Send character selection button
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("Start Contract", url=f"t.me/{bot.get_me().username}?start={user.id}"))
-        bot.send_message(message.chat.id, "Click below to start your contract!", reply_markup=markup)
+START HANDLER FOR PRIVATE CHAT
 
-        bot.send_photo(message.chat.id, "https://files.catbox.moe/qeqy19.jpg")
+@bot.message_handler(commands=['start'], chat_types=['private']) def start_in_dm(message): user_id = message.from_user.id username = message.from_user.username
 
-# Character Selection Command
-@bot.callback_query_handler(func=lambda call: call.data == "choose_char")
-def choose_character(call):
-    markup = types.InlineKeyboardMarkup()
-    markup.add(
-        types.InlineKeyboardButton("Hirokazu", callback_data="hiro"),
-        types.InlineKeyboardButton("Kobeni", callback_data="kobeni"),
-        types.InlineKeyboardButton("Akane", callback_data="akane")
+conn = sqlite3.connect("chainsaw.db")
+cursor = conn.cursor()
+
+cursor.execute("SELECT * FROM user_data WHERE user_id = ?", (user_id,))
+user = cursor.fetchone()
+
+if not user:
+    cursor.execute("""
+        INSERT INTO user_data (user_id, username, level, exp, required_exp, yens, gems, crystals, tickets, energy, max_energy, last_energy_time, character)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (user_id, username, 1, 0, 12345, 0, 0, 0, 0, 10000, 10000, int(time.time()), None))
+    conn.commit()
+    conn.close()
+
+    start_message = (
+        "🔥 <b>WELCOME TO THE CHAINSAW MAN GAME</b> 🔥\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "💀 <b>ENTER IF YOU DARE...</b>\n"
+        "You've just crossed into a world where <b>Devils rule the shadows</b>,\n"
+        "and <i>only the strongest Hunters survive.</i>\n\n"
+        "Your soul is the price.\n"
+        "Your blade is your answer.\n"
+        "Your fate? Still unwritten.\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "⚔️ <b>YOUR MISSION:</b>\n"
+        "• 🧍‍♂️ Choose your Hunter\n"
+        "• 👹 Hunt Devils\n"
+        "• 🤝 Make Contracts\n"
+        "• 🪙 Earn Yens, EXP & Gems\n"
+        "• 🩸 Survive – Or die trying.\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🕹️ <b>HOW TO BEGIN:</b>\n"
+        "Press /choose_char to begin your contract.\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🤖 <i>“The chainsaw roars. Are you ready to bleed?”</i>"
     )
-    bot.edit_message_text(
-        "Choose your character!",
-        call.message.chat.id,
-        call.message.message_id,
-        reply_markup=markup
+
+    choose_btn = types.InlineKeyboardMarkup()
+    choose_btn.add(types.InlineKeyboardButton("🧍 Choose Character", callback_data="choose_char"))
+
+    bot.send_photo(
+        message.chat.id,
+        photo="https://files.catbox.moe/bghkj1.jpg",
+        caption=start_message,
+        parse_mode="HTML",
+        reply_markup=choose_btn
+    )
+else:
+    conn.close()
+    back_message = (
+        "💀 <b>Welcome Back, Hunter!</b> 💀\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "You've already made your contract with us... and now, your journey continues!\n\n"
+        "You’ve stepped away... but the devils never rest.\n"
+        "Your fate still awaits — will you rise or fall?\n\n"
+        "⚡️ <b>What’s Next?</b>\n"
+        "• 🧍‍♂️ Your Hunter is waiting\n"
+        "• 👹 Devils are still out there\n"
+        "• 🤝 Keep making powerful contracts\n"
+        "• 🩸 Fight, earn, and survive\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🤖 GameBot whispers:\n"
+        "<i>“The chainsaw roars again... Are you ready?”</i>\n\n"
+        "➡️ <a href='https://t.me/chainsaw_man_group69'>Join the group and continue your adventure</a>"
     )
 
-# Character Selected Callback
-@bot.callback_query_handler(func=lambda call: call.data in ["hiro", "kobeni", "akane"])
-def character_selected(call):
-    user = call.from_user
-    character = call.data
-
-    connection = create_connection()
-    cursor = connection.cursor()
-
-    # Update the user's selected character in the database
-    cursor.execute('UPDATE user_data SET chosen_character = ? WHERE user_id = ?', (character, user.id))
-    connection.commit()
-
-    # Inform the user of their selection
-    bot.edit_message_text(
-        f"Your chosen character is: {character.capitalize()}",
-        call.message.chat.id,
-        call.message.message_id
+    bot.send_photo(
+        message.chat.id,
+        photo="https://files.catbox.moe/bghkj1.jpg",
+        caption=back_message,
+        parse_mode="HTML"
     )
-    connection.close()
+
+
+
 
 # Main function to start the bot
 if __name__ == "__main__":
