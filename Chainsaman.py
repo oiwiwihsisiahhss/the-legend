@@ -51,7 +51,10 @@ except Exception as e:
 
 START HANDLER FOR PRIVATE CHAT
 
-@bot.message_handler(commands=['start'], chat_types=['private']) def start_in_dm(message): user_id = message.from_user.id username = message.from_user.username
+@bot.message_handler(commands=['start'], chat_types=['private']) 
+def start_in_dm(message): 
+    user_id = message.from_user.id 
+    username = message.from_user.username
 
 conn = sqlite3.connect("chainsaw.db")
 cursor = conn.cursor()
