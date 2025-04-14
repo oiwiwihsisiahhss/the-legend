@@ -232,13 +232,12 @@ def is_allowed(message):
 
 # Check if user can claim daily reward
 def can_claim_daily(user_id):
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
     cursor.execute("SELECT last_claimed FROM daily_rewards WHERE user_id = ?", (user_id,))
-    last_claim = cursor.fetchone()
-    if last_claim:
-        last_claim_time = datetime.strptime(last_claim[0], '%Y-%m-%d %H:%M:%S')
-        if datetime.now() - last_claim_time < timedelta(hours=24):
-            return last_claim_time
-    return None
+    result = cursor.fetchone()
+    conn.close()
+    return result
 
    # Function to update user's balance (Yens, Gems, Crystals)
 def update_balance(user_id, yens=0, crystals=0):
