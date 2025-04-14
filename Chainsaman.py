@@ -259,11 +259,14 @@ def update_last_claim_time(user_id):
     conn.commit()   
   # Handle /daily command
 @bot.message_handler(commands=['daily'])
+
 def handle_daily(message):
     user_id = message.from_user.id
 
     last_claim_time = can_claim_daily(user_id)
-    
+    if message.chat.type == "private":
+        bot.reply_to(message, "❌ You can only claim daily rewards in the official group\n👉join our offical group(https://t.me/chainsaw_man_group69)")
+        return
     if last_claim_time is None:
         # User can claim, give rewards (250 Yens and 100 Crystals)
         update_balance(user_id, yens=250, crystals=100)
