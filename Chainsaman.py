@@ -74,7 +74,7 @@ def start_in_dm(message):
             INSERT INTO user_data (
                 user_id, username, level, exp, required_exp, yens,
                  crystals, tickets, energy, max_energy,
-                last_energy_time, character
+                last_energy_time, choosen_character
             )
             VALUES (?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
