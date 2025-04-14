@@ -269,10 +269,10 @@ def handle_daily(message):
     if message.chat.type == "private":
         bot.reply_to(message, "❌ You can only claim daily rewards in the official group\n👉[join our offical group]({GROUP_LINK)")
         return
-       if chat_type == 'private':
+    if chat_type == 'private':
         cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
-        if not cursor.fetchone():
-            bot.reply_to(message, "❌ You haven’t started the game yet.\nUse /start in the group to begin.")
+    if not cursor.fetchone():
+        bot.reply_to(message, "❌ You haven’t started the game yet.\nUse /start in the group to begin.")
             return
 
     # Make sure user exists in user_data for group usage
