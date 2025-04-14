@@ -249,7 +249,7 @@ def update_balance(user_id, yens=0, crystals=0):
     
     # Commit the transaction to save the changes
     conn.commit()  
-def update_last_claim_time(user_id):
+ 
 def update_last_claim_time(user_id):
     now = datetime.now().isoformat()
     cursor.execute("INSERT OR REPLACE INTO daily_rewards (user_id, last_claimed) VALUES (?, ?)", (user_id, now))
