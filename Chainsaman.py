@@ -35,6 +35,13 @@ def create_table():
         last_energy_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         choosen_character TEXT DEFAULT NULL
     )''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS daily_rewards (
+            user_id INTEGER PRIMARY KEY,  
+            last_claimed TIMESTAMP DEFAULT NULL,  
+            FOREIGN KEY (user_id) REFERENCES user_data (user_id)
+        );
+    ''')
     connection.commit()
     connection.close() 
 
