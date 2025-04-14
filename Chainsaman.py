@@ -9,7 +9,7 @@ bot = telebot.TeleBot(API_KEY)
 
 # Database Setup
 def create_connection():
-    return sqlite3.connect('user_data.db')
+    return sqlite3.connect('chainsaw.db')
 
 def create_table():
     connection = create_connection()
