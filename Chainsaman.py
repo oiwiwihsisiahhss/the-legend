@@ -268,11 +268,13 @@ def handle_daily(message):
     if message.chat.type == "private":
         bot.reply_to(message, f"❌ You can only claim daily rewards in the official group.\n👉 [Join our official group]({GROUP_LINK})", parse_mode="Markdown")
         return
-
-    # Check if user has started the game
+# Check if user has started the game
+    cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
-    if not cursor.fetchone():
+    result = cursor.fetchone()
+    if not result:
         bot.reply_to(message, "❌ You haven’t started the game yet.\nUse /start in the group to begin.")
+        cursor.close()
         return
 
     # Ensure user exists in DB (optional if above check passes)
