@@ -232,9 +232,9 @@ def is_allowed(message):
 
 # Check if user can claim daily reward
 def can_claim_daily(user_id):
-    cursor.execute("SELECT last_daily_claim FROM user_data WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT last_claimed FROM daily_rewards WHERE user_id = ?", (user_id,))
     result = cursor.fetchone()
-    if result and result[0]:  # Ensure there's a result and the timestamp is not None
+    if result and result[0]:
         return datetime.fromisoformat(result[0])
     return None
 
@@ -250,11 +250,10 @@ def update_balance(user_id, yens=0, crystals=0):
     # Commit the transaction to save the changes
     conn.commit()  
 def update_last_claim_time(user_id):
-    cursor.execute("""
-        INSERT OR REPLACE INTO daily_rewards (user_id, last_claimed)
-        VALUES (?, ?)
-    """, (user_id, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-    conn.commit()   
+def update_last_claim_time(user_id):
+    now = datetime.now().isoformat()
+    cursor.execute("INSERT OR REPLACE INTO daily_rewards (user_id, last_claimed) VALUES (?, ?)", (user_id, now))
+    conn.commit()
   # Handle /daily command
 GROUP_LINK = "https://t.me/chainsaw_man_group69"
 
@@ -265,7 +264,7 @@ def handle_daily(message):
 
     # Only allow in group chat
     if message.chat.type == "private":
-        bot.reply_to(message, "❌ You can only claim daily rewards in the official group.\n👉 [Join our official group]({GROUP_LINK})", parse_mode="Markdown")
+        bot.reply_to(message, f"❌ You can only claim daily rewards in the official group.\n👉 [Join our official group]({GROUP_LINK})", parse_mode="Markdown")
         return
 
     # Check if user has started the game
