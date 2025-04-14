@@ -260,41 +260,44 @@ def update_last_claim_time(user_id):
 GROUP_LINK = "https://t.me/chainsaw_man_group69"
 
 @bot.message_handler(commands=['daily'])
-
 def handle_daily(message):
     user_id = message.from_user.id
+    chat_id = message.chat.id
 
-    last_claim_time = can_claim_daily(user_id)
+    # Only allow in group chat
     if message.chat.type == "private":
-        bot.reply_to(message, "❌ You can only claim daily rewards in the official group\n👉[join our offical group]({GROUP_LINK)")
+        bot.reply_to(message, "❌ You can only claim daily rewards in the official group.\n👉 [Join our official group](GROUP_LINK)", parse_mode="Markdown")
         return
-    if chat_type == 'private':
-        cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
+
+    # Check if user has started the game
+    cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
     if not cursor.fetchone():
         bot.reply_to(message, "❌ You haven’t started the game yet.\nUse /start in the group to begin.")
         return
 
-    # Make sure user exists in user_data for group usage
+    # Ensure user exists in DB (optional if above check passes)
     cursor.execute("INSERT OR IGNORE INTO user_data (user_id) VALUES (?)", (user_id,))
     conn.commit()
+
+    # Check last claim time
+    last_claim_time = can_claim_daily(user_id)
     if last_claim_time is None:
-        # User can claim, give rewards (250 Yens and 100 Crystals)
+        # First time or eligible
         update_balance(user_id, yens=250, crystals=100)
         update_last_claim_time(user_id)
 
-        # Send confirmation message to the user
         bot.reply_to(message, "✅ Daily reward claimed!\n\n"
                               "+ 250 Yens\n+ 100 Crystals\n\n"
                               "You can claim again in 24 hours.")
     else:
-        # Calculate remaining time
+        # Not yet eligible, show remaining time
         remaining_time = timedelta(hours=24) - (datetime.now() - last_claim_time)
-        hours, remainder = divmod(remaining_time.seconds, 3600)
+        total_seconds = int(remaining_time.total_seconds())
+        hours, remainder = divmod(total_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
 
-        # Send message to the user about the time left to claim again
         bot.reply_to(message, f"⏳ Already claimed today.\n\n"
-                              f"Next claim in {remaining_time.days}d {hours}h {minutes}m {seconds}s.")  
+                              f"Next claim in {remaining_time.days}d {hours}h {minutes}m {seconds}s.")
 # Main function to start the bot
 if __name__ == "__main__":
     create_table()  # Create table if not exists
