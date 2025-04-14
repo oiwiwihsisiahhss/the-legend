@@ -182,8 +182,7 @@ def explore_action(message):
 
     bot.send_message(message.chat.id, "You chose to explore!")
 
-
-  GROUP_ID = -1002680551934 # Replace with your group chat ID
+GROUP_ID = -1002680551934 # Replace with your group chat ID
 
 # Announcement function
 def announce_open_feature():
