@@ -232,8 +232,10 @@ def is_allowed(message):
 
 # Check if user can claim daily reward
 def can_claim_daily(user_id):
+    cursor = conn.cursor()
     cursor.execute("SELECT last_claimed FROM daily_rewards WHERE user_id = ?", (user_id,))
     result = cursor.fetchone()
+    cursor.close()
     if result and result[0]:
         return datetime.fromisoformat(result[0])
     return None
