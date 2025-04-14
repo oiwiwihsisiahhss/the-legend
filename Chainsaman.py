@@ -29,7 +29,7 @@ def create_table():
         energy INTEGER DEFAULT 10000,
         max_energy INTEGER DEFAULT 10000,
         last_energy_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        chosen_character TEXT DEFAULT NULL
+        choosen_character TEXT DEFAULT NULL
     )''')
     connection.commit()
     connection.close() 
