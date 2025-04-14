@@ -273,7 +273,7 @@ def handle_daily(message):
         cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
     if not cursor.fetchone():
         bot.reply_to(message, "❌ You haven’t started the game yet.\nUse /start in the group to begin.")
-            return
+        return
 
     # Make sure user exists in user_data for group usage
     cursor.execute("INSERT OR IGNORE INTO user_data (user_id) VALUES (?)", (user_id,))
