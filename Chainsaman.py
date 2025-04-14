@@ -247,7 +247,7 @@ def update_balance(user_id, yens=0, crystals=0):
         UPDATE user_data
         SET yens = yens + ?, crystals = crystals + ?
         WHERE user_id = ?
-    """, (yens, gems, crystals, user_id))
+    """, (yens, crystals, user_id))
     
     # Commit the transaction to save the changes
     conn.commit() 
