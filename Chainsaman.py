@@ -439,5 +439,5 @@ def close_balance_table(call):
         bot.answer_callback_query(call.id, "✅ Closed.")
     else:
         bot.answer_callback_query(call.id, "❌ You can't close someone else's profile.")
-    create_table()  # Create table if not exists
+    
     bot.polling(none_stop=True)
