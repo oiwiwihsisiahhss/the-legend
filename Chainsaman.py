@@ -353,8 +353,7 @@ def handle_daily(message):
         remaining = timedelta(hours=24) - (now - last_claim_time)
         hours, remainder = divmod(int(remaining.total_seconds()), 3600)
         minutes, seconds = divmod(remainder, 60)
-        bot.reply_to(message, f"⏳ You already claimed your daily reward!\nCome back in {hours}h {minutes}m {seconds}s.")
-
+        bot.reply_to(message, f"⏳ You already claimed your daily reward!\n<blockquote>Come back in {hours}h {minutes}m {seconds}s.</blockquote>", parse_mode="HTML")
 
 
 
