@@ -367,16 +367,12 @@ def show_balance(message):
                    (user_id, 0, 0, 0, 100, 100, 0, 1000, datetime.now().strftime("%Y-%m-%d")))
     conn.commit()
 
-    cursor.execute('''
-    SELECT hr.rank
-    FROM user_data ud
-    JOIN hunter_ranks hr ON ud.level >= hr.required_level
-    WHERE ud.user_id = ?
-    ORDER BY hr.required_level DESC
-    LIMIT 1
-''', (user_id,))
-rank_row = cursor.fetchone()
-rank = rank_row[0] if rank_row else "Unranked"
+    cursor.execute("SELECT * FROM user_balance WHERE user_id = ?", (user_id,))
+data = cursor.fetchone()
+
+if not data:
+    cursor.execute("INSERT INTO user_balance (user_id) VALUES (?)", (user_id,))
+    conn.commit()
     if not data:
         bot.reply_to(message, "❌ Error: Your data is missing. Please try again later.")
         conn.close()
