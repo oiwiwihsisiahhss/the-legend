@@ -440,4 +440,4 @@ def close_balance_table(call):
     else:
         bot.answer_callback_query(call.id, "❌ You can't close someone else's profile.")
     
-    bot.polling(none_stop=True)
+bot.polling(none_stop=True)
