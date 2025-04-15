@@ -58,7 +58,7 @@ def create_table():
     ''')
 
     # Insert default hunter ranks
-    cursor.executemany('''
+    cursor.execute('''
         INSERT OR IGNORE INTO hunter_ranks (rank, required_level) VALUES 
         ('E Rank - Novice Hunter 🪶', 1),
         ('D Rank - Rookie Hunter ⚔️', 25),
