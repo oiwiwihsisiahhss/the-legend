@@ -398,7 +398,11 @@ def show_balance(message):
     conn.close()
 
     # Balance message
-    balance_msg = f"""
+import html
+
+user_name = html.escape(user_name)
+
+balance_msg = f"""
 <b>[CHAINSAW CONTRACT PROFILE]</b>
 🔗 Name: <a href="tg://user?id={user_id}">{user_name}</a>  
 🆔 UID: <code>{user_id}</code>  
@@ -416,17 +420,20 @@ def show_balance(message):
 ━━━━━━━━━━━━━━━━━━━━━━━
 ⚔️ <b>Rank:</b> {rank}
 """
-    
-    # Create an inline keyboard with an "Exit" button
-    keyboard = types.InlineKeyboardMarkup()
-    exit_button = types.InlineKeyboardButton(text="❌ Exit", callback_data=f"exit_{user_id}")
-    keyboard.add(exit_button)
 
-    # Send the balance message with the "Exit" button
-    sent_msg = bot.send_message(message.chat.id, balance_msg, parse_mode="HTML", disable_web_page_preview=True, reply_markup=keyboard)
+keyboard = types.InlineKeyboardMarkup()
+exit_button = types.InlineKeyboardButton(text="❌ Exit", callback_data=f"exit_{user_id}")
+keyboard.add(exit_button)
 
-    # Store the message id so we can remove it later when the user presses "Exit"
-    bot.sent_balance_msg = sent_msg
+sent_msg = bot.send_message(
+    message.chat.id,
+    balance_msg,
+    parse_mode="HTML",
+    disable_web_page_preview=True,
+    reply_markup=keyboard
+)
+
+bot.sent_balance_msg = sent_msg
 
 # Handler to close the balance table when the user presses "Exit"
 @bot.callback_query_handler(func=lambda call: call.data.startswith('exit_'))
