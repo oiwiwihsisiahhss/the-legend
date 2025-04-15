@@ -279,72 +279,17 @@ cursor = conn.cursor()
 
 GROUP_LINK = "https://t.me/chainsaw_man_group69"
 
-def can_claim_daily(user_id):
+def get_rank_from_level(user_level):
     cursor = conn.cursor()
-    cursor.execute("SELECT last_claimed FROM daily_rewards WHERE user_id = ?", (user_id,))
+    cursor.execute('''
+        SELECT rank FROM hunter_ranks
+        WHERE required_level <= ?
+        ORDER BY required_level DESC
+        LIMIT 1
+    ''', (user_level,))
     result = cursor.fetchone()
     cursor.close()
-    if result and result[0]:
-        return datetime.fromisoformat(result[0])
-    return None
-
-def update_balance(user_id, yens=0, crystals=0):
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE user_data
-        SET yens = yens + ?, crystals = crystals + ?
-        WHERE user_id = ?
-    """, (yens, crystals, user_id))
-    conn.commit()
-    cursor.close()
-
-def update_last_claim_time(user_id):
-    now = datetime.now().isoformat()
-    cursor = conn.cursor()
-    cursor.execute("INSERT OR REPLACE INTO daily_rewards (user_id, last_claimed) VALUES (?, ?)", (user_id, now))
-    conn.commit()
-    cursor.close()
-
-@bot.message_handler(commands=['daily'])
-def handle_daily(message):
-    user_id = message.from_user.id
-
-    if message.chat.type == "private":
-        bot.reply_to(message, f"❌ You can only claim rewards in the official group.\n👉 [Join our group]({GROUP_LINK})", parse_mode="Markdown")
-        return
-
-    # Check if user has started the game
-    cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
-    result = cursor.fetchone()
-    if not result:
-        bot.reply_to(message, "❌ You haven’t started the game yet.\nUse /start in the group to begin.")
-        cursor.close()
-        return
-
-    # Prevent missing data
-    cursor.execute("INSERT OR IGNORE INTO user_data (user_id, yens, crystals, tickets, energy, max_energy, exp, required_exp, join_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                   (user_id, 0, 0, 0, 100, 100, 0, 1000, datetime.now().strftime("%Y-%m-%d")))
-    conn.commit()
-
-    last_claim_time = can_claim_daily(user_id)
-
-    if not last_claim_time or datetime.now() - last_claim_time >= timedelta(hours=24):
-        update_balance(user_id, yens=250, crystals=100)
-        update_last_claim_time(user_id)
-
-        bot.reply_to(message, "✅ Reward claimed!\n\n"
-                              "+ 250 Yens\n+ 100 Crystals\n\n"
-                              "Come back again later.")
-    else:
-        remaining_time = timedelta(hours=24) - (datetime.now() - last_claim_time)
-        total_seconds = int(remaining_time.total_seconds())
-        hours, remainder = divmod(total_seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-
-        bot.reply_to(message,
-                     f"⏳ You’ve already claimed it!\nTry again in {hours}h {minutes}m {seconds}s.")
-
+    return result[0] if result else "Unranked"
 
 
 @bot.message_handler(commands=['balance'])
