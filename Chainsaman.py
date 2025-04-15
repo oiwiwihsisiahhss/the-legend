@@ -363,7 +363,7 @@ def show_balance(message):
 
     # Join user_data + user_balance
     # Insert user if not exists
-    cursor.execute("INSERT OR IGNORE INTO users (user_id, yens, crystals, tickets, energy, max_energy, exp, required_exp, rank, join_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    cursor.execute("INSERT OR IGNORE INTO user_data (user_id, yens, crystals, tickets, energy, max_energy, exp, required_exp, rank, join_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                    (user_id, 0, 0, 0, 100, 100, 0, 1000, 'Rookie', datetime.now().strftime("%Y-%m-%d")))
     conn.commit()
 
