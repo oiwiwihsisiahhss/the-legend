@@ -256,7 +256,7 @@ GROUP_ID = -1002680551934 # Replace with your group chat ID
 
 GROUP9_ID = -1002680551934
 GROUP_LINK = "https://t.me/chainsaw_man_group69"
-DAILY_CRYSTALS = 250
+
 
 conn = sqlite3.connect("chainsaw.db", check_same_thread=False)
 cursor = conn.cursor()
@@ -272,6 +272,13 @@ def is_allowed(message):
     return any(admin.user.id == bot_id for admin in admins)
 
 # Check if user can claim daily reward
+
+
+conn = sqlite3.connect("chainsaw.db", check_same_thread=False)
+cursor = conn.cursor()
+
+GROUP_LINK = "https://t.me/chainsaw_man_group69"
+
 def can_claim_daily(user_id):
     cursor = conn.cursor()
     cursor.execute("SELECT last_claimed FROM daily_rewards WHERE user_id = ?", (user_id,))
@@ -281,35 +288,32 @@ def can_claim_daily(user_id):
         return datetime.fromisoformat(result[0])
     return None
 
-   # Function to update user's balance (Yens, Gems, Crystals)
 def update_balance(user_id, yens=0, crystals=0):
-    # Update the user's balance for Yens, Gems, and Crystals
+    cursor = conn.cursor()
     cursor.execute("""
         UPDATE user_data
         SET yens = yens + ?, crystals = crystals + ?
         WHERE user_id = ?
     """, (yens, crystals, user_id))
-    
-    # Commit the transaction to save the changes
-    conn.commit()  
- 
+    conn.commit()
+    cursor.close()
+
 def update_last_claim_time(user_id):
     now = datetime.now().isoformat()
+    cursor = conn.cursor()
     cursor.execute("INSERT OR REPLACE INTO daily_rewards (user_id, last_claimed) VALUES (?, ?)", (user_id, now))
     conn.commit()
-  # Handle /daily command
-GROUP_LINK = "https://t.me/chainsaw_man_group69"
+    cursor.close()
 
 @bot.message_handler(commands=['daily'])
 def handle_daily(message):
     user_id = message.from_user.id
-    chat_id = message.chat.id
 
-    # Only allow in group chat
     if message.chat.type == "private":
-        bot.reply_to(message, f"❌ You can only claim daily rewards in the official group.\n👉 [Join our official group]({GROUP_LINK})", parse_mode="Markdown")
+        bot.reply_to(message, f"❌ You can only claim rewards in the official group.\n👉 [Join our group]({GROUP_LINK})", parse_mode="Markdown")
         return
-# Check if user has started the game
+
+    # Check if user has started the game
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
     result = cursor.fetchone()
@@ -318,30 +322,28 @@ def handle_daily(message):
         cursor.close()
         return
 
-    # Ensure user exists in DB (optional if above check passes)
-    cursor.execute("INSERT OR IGNORE INTO user_data (user_id) VALUES (?)", (user_id,))
+    # Prevent missing data
+    cursor.execute("INSERT OR IGNORE INTO user_data (user_id, yens, crystals, tickets, energy, max_energy, exp, required_exp, join_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                   (user_id, 0, 0, 0, 100, 100, 0, 1000, datetime.now().strftime("%Y-%m-%d")))
     conn.commit()
 
-    # Check last claim time
     last_claim_time = can_claim_daily(user_id)
-    if last_claim_time is None:
-        # First time or eligible
+
+    if not last_claim_time or datetime.now() - last_claim_time >= timedelta(hours=24):
         update_balance(user_id, yens=250, crystals=100)
         update_last_claim_time(user_id)
 
-        bot.reply_to(message, "✅ Daily reward claimed!\n\n"
+        bot.reply_to(message, "✅ Reward claimed!\n\n"
                               "+ 250 Yens\n+ 100 Crystals\n\n"
-                              "You can claim again in 24 hours.")
+                              "Come back again later.")
     else:
-        # Not yet eligible, show remaining time
         remaining_time = timedelta(hours=24) - (datetime.now() - last_claim_time)
         total_seconds = int(remaining_time.total_seconds())
         hours, remainder = divmod(total_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
 
-        bot.reply_to(message, f"⏳ Already claimed today.\n\n"
-                              f"Next claim in {remaining_time.days}d {hours}h {minutes}m {seconds}s.")
-
+        bot.reply_to(message,
+                     f"⏳ You’ve already claimed it!\nTry again in {hours}h {minutes}m {seconds}s.")
 
 
 
