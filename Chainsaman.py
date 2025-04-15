@@ -401,7 +401,7 @@ def show_balance(message):
 import html
 
 user_name = html.escape(user_name)
-
+user_name = message.from_user.first_name  # or whatever source you’re using
 balance_msg = f"""
 <b>[CHAINSAW CONTRACT PROFILE]</b>
 🔗 Name: <a href="tg://user?id={user_id}">{user_name}</a>  
