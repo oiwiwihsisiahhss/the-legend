@@ -398,7 +398,7 @@ def show_balance(message):
     conn.close() 
 
 import html
-user_id = message.from_user.id
+
 cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
 user_data = cursor.fetchone()
 
@@ -416,6 +416,7 @@ if not user_data:
     user_data = cursor.fetchone()
 @bot.message_handler(commands=['balance'])
 def send_balance(message):
+    user_id = message.from_user.id
     user_id = message.from_user.id
     user_name = html.escape(message.from_user.first_name)
 
