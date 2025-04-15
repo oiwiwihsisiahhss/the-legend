@@ -356,61 +356,41 @@ def handle_daily(message):
         bot.reply_to(message, f"⏳ You already claimed your daily reward!\nCome back in {hours}h {minutes}m {seconds}s.")
 
 
+
+
 @bot.message_handler(commands=['balance'])
-def show_balance(message):
+def handle_balance(message):
     user_id = message.from_user.id
-    user_name = html.escape(message.from_user.first_name or "Unknown")
+    user_name = message.from_user.first_name
+    chat_id = message.chat.id
 
-    conn = sqlite3.connect("chainsaw.db")
+    conn = sqlite3.connect("your_database.db")  # Change to your actual DB
     cursor = conn.cursor()
 
-    # Check if user has started
-    cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
-    if not cursor.fetchone():
-        bot.reply_to(message, "❌ You haven't started your journey yet! Use /start first.")
+    # Fetch user data
+    cursor.execute("SELECT * FROM user_data WHERE user_id = ?", (user_id,))
+    user = cursor.fetchone()
+
+    if not user:
+        bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
         conn.close()
         return
 
-    # Ensure user_balance row exists
-    cursor.execute("INSERT OR IGNORE INTO user_balance (user_id) VALUES (?)", (user_id,))
-    conn.commit()
+    # Unpack values
+    (user_id, username, join_date, level, exp, required_exp,
+     yens, crystals, tickets, energy, max_energy, last_energy_time, chosen_character) = user
 
-    # Get data from both tables
-    cursor.execute("""
-        SELECT ub.yens, ub.crystals, ub.tickets, ub.energy, ub.max_energy,
-               ud.exp, ud.required_exp, ud.join_date
-        FROM user_balance ub
-        JOIN user_data ud ON ub.user_id = ud.user_id
-        WHERE ub.user_id = ?
-    """, (user_id,))
-    data = cursor.fetchone()
-
-    if not data:
-        bot.reply_to(message, "❌ Error: Your data is missing. Please try again later.")
-        conn.close()
-        return
-
-    yens, crystals, tickets, energy, max_energy, exp, required_exp, join_date = data
-
-    # Convert date
-    try:
-        readable_date = datetime.fromisoformat(join_date).strftime('%Y-%m-%d')
-    except:
-        readable_date = join_date
-
-    # Get rank from table (based only on EXP, or if you want level-based logic) 
-def get_rank_from_level(user_level):
-    cursor = conn.cursor()
+    # Fetch rank based on level
     cursor.execute('''
         SELECT rank FROM hunter_ranks
         WHERE required_level <= ?
         ORDER BY required_level DESC
         LIMIT 1
-    ''', (user_level,))
+    ''', (level,))
     result = cursor.fetchone()
-    cursor.close()
-    return result[0] if result else "Unranked"
-    # Progress bars
+    rank = result[0] if result else "Unranked"
+
+    # Create progress bar
     def create_bar(current, total):
         filled = int((current / total) * 10) if total else 0
         return "█" * filled + "░" * (10 - filled)
@@ -418,8 +398,12 @@ def get_rank_from_level(user_level):
     energy_bar = create_bar(energy, max_energy)
     exp_bar = create_bar(exp, required_exp)
 
+    # Format join date
+    readable_date = datetime.datetime.strptime(join_date, "%Y-%m-%d %H:%M:%S").strftime("%d %b %Y")
+
     conn.close()
 
+    # Final message
     balance_msg = f"""
 <b>[CHAINSAW CONTRACT PROFILE]</b>
 🔗 Name: <a href="tg://user?id={user_id}">{user_name}</a>  
@@ -439,12 +423,12 @@ def get_rank_from_level(user_level):
 ⚔️ <b>Rank:</b> {rank}
 """
 
+    # Exit button
     keyboard = types.InlineKeyboardMarkup()
     exit_btn = types.InlineKeyboardButton("❌ Exit", callback_data=f"exit_{user_id}")
     keyboard.add(exit_btn)
 
-    bot.send_message(message.chat.id, balance_msg, parse_mode="HTML", disable_web_page_preview=True, reply_markup=keyboard)
-
+    bot.send_message(chat_id, balance_msg.strip(), parse_mode="HTML", disable_web_page_preview=True, reply_markup=keyboard)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('exit_'))
 def close_balance_table(call):
@@ -456,6 +440,5 @@ def close_balance_table(call):
         bot.answer_callback_query(call.id, "✅ Closed.")
     else:
         bot.answer_callback_query(call.id, "❌ You can't close someone else's profile.")
-if __name__ == "__main__":
     create_table()  # Create table if not exists
     bot.polling(none_stop=True)
