@@ -363,7 +363,7 @@ def handle_balance(message):
     user_name = message.from_user.first_name
     chat_id = message.chat.id
 
-    conn = sqlite3.connect("your_database.db")  # Change to your actual DB
+    conn = sqlite3.connect("chainsaw.db")  # Change to your actual DB
     cursor = conn.cursor()
 
     # Fetch user data
