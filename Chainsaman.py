@@ -363,11 +363,20 @@ def show_balance(message):
 
     # Join user_data + user_balance
     # Insert user if not exists
-    cursor.execute("INSERT OR IGNORE INTO user_data (user_id, yens, crystals, tickets, energy, max_energy, exp, required_exp, rank, join_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                   (user_id, 0, 0, 0, 100, 100, 0, 1000, 'Rookie', datetime.now().strftime("%Y-%m-%d")))
+    cursor.execute("INSERT OR IGNORE INTO user_data (user_id, yens, crystals, tickets, energy, max_energy, exp, required_exp, join_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                   (user_id, 0, 0, 0, 100, 100, 0, 1000, datetime.now().strftime("%Y-%m-%d")))
     conn.commit()
 
-
+    cursor.execute('''
+    SELECT hr.rank
+    FROM user_data ud
+    JOIN hunter_ranks hr ON ud.level >= hr.required_level
+    WHERE ud.user_id = ?
+    ORDER BY hr.required_level DESC
+    LIMIT 1
+''', (user_id,))
+rank_row = cursor.fetchone()
+rank = rank_row[0] if rank_row else "Unranked"
     if not data:
         bot.reply_to(message, "❌ Error: Your data is missing. Please try again later.")
         conn.close()
