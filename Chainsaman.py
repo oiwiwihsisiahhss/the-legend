@@ -223,14 +223,16 @@ GROUP_ID = -1002680551934 # Replace with your group chat ID
 # Announcement function
 def announce_open_feature():
     message = (
-        "🔥 Attention, Devil Hunters! 🔥\n\n"
-        "Your **Daily Reward** is here!\n\n"
-        "💀 Today's reward includes:\n"
-        "- **150 Yens**\n"
-        "- **100 Gems**\n\n"
-        "💎 Stay sharp and claim your rewards every day!\n"
-        "The hunt never stops! 🏹💀\n\n"
-        "Keep battling, and may your chainsaws stay sharp! ⚔️"
+        ✅ The 'user_balance' table has been successfully created in the database! 🎉
+
+This table will track user balances, including:
+- **Yens** 💴
+- **Crystals** 🔮
+- **Tickets** 🎟️
+- **Energy** ⚡
+
+The system is now ready to handle user balance data.
+"""
     
     )
     bot.send_message(chat_id=GROUP_ID, text=message, parse_mode='Markdown')
