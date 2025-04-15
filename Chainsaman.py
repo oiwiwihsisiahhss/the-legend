@@ -402,8 +402,7 @@ import html
 
 
     # Re-fetch the new data
-    cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
-    user_data = cursor.fetchone()
+    
 @bot.message_handler(commands=['balance'])
 def show_balance(message):
     user_id = message.from_user.id
