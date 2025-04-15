@@ -279,17 +279,81 @@ cursor = conn.cursor()
 
 GROUP_LINK = "https://t.me/chainsaw_man_group69"
 
-def get_rank_from_level(user_level):
+from datetime import datetime, timedelta
+
+GROUP_LINK = "https://t.me/chainsaw_man_group69"
+
+# --- Utility: Ensure user exists ---
+def ensure_user_exists(user_id, username):
     cursor = conn.cursor()
-    cursor.execute('''
-        SELECT rank FROM hunter_ranks
-        WHERE required_level <= ?
-        ORDER BY required_level DESC
-        LIMIT 1
-    ''', (user_level,))
+    cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
+    if not cursor.fetchone():
+        cursor.execute("""
+            INSERT INTO user_data (user_id, username)
+            VALUES (?, ?)
+        """, (user_id, username))
+        conn.commit()
+    cursor.close()
+
+# --- Utility: Check daily claim time ---
+def can_claim_daily(user_id):
+    cursor = conn.cursor()
+    cursor.execute("SELECT last_claimed FROM daily_rewards WHERE user_id = ?", (user_id,))
     result = cursor.fetchone()
     cursor.close()
-    return result[0] if result else "Unranked"
+    if result and result[0]:
+        return datetime.fromisoformat(result[0])
+    return None
+
+# --- Utility: Update last claim timestamp ---
+def update_last_claim_time(user_id):
+    now = datetime.now().isoformat()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT OR REPLACE INTO daily_rewards (user_id, last_claimed)
+        VALUES (?, ?)
+    """, (user_id, now))
+    conn.commit()
+    cursor.close()
+
+# --- Utility: Update balance ---
+def update_balance(user_id, yens=0, crystals=0):
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE user_data
+        SET yens = yens + ?, crystals = crystals + ?
+        WHERE user_id = ?
+    """, (yens, crystals, user_id))
+    conn.commit()
+    cursor.close()
+
+# --- /daily command ---
+@bot.message_handler(commands=['daily'])
+def handle_daily(message):
+    user_id = message.from_user.id
+    username = message.from_user.username or "Unknown"
+    chat_id = message.chat.id
+
+    # Must be used in group chat
+    if message.chat.type == "private":
+        bot.reply_to(message, f"❌ You can only claim daily rewards in the official group.\n👉 [Join our official group]({GROUP_LINK})", parse_mode="Markdown")
+        return
+
+    ensure_user_exists(user_id, username)
+
+    last_claim_time = can_claim_daily(user_id)
+    now = datetime.now()
+
+    if not last_claim_time or now - last_claim_time >= timedelta(hours=24):
+        update_balance(user_id, yens=250, crystals=100)
+        update_last_claim_time(user_id)
+
+        bot.reply_to(message, "✅ Daily reward claimed!\n\n+ 250 Yens\n+ 100 Crystals\n\nCome back in 24 hours!")
+    else:
+        remaining = timedelta(hours=24) - (now - last_claim_time)
+        hours, remainder = divmod(int(remaining.total_seconds()), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        bot.reply_to(message, f"⏳ You already claimed your daily reward!\nCome back in {hours}h {minutes}m {seconds}s.")
 
 
 @bot.message_handler(commands=['balance'])
