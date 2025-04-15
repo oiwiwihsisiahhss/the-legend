@@ -398,8 +398,8 @@ def show_balance(message):
     except:
         readable_date = join_date
 
-    # Get rank from table (based only on EXP, or if you want level-based logic)
-    def get_rank_from_level(user_level):
+    # Get rank from table (based only on EXP, or if you want level-based logic) 
+def get_rank_from_level(user_level):
     cursor = conn.cursor()
     cursor.execute('''
         SELECT rank FROM hunter_ranks
