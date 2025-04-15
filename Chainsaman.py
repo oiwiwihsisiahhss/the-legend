@@ -243,7 +243,7 @@ GROUP_ID = -1002680551934 # Replace with your group chat ID
 #The system is now ready to handle user balance data.
 #"""
     
-    )
+ #   )
    # bot.send_message(chat_id=GROUP_ID, text=message, parse_mode='Markdown')
 #def on_start():
     #announce_open_feature()
