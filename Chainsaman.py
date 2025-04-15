@@ -5,6 +5,7 @@ import sqlite3
 from telebot import types
 from datetime import datetime, timedelta
 import os
+import html
 
 # Initialize bot with your API key
 API_KEY = '7215821191:AAEzFPwyx8FjlXMr2mpVTbYzpHoMbPsaCDc'
@@ -342,95 +343,70 @@ def handle_daily(message):
                               f"Next claim in {remaining_time.days}d {hours}h {minutes}m {seconds}s.")
 
 
-def create_progress_bar(current, max_value, length=15, symbol='█', empty='░'):
-    filled_len = math.floor(length * current / max_value)
-    return symbol * filled_len + empty * (length - filled_len)
+
 
 @bot.message_handler(commands=['balance'])
 def show_balance(message):
     user_id = message.from_user.id
-    user_name = message.from_user.first_name
-    user_name = html.escape(user_name) 
+    user_name = html.escape(message.from_user.first_name or "Unknown")
+
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Check if user has started the game by verifying the user_id in the user_data table
+    # Check if user has started
     cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
     if not cursor.fetchone():
         bot.reply_to(message, "❌ You haven't started your journey yet! Use /start first.")
         conn.close()
         return
 
-    # Join user_data + user_balance
-    # Insert user if not exists
-    cursor.execute("INSERT OR IGNORE INTO user_data (user_id, yens, crystals, tickets, energy, max_energy, exp, required_exp, join_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                   (user_id, 0, 0, 0, 100, 100, 0, 1000, datetime.now().strftime("%Y-%m-%d")))
+    # Ensure user_balance row exists
+    cursor.execute("INSERT OR IGNORE INTO user_balance (user_id) VALUES (?)", (user_id,))
     conn.commit()
 
-    cursor.execute("SELECT * FROM user_balance WHERE user_id = ?", (user_id,))
-data = cursor.fetchone()
+    # Get data from both tables
+    cursor.execute("""
+        SELECT ub.yens, ub.crystals, ub.tickets, ub.energy, ub.max_energy,
+               ud.exp, ud.required_exp, ud.join_date
+        FROM user_balance ub
+        JOIN user_data ud ON ub.user_id = ud.user_id
+        WHERE ub.user_id = ?
+    """, (user_id,))
+    data = cursor.fetchone()
 
-if not data:
-    cursor.execute("INSERT INTO user_balance (user_id) VALUES (?)", (user_id,))
-    conn.commit()
     if not data:
         bot.reply_to(message, "❌ Error: Your data is missing. Please try again later.")
         conn.close()
         return
 
-    username, join_date, level, exp, required_exp, yens, crystals, tickets, energy, max_energy = data
+    yens, crystals, tickets, energy, max_energy, exp, required_exp, join_date = data
 
-    # Convert join date to readable
-    readable_date = datetime.fromisoformat(join_date).strftime('%Y-%m-%d')
+    # Convert date
+    try:
+        readable_date = datetime.fromisoformat(join_date).strftime('%Y-%m-%d')
+    except:
+        readable_date = join_date
 
-    # Fetch rank
-    cursor.execute('''
+    # Get rank from table (based only on EXP, or if you want level-based logic)
+    cursor.execute("""
         SELECT rank FROM hunter_ranks
-        WHERE required_level <= ?
-        ORDER BY required_level DESC
-        LIMIT 1
-    ''', (level,))
+        WHERE required_level <= (
+            SELECT exp FROM user_data WHERE user_id = ?
+        )
+        ORDER BY required_level DESC LIMIT 1
+    """, (user_id,))
     result = cursor.fetchone()
     rank = result[0] if result else "Unranked"
 
     # Progress bars
-    exp_bar = create_progress_bar(exp, required_exp)
-    energy_bar = create_progress_bar(energy, max_energy)
+    def create_bar(current, total):
+        filled = int((current / total) * 10) if total else 0
+        return "█" * filled + "░" * (10 - filled)
 
-    conn.close() 
+    energy_bar = create_bar(energy, max_energy)
+    exp_bar = create_bar(exp, required_exp)
 
-import html
-
-
-
-    # Re-fetch the new data
-    
-@bot.message_handler(commands=['balance'])
-def show_balance(message):
-    user_id = message.from_user.id
-    user_name = html.escape(message.from_user.first_name or "Unknown")
-
-    cursor.execute("SELECT * FROM user_data WHERE user_id = ?", (user_id,))
-    user_data = cursor.fetchone()
-
-    if not user_data:
-        bot.reply_to(message, "❌ Error: Your data is missing. Please try again later.")
-        return
-
-    # extract your values here from user_data
-    yens = user_data[1]
-    crystals = user_data[2]
-    tickets = user_data[3]
-    energy = user_data[4]
-    max_energy = user_data[5]
-    exp = user_data[6]
-    required_exp = user_data[7]
-    rank = user_data[8]
-    readable_date = user_data[9]  # if you store join date
-
-    # energy_bar and exp_bar generation logic here
-    energy_bar = "█" * (energy // 10) + "░" * ((max_energy - energy) // 10)
-    exp_bar = "█" * (exp * 10 // required_exp) + "░" * (10 - (exp * 10 // required_exp))
+    conn.close()
 
     balance_msg = f"""
 <b>[CHAINSAW CONTRACT PROFILE]</b>
@@ -452,27 +428,22 @@ def show_balance(message):
 """
 
     keyboard = types.InlineKeyboardMarkup()
-    exit_button = types.InlineKeyboardButton(text="❌ Exit", callback_data=f"exit_{user_id}")
-    keyboard.add(exit_button)
+    exit_btn = types.InlineKeyboardButton("❌ Exit", callback_data=f"exit_{user_id}")
+    keyboard.add(exit_btn)
 
-    sent_msg = bot.send_message(message.chat.id, balance_msg, parse_mode="HTML", disable_web_page_preview=True, reply_markup=keyboard)
-    bot.sent_balance_msg = sent_msg
+    bot.send_message(message.chat.id, balance_msg, parse_mode="HTML", disable_web_page_preview=True, reply_markup=keyboard)
 
-# Handler to close the balance table when the user presses "Exit"
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith('exit_'))
 def close_balance_table(call):
     user_id = call.from_user.id
-    # Extract the user_id from the callback data
-    target_user_id = int(call.data.split('_')[1])
+    target_id = int(call.data.split('_')[1])
 
-    # Ensure that only the user who opened the balance can close it
-    if user_id == target_user_id:
-        # Delete the balance message sent earlier
+    if user_id == target_id:
         bot.delete_message(call.message.chat.id, call.message.message_id)
-        bot.answer_callback_query(call.id, "✅ Your balance table has been closed.")
+        bot.answer_callback_query(call.id, "✅ Closed.")
     else:
-        bot.answer_callback_query(call.id, "❌ You cannot close someone else's balance table.")       
-# Main function to start the bot
+        bot.answer_callback_query(call.id, "❌ You can't close someone else's profile.")
 if __name__ == "__main__":
     create_table()  # Create table if not exists
     bot.polling(none_stop=True)
