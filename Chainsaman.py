@@ -350,7 +350,7 @@ def create_progress_bar(current, max_value, length=15, symbol='█', empty='░'
 def show_balance(message):
     user_id = message.from_user.id
     user_name = message.from_user.first_name
-
+    user_name = html.escape(user_name) 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
