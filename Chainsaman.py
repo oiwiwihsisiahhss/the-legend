@@ -230,26 +230,26 @@ def explore_action(message):
 GROUP_ID = -1002680551934 # Replace with your group chat ID
 
 # Announcement function
-def announce_open_feature():
-    message = ( """
-\u2705 The 'user_balance' table has been successfully created in the database! \U0001F389
+#def announce_open_feature():
+    #message = ( """
+#\u2705 The 'user_balance' table has been successfully created in the database! \U0001F389
 
-This table will track user balances, including:
-- **Yens** \U0001F4B4
-- **Crystals** \U0001F52E
-- **Tickets** \U0001F39F
-- **Energy** \U000026A1
+#This table will track user balances, including:
+#- **Yens** \U0001F4B4
+#- **Crystals** \U0001F52E
+#- **Tickets** \U0001F39F
+#- **Energy** \U000026A1
 
-The system is now ready to handle user balance data.
-"""
+#The system is now ready to handle user balance data.
+#"""
     
     )
-    bot.send_message(chat_id=GROUP_ID, text=message, parse_mode='Markdown')
-def on_start():
-    announce_open_feature()
+   # bot.send_message(chat_id=GROUP_ID, text=message, parse_mode='Markdown')
+#def on_start():
+    #announce_open_feature()
 
 # Call announcement when the bot starts
-on_start()
+#on_start()
 
 
 
