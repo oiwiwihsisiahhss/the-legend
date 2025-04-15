@@ -405,7 +405,7 @@ def show_balance(message):
     user_id = message.from_user.id
     user_name = html.escape(message.from_user.first_name or "Unknown")
 
-    cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT * FROM user_data WHERE user_id = ?", (user_id,))
     user_data = cursor.fetchone()
 
     if not user_data:
