@@ -1,5 +1,6 @@
 import telebot
 import time
+import math
 import sqlite3
 from telebot import types
 from datetime import datetime, timedelta
@@ -42,6 +43,34 @@ def create_table():
             FOREIGN KEY (user_id) REFERENCES user_data (user_id)
         );
     ''')
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS hunter_ranks (
+        rank TEXT PRIMARY KEY,
+        required_level INTEGER
+    )
+''')
+
+cursor.executemany('''
+    INSERT OR IGNORE INTO hunter_ranks (rank, required_level) VALUES 
+    ('E Rank - Novice Hunter 🪶', 1),
+    ('D Rank - Rookie Hunter ⚔️', 25),
+    ('C Rank - Skilled Hunter 🛡️', 50),
+    ('B Rank - Elite Hunter 🏹', 100),
+    ('A Rank - Master Hunter 🔥', 175),
+    ('S Rank - Legendary Hunter 👑', 220)
+''')
+# Create the user_balance table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS user_balance (
+        user_id INTEGER PRIMARY KEY,
+        yens INTEGER DEFAULT 0,
+        crystals INTEGER DEFAULT 0,
+        tickets INTEGER DEFAULT 0,
+        energy INTEGER DEFAULT 10000,
+        max_energy INTEGER DEFAULT 10000
+    )
+''')
+
     connection.commit()
     connection.close() 
 
@@ -300,6 +329,108 @@ def handle_daily(message):
 
         bot.reply_to(message, f"⏳ Already claimed today.\n\n"
                               f"Next claim in {remaining_time.days}d {hours}h {minutes}m {seconds}s.")
+
+
+def create_progress_bar(current, max_value, length=15, symbol='█', empty='░'):
+    filled_len = math.floor(length * current / max_value)
+    return symbol * filled_len + empty * (length - filled_len)
+
+@bot.message_handler(commands=['balance'])
+def show_balance(message):
+    user_id = message.from_user.id
+    user_name = message.from_user.first_name
+
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+
+    # Check if user has started the game by verifying the user_id in the user_data table
+    cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
+    if not cursor.fetchone():
+        bot.reply_to(message, "❌ You haven't started your journey yet! Use /start first.")
+        conn.close()
+        return
+
+    # Join user_data + user_balance
+    cursor.execute('''
+        SELECT ud.username, ud.join_date, ud.level, ud.exp, ud.required_exp,
+               ub.yens, ub.crystals, ub.tickets, ub.energy, ub.max_energy
+        FROM user_data ud
+        JOIN user_balance ub ON ud.user_id = ub.user_id
+        WHERE ud.user_id = ?
+    ''', (user_id,))
+    data = cursor.fetchone()
+
+    if not data:
+        bot.reply_to(message, "❌ Error: Your data is missing. Please try again later.")
+        conn.close()
+        return
+
+    username, join_date, level, exp, required_exp, yens, crystals, tickets, energy, max_energy = data
+
+    # Convert join date to readable
+    readable_date = datetime.fromisoformat(join_date).strftime('%Y-%m-%d')
+
+    # Fetch rank
+    cursor.execute('''
+        SELECT rank FROM hunter_ranks
+        WHERE required_level <= ?
+        ORDER BY required_level DESC
+        LIMIT 1
+    ''', (level,))
+    result = cursor.fetchone()
+    rank = result[0] if result else "Unranked"
+
+    # Progress bars
+    exp_bar = create_progress_bar(exp, required_exp)
+    energy_bar = create_progress_bar(energy, max_energy)
+
+    conn.close()
+
+    # Balance message
+    balance_msg = f"""
+<b>[CHAINSAW CONTRACT PROFILE]</b>
+🔗 Name: <a href="tg://user?id={user_id}">{user_name}</a>  
+🆔 UID: <code>{user_id}</code>  
+🕰️ Joined: <b>{readable_date}</b>
+━━━━━━━━━━━━━━━━━━━━━━━
+💴 <b>Yens:</b> {yens}  
+🔮 <b>Crystals:</b> {crystals}  
+🎟️ <b>Tokens:</b> {tickets}  
+━━━━━━━━━━━━━━━━━━━━━━━
+⚡ <b>Energy</b>  
+{energy_bar}  <b>{energy}</b> / {max_energy}  
+
+✨ <b>EXP</b>  
+{exp_bar}  <b>{exp}</b> / {required_exp}  
+━━━━━━━━━━━━━━━━━━━━━━━
+⚔️ <b>Rank:</b> {rank}
+"""
+    
+    # Create an inline keyboard with an "Exit" button
+    keyboard = types.InlineKeyboardMarkup()
+    exit_button = types.InlineKeyboardButton(text="❌ Exit", callback_data=f"exit_{user_id}")
+    keyboard.add(exit_button)
+
+    # Send the balance message with the "Exit" button
+    sent_msg = bot.send_message(message.chat.id, balance_msg, parse_mode="HTML", disable_web_page_preview=True, reply_markup=keyboard)
+
+    # Store the message id so we can remove it later when the user presses "Exit"
+    bot.sent_balance_msg = sent_msg
+
+# Handler to close the balance table when the user presses "Exit"
+@bot.callback_query_handler(func=lambda call: call.data.startswith('exit_'))
+def close_balance_table(call):
+    user_id = call.from_user.id
+    # Extract the user_id from the callback data
+    target_user_id = int(call.data.split('_')[1])
+
+    # Ensure that only the user who opened the balance can close it
+    if user_id == target_user_id:
+        # Delete the balance message sent earlier
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        bot.answer_callback_query(call.id, "✅ Your balance table has been closed.")
+    else:
+        bot.answer_callback_query(call.id, "❌ You cannot close someone else's balance table.")       
 # Main function to start the bot
 if __name__ == "__main__":
     create_table()  # Create table if not exists
