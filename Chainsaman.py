@@ -71,8 +71,8 @@ cursor.execute('''
     )
 ''')
 
- connection.commit()
- connection.close() 
+connection.commit()
+connection.close()
 
 
     
