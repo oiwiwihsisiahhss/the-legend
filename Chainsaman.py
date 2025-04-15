@@ -20,59 +20,68 @@ def create_connection():
 def create_table():
     connection = create_connection()
     cursor = connection.cursor()
+
+    # Create user_data table
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS user_data (
-        user_id INTEGER PRIMARY KEY,
-        username TEXT,
-        join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        level INTEGER DEFAULT 1,
-        exp INTEGER DEFAULT 0,
-        required_exp INTEGER DEFAULT 12345,
-        yens INTEGER DEFAULT 250,
-        crystals INTEGER DEFAULT 0,
-        tickets INTEGER DEFAULT 0,
-        energy INTEGER DEFAULT 10000,
-        max_energy INTEGER DEFAULT 10000,
-        last_energy_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        choosen_character TEXT DEFAULT NULL
-    )''')
+        CREATE TABLE IF NOT EXISTS user_data (
+            user_id INTEGER PRIMARY KEY,
+            username TEXT,
+            join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            level INTEGER DEFAULT 1,
+            exp INTEGER DEFAULT 0,
+            required_exp INTEGER DEFAULT 12345,
+            yens INTEGER DEFAULT 250,
+            crystals INTEGER DEFAULT 0,
+            tickets INTEGER DEFAULT 0,
+            energy INTEGER DEFAULT 10000,
+            max_energy INTEGER DEFAULT 10000,
+            last_energy_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            choosen_character TEXT DEFAULT NULL
+        )
+    ''')
+
+    # Create daily_rewards table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS daily_rewards (
             user_id INTEGER PRIMARY KEY,  
             last_claimed TIMESTAMP DEFAULT NULL,  
             FOREIGN KEY (user_id) REFERENCES user_data (user_id)
-        );
+        )
     ''')
+
+    # Create hunter_ranks table
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS hunter_ranks (
-        rank TEXT PRIMARY KEY,
-        required_level INTEGER
-    )
-''')
+        CREATE TABLE IF NOT EXISTS hunter_ranks (
+            rank TEXT PRIMARY KEY,
+            required_level INTEGER
+        )
+    ''')
 
-   cursor.executemany('''
-    INSERT OR IGNORE INTO hunter_ranks (rank, required_level) VALUES 
-    ('E Rank - Novice Hunter 🪶', 1),
-    ('D Rank - Rookie Hunter ⚔️', 25),
-    ('C Rank - Skilled Hunter 🛡️', 50),
-    ('B Rank - Elite Hunter 🏹', 100),
-    ('A Rank - Master Hunter 🔥', 175),
-    ('S Rank - Legendary Hunter 👑', 220)
-''')
-# Create the user_balance table
-   cursor.execute('''
-    CREATE TABLE IF NOT EXISTS user_balance (
-        user_id INTEGER PRIMARY KEY,
-        yens INTEGER DEFAULT 0,
-        crystals INTEGER DEFAULT 0,
-        tickets INTEGER DEFAULT 0,
-        energy INTEGER DEFAULT 10000,
-        max_energy INTEGER DEFAULT 10000
-    )
-''')
+    # Insert default hunter ranks
+    cursor.executemany('''
+        INSERT OR IGNORE INTO hunter_ranks (rank, required_level) VALUES 
+        ('E Rank - Novice Hunter 🪶', 1),
+        ('D Rank - Rookie Hunter ⚔️', 25),
+        ('C Rank - Skilled Hunter 🛡️', 50),
+        ('B Rank - Elite Hunter 🏹', 100),
+        ('A Rank - Master Hunter 🔥', 175),
+        ('S Rank - Legendary Hunter 👑', 220)
+    ''')
 
-connection.commit()
-connection.close()
+    # Create user_balance table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_balance (
+            user_id INTEGER PRIMARY KEY,
+            yens INTEGER DEFAULT 0,
+            crystals INTEGER DEFAULT 0,
+            tickets INTEGER DEFAULT 0,
+            energy INTEGER DEFAULT 10000,
+            max_energy INTEGER DEFAULT 10000
+        )
+    ''')
+
+    connection.commit()
+    connection.close()
 
 
     
