@@ -362,14 +362,11 @@ def show_balance(message):
         return
 
     # Join user_data + user_balance
-    cursor.execute('''
-        SELECT ud.username, ud.join_date, ud.level, ud.exp, ud.required_exp,
-               ub.yens, ub.crystals, ub.tickets, ub.energy, ub.max_energy
-        FROM user_data ud
-        JOIN user_balance ub ON ud.user_id = ub.user_id
-        WHERE ud.user_id = ?
-    ''', (user_id,))
-    data = cursor.fetchone()
+    # Insert user if not exists
+    cursor.execute("INSERT OR IGNORE INTO users (user_id, yens, crystals, tickets, energy, max_energy, exp, required_exp, rank, join_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                   (user_id, 0, 0, 0, 100, 100, 0, 1000, 'Rookie', datetime.now().strftime("%Y-%m-%d")))
+    conn.commit()
+
 
     if not data:
         bot.reply_to(message, "❌ Error: Your data is missing. Please try again later.")
