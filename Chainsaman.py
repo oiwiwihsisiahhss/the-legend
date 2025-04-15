@@ -390,16 +390,17 @@ def show_balance(message):
         readable_date = join_date
 
     # Get rank from table (based only on EXP, or if you want level-based logic)
-    cursor.execute("""
+    def get_rank_from_level(user_level):
+    cursor = conn.cursor()
+    cursor.execute('''
         SELECT rank FROM hunter_ranks
-        WHERE required_level <= (
-            SELECT exp FROM user_data WHERE user_id = ?
-        )
-        ORDER BY required_level DESC LIMIT 1
-    """, (user_id,))
+        WHERE required_level <= ?
+        ORDER BY required_level DESC
+        LIMIT 1
+    ''', (user_level,))
     result = cursor.fetchone()
-    rank = result[0] if result else "Unranked"
-
+    cursor.close()
+    return result[0] if result else "Unranked"
     # Progress bars
     def create_bar(current, total):
         filled = int((current / total) * 10) if total else 0
