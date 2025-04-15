@@ -396,18 +396,37 @@ def show_balance(message):
     energy_bar = create_progress_bar(energy, max_energy)
 
     conn.close()
-
-    # Balance message
+import sqlite3
 import html
-user_name = message.from_user.first_name  # or whatever source you’re using
-user_name = html.escape(user_name)
 
-user_name = message.from_user.first_name  # or whatever source you’re using
-balance_msg = f"""
+@bot.message_handler(commands=['balance'])
+def send_balance(message):
+    user_id = message.from_user.id
+    user_name = html.escape(message.from_user.first_name)
+
+    # Connect to your database and fetch user data
+    conn = sqlite3.connect("chainsaw_bot.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT yens, crystals, tickets, energy, max_energy, exp, required_exp, rank, joined FROM users WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+
+    if result is None:
+        bot.reply_to(message, "You haven't started the game yet. Use /start to begin!")
+        return
+
+    # Unpack your data from the DB result
+    yens, crystals, tickets, energy, max_energy, exp, required_exp, rank, joined = result
+
+    # Simple EXP & Energy bars (can be styled more later)
+    
+    exp_bar = "█" * int((exp / required_exp) * 10)
+
+    balance_msg = f"""
 <b>[CHAINSAW CONTRACT PROFILE]</b>
 🔗 Name: <a href="tg://user?id={user_id}">{user_name}</a>  
 🆔 UID: <code>{user_id}</code>  
-🕰️ Joined: <b>{readable_date}</b>
+🕰️ Joined: <b>{joined}</b>
 ━━━━━━━━━━━━━━━━━━━━━━━
 💴 <b>Yens:</b> {yens}  
 🔮 <b>Crystals:</b> {crystals}  
@@ -422,19 +441,14 @@ balance_msg = f"""
 ⚔️ <b>Rank:</b> {rank}
 """
 
-keyboard = types.InlineKeyboardMarkup()
-exit_button = types.InlineKeyboardButton(text="❌ Exit", callback_data=f"exit_{user_id}")
-keyboard.add(exit_button)
+    # Inline "Exit" button
+    keyboard = types.InlineKeyboardMarkup()
+    exit_button = types.InlineKeyboardButton(text="❌ Exit", callback_data=f"exit_{user_id}")
+    keyboard.add(exit_button)
 
-sent_msg = bot.send_message(
-    message.chat.id,
-    balance_msg,
-    parse_mode="HTML",
-    disable_web_page_preview=True,
-    reply_markup=keyboard
-)
-
-bot.sent_balance_msg = sent_msg
+    sent_msg = bot.send_message(message.chat.id, balance_msg, parse_mode="HTML", disable_web_page_preview=True, reply_markup=keyboard)
+    bot.sent_balance_msg = sent_msg
+    
 
 # Handler to close the balance table when the user presses "Exit"
 @bot.callback_query_handler(func=lambda call: call.data.startswith('exit_'))
