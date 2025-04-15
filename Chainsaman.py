@@ -50,7 +50,7 @@ def create_table():
     )
 ''')
 
-cursor.executemany('''
+   cursor.executemany('''
     INSERT OR IGNORE INTO hunter_ranks (rank, required_level) VALUES 
     ('E Rank - Novice Hunter 🪶', 1),
     ('D Rank - Rookie Hunter ⚔️', 25),
@@ -60,7 +60,7 @@ cursor.executemany('''
     ('S Rank - Legendary Hunter 👑', 220)
 ''')
 # Create the user_balance table
-cursor.execute('''
+   cursor.execute('''
     CREATE TABLE IF NOT EXISTS user_balance (
         user_id INTEGER PRIMARY KEY,
         yens INTEGER DEFAULT 0,
