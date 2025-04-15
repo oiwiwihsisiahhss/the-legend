@@ -222,14 +222,14 @@ GROUP_ID = -1002680551934 # Replace with your group chat ID
 
 # Announcement function
 def announce_open_feature():
-    message = (
-        ✅ The 'user_balance' table has been successfully created in the database! 🎉
+    message = ( """
+\u2705 The 'user_balance' table has been successfully created in the database! \U0001F389
 
 This table will track user balances, including:
-- **Yens** 💴
-- **Crystals** 🔮
-- **Tickets** 🎟️
-- **Energy** ⚡
+- **Yens** \U0001F4B4
+- **Crystals** \U0001F52E
+- **Tickets** \U0001F39F
+- **Energy** \U000026A1
 
 The system is now ready to handle user balance data.
 """
