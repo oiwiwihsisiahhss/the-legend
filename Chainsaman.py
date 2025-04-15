@@ -395,10 +395,10 @@ def show_balance(message):
     exp_bar = create_progress_bar(exp, required_exp)
     energy_bar = create_progress_bar(energy, max_energy)
 
-    conn.close()
-import sqlite3
-import html
+    conn.close() 
 
+import html
+user_id = message.from_user.id
 cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
 user_data = cursor.fetchone()
 
