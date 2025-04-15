@@ -399,17 +399,7 @@ def show_balance(message):
 
 import html
 
-cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
-user_data = cursor.fetchone()
 
-if not user_data:
-    # Create default user if not found
-    readable_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    cursor.execute("""
-        INSERT INTO users (user_id, yens, crystals, tickets, energy, max_energy, exp, required_exp, rank, joined)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (user_id, 0, 0, 0, 10, 10, 0, 1000, 'Unranked', readable_date))
-    conn.commit()
 
     # Re-fetch the new data
     cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
@@ -419,7 +409,17 @@ def send_balance(message):
     user_id = message.from_user.id
     user_id = message.from_user.id
     user_name = html.escape(message.from_user.first_name)
+    cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
+    user_data = cursor.fetchone()
 
+if not user_data:
+    # Create default user if not found
+    readable_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute("""
+        INSERT INTO users (user_id, yens, crystals, tickets, energy, max_energy, exp, required_exp, rank, joined)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (user_id, 0, 0, 0, 10, 10, 0, 1000, 'Unranked', readable_date))
+    conn.commit()
     # Connect to your database and fetch user data
     conn = sqlite3.connect("chainsaw_bot.db")
     cursor = conn.cursor()
