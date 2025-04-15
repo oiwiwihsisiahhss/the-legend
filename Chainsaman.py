@@ -405,44 +405,37 @@ import html
     cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
     user_data = cursor.fetchone()
 @bot.message_handler(commands=['balance'])
-def send_balance(message):
+def show_balance(message):
     user_id = message.from_user.id
-    user_id = message.from_user.id
-    user_name = html.escape(message.from_user.first_name)
+    user_name = html.escape(message.from_user.first_name or "Unknown")
+
     cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
     user_data = cursor.fetchone()
 
-if not user_data:
-    # Create default user if not found
-    readable_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    cursor.execute("""
-        INSERT INTO users (user_id, yens, crystals, tickets, energy, max_energy, exp, required_exp, rank, joined)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (user_id, 0, 0, 0, 10, 10, 0, 1000, 'Unranked', readable_date))
-    conn.commit()
-    # Connect to your database and fetch user data
-    conn = sqlite3.connect("chainsaw_bot.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT yens, crystals, tickets, energy, max_energy, exp, required_exp, rank, joined FROM users WHERE user_id = ?", (user_id,))
-    result = cursor.fetchone()
-    conn.close()
-
-    if result is None:
-        bot.reply_to(message, "You haven't started the game yet. Use /start to begin!")
+    if not user_data:
+        bot.reply_to(message, "❌ Error: Your data is missing. Please try again later.")
         return
 
-    # Unpack your data from the DB result
-    yens, crystals, tickets, energy, max_energy, exp, required_exp, rank, joined = result
+    # extract your values here from user_data
+    yens = user_data[1]
+    crystals = user_data[2]
+    tickets = user_data[3]
+    energy = user_data[4]
+    max_energy = user_data[5]
+    exp = user_data[6]
+    required_exp = user_data[7]
+    rank = user_data[8]
+    readable_date = user_data[9]  # if you store join date
 
-    # Simple EXP & Energy bars (can be styled more later)
-    
-    exp_bar = "█" * int((exp / required_exp) * 10)
+    # energy_bar and exp_bar generation logic here
+    energy_bar = "█" * (energy // 10) + "░" * ((max_energy - energy) // 10)
+    exp_bar = "█" * (exp * 10 // required_exp) + "░" * (10 - (exp * 10 // required_exp))
 
     balance_msg = f"""
 <b>[CHAINSAW CONTRACT PROFILE]</b>
 🔗 Name: <a href="tg://user?id={user_id}">{user_name}</a>  
 🆔 UID: <code>{user_id}</code>  
-🕰️ Joined: <b>{joined}</b>
+🕰️ Joined: <b>{readable_date}</b>
 ━━━━━━━━━━━━━━━━━━━━━━━
 💴 <b>Yens:</b> {yens}  
 🔮 <b>Crystals:</b> {crystals}  
@@ -457,14 +450,12 @@ if not user_data:
 ⚔️ <b>Rank:</b> {rank}
 """
 
-    # Inline "Exit" button
     keyboard = types.InlineKeyboardMarkup()
     exit_button = types.InlineKeyboardButton(text="❌ Exit", callback_data=f"exit_{user_id}")
     keyboard.add(exit_button)
 
     sent_msg = bot.send_message(message.chat.id, balance_msg, parse_mode="HTML", disable_web_page_preview=True, reply_markup=keyboard)
     bot.sent_balance_msg = sent_msg
-    
 
 # Handler to close the balance table when the user presses "Exit"
 @bot.callback_query_handler(func=lambda call: call.data.startswith('exit_'))
