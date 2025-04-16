@@ -84,7 +84,7 @@ def create_table():
     connection.commit()
     connection.close()
 
-
+create.table() 
     
 # GROUP START HANDLER
 @bot.message_handler(commands=['start'], chat_types=['group', 'supergroup'])
