@@ -399,8 +399,7 @@ def handle_balance(message):
     exp_bar = create_bar(exp, required_exp)
 
     # Format join date
-    readable_date = datetime.datetime.strptime(join_date, "%Y-%m-%d %H:%M:%S").strftime("%d %b %Y")
-
+    readable_date = datetime.strptime(join_date, "%Y-%m-%d %H:%M:%S").strftime("%d %b %Y")
     conn.close()
 
     # Final message
