@@ -405,19 +405,19 @@ def handle_balance(message):
     # Final message
     balance_message = f"""
 <b>[CHAINSAW CONTRACT PROFILE]</b>\n
-🔗 <b>Name:</b> <a href="tg://user?id={user_id}">{user_name}</a><br>
-🆔 <b>UID:</b> <code>{user_id}</code><br>
-🕰️ <b>Joined:</b> {readable_date}<br>
-༺═━━━━━━━━━━━━━━━━━━━━═༻<br>
-💴 <b>Yens:</b> {yens}<br>
-🔮 <b>Crystals:</b> {crystals}<br>
-🎟️ <b>Tokens:</b> {tickets}<br>
-༺═━━━━━━━━━━━━━━━━━━━═༻<br>
-⚡ <b>Energy</b><br>
-{energy_bar}  {energy} / {max_energy}<br><br>
-✨ <b>EXP</b><br>
-{exp_bar}  {exp} / {required_exp}<br>
-༺═━━━━━━━━━━━━━━━━━━━━═༻<br>
+🔗 <b>Name:</b> <a href="tg://user?id={user_id}">{user_name}</a>\n
+🆔 <b>UID:</b> <code>{user_id}</code>\n
+🕰️ <b>Joined:</b> {readable_date}\n
+༺═━━━━━━━━━━━━━━━━━━━━═༻\n
+💴 <b>Yens:</b> {yens}\n
+🔮 <b>Crystals:</b> {crystals}\n
+🎟️ <b>Tokens:</b> {tickets}/n
+༺═━━━━━━━━━━━━━━━━━━━═༻\n
+⚡ <b>Energy</b>\n
+{energy_bar}  {energy} / {max_energy}\n\n
+✨ <b>EXP</b>\n
+{exp_bar}  {exp} / {required_exp}\n
+༺═━━━━━━━━━━━━━━━━━━━━═༻\n
 ⚔️ <b>Rank:</b> {rank}
 """
 
