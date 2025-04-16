@@ -306,6 +306,7 @@ def can_claim_daily(user_id):
     return None
 
 # --- Utility: Update last claim timestamp ---
+# --- Utility: Update last claim timestamp ---
 def update_last_claim_time(user_id):
     now = datetime.now().isoformat()
     cursor = conn.cursor()
