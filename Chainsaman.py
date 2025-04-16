@@ -11,8 +11,8 @@ import html
 API_KEY = '7215821191:AAEzFPwyx8FjlXMr2mpVTbYzpHoMbPsaCDc'
 bot = telebot.TeleBot(API_KEY)
 
-if os.path.exists("chainsaw.db"):
-    os.remove("chainsaw.db")
+#if os.path.exists("chainsaw.db"):
+   # os.remove("chainsaw.db")
 # Database Setup
 def create_connection():
     return sqlite3.connect('chainsaw.db')
@@ -403,24 +403,27 @@ def handle_balance(message):
     conn.close()
 
     # Final message
-    balance_msg = f"""
-<b>[CHAINSAW CONTRACT PROFILE]</b>
-🔗 Name: <a href="tg://user?id={user_id}">{user_name}</a>  
-🆔 UID: <code>{user_id}</code>  
-🕰️ Joined: <b>{readable_date}</b>
-━━━━━━━━━━━━━━━━━━━━━━━
-💴 <b>Yens:</b> {yens}  
-🔮 <b>Crystals:</b> {crystals}  
-🎟️ <b>Tokens:</b> {tickets}  
-━━━━━━━━━━━━━━━━━━━━━━━
-⚡ <b>Energy</b>  
-{energy_bar}  <b>{energy}</b> / {max_energy}  
-
-✨ <b>EXP</b>  
-{exp_bar}  <b>{exp}</b> / {required_exp}  
-━━━━━━━━━━━━━━━━━━━━━━━
+    balance_message = f"""
+<b>[CHAINSAW CONTRACT PROFILE]</b><br>
+🔗 <b>Name:</b> <a href="tg://user?id={user_id}">{user_name}</a><br>
+🆔 <b>UID:</b> <code>{user_id}</code><br>
+🕰️ <b>Joined:</b> {readable_date}<br>
+༺═━━━━━━━━━━━━━━━━━━━━═༻<br>
+💴 <b>Yens:</b> {yens}<br>
+🔮 <b>Crystals:</b> {crystals}<br>
+🎟️ <b>Tokens:</b> {tickets}<br>
+༺═━━━━━━━━━━━━━━━━━━━═༻<br>
+⚡ <b>Energy</b><br>
+{energy_bar}  {energy} / {max_energy}<br><br>
+✨ <b>EXP</b><br>
+{exp_bar}  {exp} / {required_exp}<br>
+༺═━━━━━━━━━━━━━━━━━━━━═༻<br>
 ⚔️ <b>Rank:</b> {rank}
 """
+
+bot.send_message(message.chat.id, balance_message, parse_mode="HTML")
+
+bot.send_message(message.chat.id, balance_message, parse_mode="HTML")
 
     # Exit button
     keyboard = types.InlineKeyboardMarkup()
