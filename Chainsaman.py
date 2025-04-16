@@ -405,19 +405,19 @@ def handle_balance(message):
     # Final message
     balance_message = f"""
 <b>[CHAINSAW CONTRACT PROFILE]</b>\n
-🔗 <b>Name:</b> <a href="tg://user?id={user_id}">{user_name}</a>\n
-🆔 <b>UID:</b> <code>{user_id}</code>\n
-🕰️ <b>Joined:</b> {readable_date}\n
-༺═━━━━━━━━━━━━━━━━━━━━═༻\n
-💴 <b>Yens:</b> {yens}\n
-🔮 <b>Crystals:</b> {crystals}\n
-🎟️ <b>Tokens:</b> {tickets}/n
-༺═━━━━━━━━━━━━━━━━━━━═༻\n
-⚡ <b>Energy</b>\n
-{energy_bar}  {energy} / {max_energy}\n\n
-✨ <b>EXP</b>\n
-{exp_bar}  {exp} / {required_exp}\n
-༺═━━━━━━━━━━━━━━━━━━━━═༻\n
+🔗 <b>Name:</b> <a href="tg://user?id={user_id}">{user_name}</a>
+🆔 <b>UID:</b> <code>{user_id}</code>
+🕰️ <b>Joined:</b> {readable_date}
+༺═━━━━━━━━━━━━━━━━━━━━═༻
+💴 <b>Yens:</b> {yens}
+🔮 <b>Crystals:</b> {crystals}
+🎟️ <b>Tokens:</b> {tickets}
+༺═━━━━━━━━━━━━━━━━━━━═༻
+⚡ <b>Energy</b>
+{energy_bar}  {energy} / {max_energy}
+✨ <b>EXP</b>
+{exp_bar}  {exp} / {required_exp}
+༺═━━━━━━━━━━━━━━━━━━━━═༻
 ⚔️ <b>Rank:</b> {rank}
 """
 
@@ -429,7 +429,7 @@ def handle_balance(message):
     exit_btn = types.InlineKeyboardButton("❌ Exit", callback_data=f"exit_{user_id}")
     keyboard.add(exit_btn)
 
-    bot.send_message(chat_id, balance_msg.strip(), parse_mode="HTML", disable_web_page_preview=True, reply_markup=keyboard)
+    bot.send_message(chat_id, balance_message.strip(), parse_mode="HTML", disable_web_page_preview=True, reply_markup=keyboard)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('exit_'))
 def close_balance_table(call):
