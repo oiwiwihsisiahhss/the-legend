@@ -421,7 +421,6 @@ def handle_balance(message):
 ⚔️ <b>Rank:</b> {rank}
 """
 
-bot.send_message(message.chat.id, balance_message, parse_mode="HTML")
 
 bot.send_message(message.chat.id, balance_message, parse_mode="HTML")
 
