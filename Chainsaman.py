@@ -404,7 +404,7 @@ def handle_balance(message):
 
     # Final message
     balance_message = f"""
-<b>[CHAINSAW CONTRACT PROFILE]</b><br>
+<b>[CHAINSAW CONTRACT PROFILE]</b>\n
 🔗 <b>Name:</b> <a href="tg://user?id={user_id}">{user_name}</a><br>
 🆔 <b>UID:</b> <code>{user_id}</code><br>
 🕰️ <b>Joined:</b> {readable_date}<br>
