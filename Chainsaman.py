@@ -422,7 +422,7 @@ def handle_balance(message):
 """
 
 
-    bot.send_message(message.chat.id, balance_message, parse_mode="HTML")
+    
 
     # Exit button
     keyboard = types.InlineKeyboardMarkup()
