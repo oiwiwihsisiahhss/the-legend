@@ -426,11 +426,11 @@ bot.send_message(message.chat.id, balance_message, parse_mode="HTML")
 bot.send_message(message.chat.id, balance_message, parse_mode="HTML")
 
     # Exit button
-    keyboard = types.InlineKeyboardMarkup()
-    exit_btn = types.InlineKeyboardButton("❌ Exit", callback_data=f"exit_{user_id}")
-    keyboard.add(exit_btn)
+keyboard = types.InlineKeyboardMarkup()
+exit_btn = types.InlineKeyboardButton("❌ Exit", callback_data=f"exit_{user_id}")
+keyboard.add(exit_btn)
 
-    bot.send_message(chat_id, balance_msg.strip(), parse_mode="HTML", disable_web_page_preview=True, reply_markup=keyboard)
+bot.send_message(chat_id, balance_msg.strip(), parse_mode="HTML", disable_web_page_preview=True, reply_markup=keyboard)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('exit_'))
 def close_balance_table(call):
