@@ -4,16 +4,14 @@ import math
 import sqlite3
 from telebot import types
 from datetime import datetime, timedelta
-import os
+
 import html
 
 # Initialize bot with your API key
 API_KEY = '7215821191:AAEzFPwyx8FjlXMr2mpVTbYzpHoMbPsaCDc'
 bot = telebot.TeleBot(API_KEY)
 
-#if os.path.exists("chainsaw.db"):
-   # os.remove("chainsaw.db")
-# Database Setup
+
 def create_connection():
     return sqlite3.connect('chainsaw.db')
     
