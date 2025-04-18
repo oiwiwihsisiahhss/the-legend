@@ -521,6 +521,6 @@ def check_and_handle_level_up(user_id, bot):
     if leveled_up:
         try:
             bot.send_message(user_id, message.strip())
-        except:
-check_and_handle_level_up(user_id, bot)            pass
+        except Exception as e:
+            print(f"Error sending level-up message to user {user_id}: {e}")  # Handle the exception here            pass
 bot.polling(none_stop=True)
