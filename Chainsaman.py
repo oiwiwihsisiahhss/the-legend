@@ -481,7 +481,8 @@ def add_resource(message):
         bot.reply_to(message, reply_msg, parse_mode="HTML")
 
     except Exception as e:
-        bot.reply_to(message, f"Error: {e}") 
+        bot.reply_to(message, f"Error: {e}")  
+check_and_handle_level_up(user_id, bot)       
 def check_and_handle_level_up(user_id, bot):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
@@ -521,5 +522,5 @@ def check_and_handle_level_up(user_id, bot):
         try:
             bot.send_message(user_id, message.strip())
         except:
-            pass
+check_and_handle_level_up(user_id, bot)            pass
 bot.polling(none_stop=True)
