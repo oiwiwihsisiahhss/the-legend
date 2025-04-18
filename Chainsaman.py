@@ -419,11 +419,11 @@ if user_data:
     user_id, username, join_date, level, exp, yens, crystals, tickets, energy, max_energy, last_energy_time = user_data
 else:
     print("User not found.")
-
-    if not user:
-        bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
-        conn.close()
-    return
+# This is INVALID
+if not user:
+    bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
+    conn.close()
+    return  # <-- This is outside any function, which causes the SyntaxError
 
     # Unpack values (no required_exp from DB)
     (user_id, username, join_date, level, exp,
