@@ -417,7 +417,7 @@ def handle_balance(message):
     # Unpack values
     (user_id, username, join_date, level, exp, required_exp,
      yens, crystals, tickets, energy, max_energy, last_energy_time, chosen_character) = user
-
+     required_exp = int(12345 * (level ** 1.5))
     # Fetch rank based on level
     cursor.execute('''
         SELECT rank FROM hunter_ranks
