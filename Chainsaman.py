@@ -398,7 +398,7 @@ def handle_daily(message):
 
 @bot.message_handler(commands=['balance'])
 def handle_balance(message):
-    #required_exp = int(12345 * (level ** 1.5))
+    # required_exp = int(12345 * (level ** 1.5))
     user_id = message.from_user.id
     user_name = message.from_user.first_name
     chat_id = message.chat.id
@@ -415,12 +415,13 @@ def handle_balance(message):
         conn.close()
         return
 
-# Unpack values (no required_exp from DB)
-(user_id, username, join_date, level, exp,
- yens, crystals, tickets, energy, max_energy, last_energy_time, chosen_character) = user
+    # Unpack values (no required_exp from DB)
+    (user_id, username, join_date, level, exp,
+     yens, crystals, tickets, energy, max_energy, last_energy_time, chosen_character) = user
 
-# Now calculate required EXP dynamically
-required_exp = int(12345 * (level ** 1.5))
+    # Now calculate required EXP dynamically
+    required_exp = int(12345 * (level ** 1.5))
+
     # Fetch rank based on level
     cursor.execute('''
         SELECT rank FROM hunter_ranks
