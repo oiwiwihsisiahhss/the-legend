@@ -85,6 +85,46 @@ def create_table():
 create_table() 
     
 # GROUP START HANDLER
+def check_and_handle_level_up(user_id, bot):
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+
+    user = cursor.execute("SELECT level, exp, yens, crystals FROM user_data WHERE user_id = ?", (user_id,)).fetchone()
+    if not user:
+        conn.close()
+        return
+
+    level, exp, yens, crystals = user
+    leveled_up = False
+    message = ""
+
+    while True:
+        required_exp = int(12345 * (level ** 1.5))
+        if exp < required_exp:
+            break
+
+        exp -= required_exp
+        level += 1
+        leveled_up = True
+
+        reward_yens = 150 + 20 * level ** 2
+        reward_crystals = 5 + 3 * level ** 2
+
+        yens += reward_yens
+        crystals += reward_crystals
+
+        message += f"⚡️ You've leveled up to Level {level}!\n+{reward_yens} Yens\n+{reward_crystals} Crystals\n\n"
+
+    cursor.execute("UPDATE user_data SET level = ?, exp = ?, yens = ?, crystals = ? WHERE user_id = ?",
+                   (level, exp, yens, crystals, user_id))
+    conn.commit()
+    conn.close()
+
+    if leveled_up:
+        try:
+            bot.send_message(user_id, message.strip())
+        except Exception as e:
+            print(f"Error sending level-up message to user {user_id}: {e}")
 @bot.message_handler(commands=['start'], chat_types=['group', 'supergroup'])
 def start_in_group(message):
     try:
@@ -483,44 +523,5 @@ def add_resource(message):
     except Exception as e:
         bot.reply_to(message, f"Error: {e}")  
 check_and_handle_level_up(user_id, bot)       
-def check_and_handle_level_up(user_id, bot):
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
-
-    user = cursor.execute("SELECT level, exp, yens, crystals FROM user_data WHERE user_id = ?", (user_id,)).fetchone()
-    if not user:
-        conn.close()
-        return
-
-    level, exp, yens, crystals = user
-    leveled_up = False
-    message = ""
-
-    while True:
-        required_exp = int(12345 * (level ** 1.5))
-        if exp < required_exp:
-            break
-
-        exp -= required_exp
-        level += 1
-        leveled_up = True
-
-        reward_yens = 150 + 20 * level ** 2
-        reward_crystals = 5 + 3 * level ** 2
-
-        yens += reward_yens
-        crystals += reward_crystals
-
-        message += f"⚡️ You've leveled up to Level {level}!\n+{reward_yens} Yens\n+{reward_crystals} Crystals\n\n"
-
-    cursor.execute("UPDATE user_data SET level = ?, exp = ?, yens = ?, crystals = ? WHERE user_id = ?",
-                   (level, exp, yens, crystals, user_id))
-    conn.commit()
-    conn.close()
-
-    if leveled_up:
-        try:
-            bot.send_message(user_id, message.strip())
-        except Exception as e:
-            print(f"Error sending level-up message to user {user_id}: {e}")  # Handle the exception here            pass
+  # Handle the exception here            pass
 bot.polling(none_stop=True)
