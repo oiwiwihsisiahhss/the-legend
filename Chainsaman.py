@@ -477,8 +477,7 @@ def add_resource(message):
         amount_display = abs(amount)
 
         hyperlink = f"<a href='tg://user?id={user_id}'>{username}</a>"
-        reply_msg = f"<b>{action.capitalize()} {resource} {amount_display} to {hyperlink}</b>"
-
+        reply_msg = f"<b>{resource.capitalize()} {action} by {amount_display} for {hyperlink}</b>"
         bot.reply_to(message, reply_msg, parse_mode="HTML")
 
     except Exception as e:
