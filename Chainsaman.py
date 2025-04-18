@@ -411,9 +411,9 @@ def handle_balance(message):
     user = cursor.fetchone()
 
     if not user:
-    bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
-    conn.close()
-    return
+        bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
+        conn.close()
+        return
 
 # Unpack values (no required_exp from DB)
 (user_id, username, join_date, level, exp,
