@@ -522,6 +522,6 @@ def add_resource(message):
 
     except Exception as e:
         bot.reply_to(message, f"Error: {e}")  
-check_and_handle_level_up(user_id, bot)       
+    check_and_handle_level_up(user_id, bot)       
   # Handle the exception here            pass
 bot.polling(none_stop=True)
