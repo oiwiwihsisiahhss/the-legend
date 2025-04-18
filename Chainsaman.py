@@ -481,5 +481,55 @@ def add_resource(message):
         bot.reply_to(message, reply_msg, parse_mode="HTML")
 
     except Exception as e:
-        bot.reply_to(message, f"Error: {e}")  
+        bot.reply_to(message, f"Error: {e}") 
+def user_level_up(user_id):
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+
+    user = cursor.execute("SELECT level, exp, yens, crystals FROM user_data WHERE user_id = ?", (user_id,)).fetchone()
+    if not user:
+        conn.close()
+        return
+
+    level, exp, yens, crystals = user
+    leveled_up = False
+    messages = []
+
+    while True:
+        required_exp = int(12345 * (level ** 1.5))
+        if exp < required_exp:
+            break
+
+        exp -= required_exp
+        level += 1
+        leveled_up = True
+
+        # Rewards per level up
+        yens_reward = 150 + 20 * level ** 2
+        crystal_reward = 5 + 3 * level ** 2
+
+        yens += yens_reward
+        crystals += crystal_reward
+
+        messages.append(
+            f"🎉 LEVEL UP! 🎉\n"
+            f"━━━━━━━━━━━━━━\n"
+            f"🆙 You've reached LEVEL {level}!\n"
+            f"💰 Bonus Yens: {yens_reward}\n"
+            f"🔮 Bonus Crystals: {crystal_reward}\n"
+            f"━━━━━━━━━━━━━━"
+        )
+
+    cursor.execute("""
+        UPDATE user_data 
+        SET level = ?, exp = ?, yens = ?, crystals = ? 
+        WHERE user_id = ?
+    """, (level, exp, yens, crystals, user_id))
+    conn.commit()
+    conn.close()
+
+    # Send level-up messages
+    if leveled_up:
+        for msg in messages:
+            bot.send_message(user_id, msg)
 bot.polling(none_stop=True)
