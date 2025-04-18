@@ -396,40 +396,33 @@ def handle_daily(message):
 
 
 
+#@bot.message_handler(commands=['balance'])
 @bot.message_handler(commands=['balance'])
 def handle_balance(message):
-    # required_exp = int(12345 * (level ** 1.5))
+    from datetime import datetime
     user_id = message.from_user.id
     user_name = message.from_user.first_name
     chat_id = message.chat.id
 
-    conn = sqlite3.connect("chainsaw.db")  # Change to your actual DB
+    conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Fetch user data
     cursor.execute("""
-    SELECT user_id, username, join_date, level, exp, yens, crystals, tickets, energy, max_energy, last_energy_time 
-    FROM user_data WHERE user_id = ?
-""", (user_id,))
+        SELECT user_id, username, join_date, level, exp, yens, crystals, tickets, energy, max_energy, last_energy_time, chosen_character
+        FROM user_data WHERE user_id = ?
+    """, (user_id,))
+    
+    user = cursor.fetchone()
 
-user_data = cursor.fetchone()
+    if not user:
+        bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
+        conn.close()
+        return
 
-if user_data:
-    # Unpack without 'required_exp'
-    user_id, username, join_date, level, exp, yens, crystals, tickets, energy, max_energy, last_energy_time = user_data
-else:
-    print("User not found.")
-# This is INVALID
-if not user:
-    bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
-    conn.close()
-    return  # <-- This is outside any function, which causes the SyntaxError
+    # Unpack values from the user tuple
+    user_id, username, join_date, level, exp, yens, crystals, tickets, energy, max_energy, last_energy_time, chosen_character = user
 
-    # Unpack values (no required_exp from DB)
-    (user_id, username, join_date, level, exp,
-     yens, crystals, tickets, energy, max_energy, last_energy_time, chosen_character) = user
-
-    # Now calculate required EXP dynamically
+    # Calculate required EXP dynamically
     required_exp = int(12345 * (level ** 1.5))
 
     # Fetch rank based on level
@@ -442,7 +435,6 @@ if not user:
     result = cursor.fetchone()
     rank = result[0] if result else "Unranked"
 
-    # Create progress bar
     def create_bar(current, total):
         filled = int((current / total) * 10) if total else 0
         return "█" * filled + "░" * (10 - filled)
@@ -450,17 +442,15 @@ if not user:
     energy_bar = create_bar(energy, max_energy)
     exp_bar = create_bar(exp, required_exp)
 
-    # Format join date
     readable_date = datetime.strptime(join_date, "%Y-%m-%d %H:%M:%S").strftime("%d %b %Y")
     conn.close()
 
-    # Final message
     balance_message = f"""
 <b>[CHAINSAW CONTRACT PROFILE]</b>\n
 🔗 <b>Name:</b> <a href="tg://user?id={user_id}">{user_name}</a>
 🆔 <b>UID:</b> <code>{user_id}</code>
 🕰️ <b>Joined:</b> {readable_date}
-🆙 <b>Level:<b> {level}
+🆙 <b>Level:</b> {level}
 ༺═━━━━━━━━━━━━━━━━━━━━═༻
 💴 <b>Yens:</b> {yens}
 🔮 <b>Crystals:</b> {crystals}
