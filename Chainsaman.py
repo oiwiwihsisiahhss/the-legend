@@ -439,5 +439,48 @@ def close_balance_table(call):
         bot.answer_callback_query(call.id, "✅ Closed.")
     else:
         bot.answer_callback_query(call.id, "❌ You can't close someone else's profile.")
-    
+@bot.message_handler(commands=['add'])
+def add_resource(message):
+    # Only allow the admin
+    if message.from_user.id != 6306216999:
+        return
+
+    if not message.reply_to_message:
+        bot.reply_to(message, "Please reply to the user's message to use this command.")
+        return
+
+    try:
+        args = message.text.split()
+        if len(args) != 3:
+            bot.reply_to(message, "Usage: /add [resource] [amount]\nExample: /add tokens 100 or /add tokens -100")
+            return
+
+        resource = args[1].lower()
+        amount = int(args[2])
+        valid_resources = ['yens', 'crystals', 'tokens', 'exp']
+
+        if resource not in valid_resources:
+            bot.reply_to(message, f"Invalid resource. Choose from: {', '.join(valid_resources)}")
+            return
+
+        user_id = message.reply_to_message.from_user.id
+        username = message.reply_to_message.from_user.username or "NoUsername"
+
+        conn = sqlite3.connect("chainsaw.db")
+        cursor = conn.cursor()
+
+        cursor.execute(f"UPDATE user_data SET {resource} = {resource} + ? WHERE user_id = ?", (amount, user_id))
+        conn.commit()
+        conn.close()
+
+        action = "added" if amount > 0 else "deducted"
+        amount_display = abs(amount)
+
+        hyperlink = f"<a href='tg://user?id={user_id}'>{username}</a>"
+        reply_msg = f"<b>{action.capitalize()} {resource} {amount_display} from {hyperlink}</b>"
+
+        bot.reply_to(message, reply_msg, parse_mode="HTML")
+
+    except Exception as e:
+        bot.reply_to(message, f"Error: {e}")  
 bot.polling(none_stop=True)
