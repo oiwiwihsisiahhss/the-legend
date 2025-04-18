@@ -409,7 +409,7 @@ def handle_balance(message):
 ༺═━━━━━━━━━━━━━━━━━━━━═༻
 💴 <b>Yens:</b> {yens}
 🔮 <b>Crystals:</b> {crystals}
-🎟️ <b>Tokens:</b> {tickets}
+🎟️ <b>Tickets:</b> {tickets}
 ༺═━━━━━━━━━━━━━━━━━━━═༻
 ⚡ <b>Energy</b>
 {energy_bar}  {energy} / {max_energy}
@@ -457,7 +457,7 @@ def add_resource(message):
 
         resource = args[1].lower()
         amount = int(args[2])
-        valid_resources = ['yens', 'crystals', 'tokens', 'exp']
+        valid_resources = ['yens', 'crystals', 'tickets', 'exp']
 
         if resource not in valid_resources:
             bot.reply_to(message, f"Invalid resource. Choose from: {', '.join(valid_resources)}")
