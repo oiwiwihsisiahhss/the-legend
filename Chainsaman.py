@@ -465,7 +465,7 @@ def add_resource(message):
 
         user_id = message.reply_to_message.from_user.id
         username = message.from_user.full_name or "unknown"
-
+        target_name = message.reply_to_message.from_user.full_name or "unknown"
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
 
@@ -476,7 +476,7 @@ def add_resource(message):
         action = "added" if amount > 0 else "deducted"
         amount_display = abs(amount)
 
-        hyperlink = f"<a href='tg://user?id={user_id}'>{username}</a>"
+        hyperlink = f"<a href='tg://user?id={user_id}'>{target_name}</a>"
         reply_msg = f"<b>{resource.capitalize()} {action} by {amount_display} for {hyperlink}</b>"
         bot.reply_to(message, reply_msg, parse_mode="HTML")
 
