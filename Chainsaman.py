@@ -407,8 +407,18 @@ def handle_balance(message):
     cursor = conn.cursor()
 
     # Fetch user data
-    cursor.execute("SELECT * FROM user_data WHERE user_id = ?", (user_id,))
-    user = cursor.fetchone()
+    cursor.execute("""
+    SELECT user_id, username, join_date, level, exp, yens, crystals, tickets, energy, max_energy, last_energy_time 
+    FROM user_data WHERE user_id = ?
+""", (user_id,))
+
+user_data = cursor.fetchone()
+
+if user_data:
+    # Unpack without 'required_exp'
+    user_id, username, join_date, level, exp, yens, crystals, tickets, energy, max_energy, last_energy_time = user_data
+else:
+    print("User not found.")
 
     if not user:
         bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
