@@ -408,7 +408,7 @@ def handle_balance(message):
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT user_id, username, join_date, level, exp, yens, crystals, tickets, energy, max_energy, last_energy_time, chosen_character
+        SELECT user_id, username, join_date, level, exp, yens, crystals, tickets, energy, max_energy, last_energy_time, choosen_character
         FROM user_data WHERE user_id = ?
     """, (user_id,))
     
