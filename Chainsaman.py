@@ -528,5 +528,70 @@ def add_resource(message):
     except Exception as e:
         bot.reply_to(message, f"Error: {e}")  
     check_and_handle_level_up(user_id, bot)       
-  # Handle the exception here            pass
+  # Handle the exception here  pass
+
+import sqlite3
+
+@bot.message_handler(commands=['give'])
+def handle_give(message):
+    if not message.reply_to_message:
+        bot.reply_to(message, "❌ You must reply to the user you want to give resources to.")
+        return
+
+    args = message.text.split()
+    if len(args) != 3:
+        bot.reply_to(message, "❌ Usage: /give <amount_type> <amount>\nExample: /give yens 100")
+        return
+
+    amount_type = args[1].lower()
+    try:
+        amount = int(args[2])
+    except ValueError:
+        bot.reply_to(message, "❌ Amount must be a number.")
+        return
+
+    valid_types = ['yens', 'crystals', 'tickets', 'energy']
+    if amount_type not in valid_types:
+        bot.reply_to(message, f"❌ Invalid resource type. Choose from: {', '.join(valid_types)}")
+        return
+
+    giver_id = message.from_user.id
+    receiver_id = message.reply_to_message.from_user.id
+
+    if giver_id == receiver_id:
+        bot.reply_to(message, "❌ You can't give resources to yourself.")
+        return
+
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+
+    # Check giver
+    cursor.execute("SELECT yens, crystals, tickets, energy FROM user_data WHERE user_id = ?", (giver_id,))
+    giver = cursor.fetchone()
+    if not giver:
+        bot.reply_to(message, "❌ You haven't started the game yet.")
+        conn.close()
+        return
+
+    giver_balance = dict(zip(valid_types, giver))
+    if giver_balance[amount_type] < amount:
+        bot.reply_to(message, f"❌ You don’t have enough {amount_type} to give.")
+        conn.close()
+        return
+
+    # Check receiver
+    cursor.execute("SELECT yens, crystals, tickets, energy FROM user_data WHERE user_id = ?", (receiver_id,))
+    receiver = cursor.fetchone()
+    if not receiver:
+        bot.reply_to(message, "❌ The user you are trying to give to has not started the game.")
+        conn.close()
+        return
+
+    # Update balances
+    cursor.execute(f"UPDATE user_data SET {amount_type} = {amount_type} - ? WHERE user_id = ?", (amount, giver_id))
+    cursor.execute(f"UPDATE user_data SET {amount_type} = {amount_type} + ? WHERE user_id = ?", (amount, receiver_id))
+    conn.commit()
+    conn.close()
+
+    bot.reply_to(message, f"✅ Successfully transferred {amount} {amount_type} to {message.reply_to_message.from_user.first_name}.")
 bot.polling(none_stop=True)
