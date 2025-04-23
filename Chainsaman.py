@@ -29,7 +29,7 @@ def create_table():
     
 
     # Create user_data table
-       cursor.execute('''
+    cursor.execute('''
        CREATE TABLE IF NOT EXISTS character_base_stats (
          character_id INTEGER PRIMARY KEY AUTOINCREMENT,
          name TEXT NOT NULL,
