@@ -84,6 +84,71 @@ def create_table():
             max_energy INTEGER DEFAULT 10000
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_characters (
+           user_id INTEGER NOT NULL,
+           character_id INTEGER NOT NULL,
+           PRIMARY KEY (user_id, character_id),
+           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+           FOREIGN KEY (character_id) REFERENCES character_base_stats(character_id) ON DELETE CASCADE
+       )
+   ''')
+
+   cursor.execute('''
+       CREATE TABLE IF NOT EXISTS character_base_stats (
+         character_id INTEGER PRIMARY KEY AUTOINCREMENT,
+         name TEXT NOT NULL,
+         exp INTEGER NOT NULL DEFAULT 0,
+         required_exp INTEGER NOT NULL,
+         devil_contract TEXT NOT NULL,
+         special_ability TEXT NOT NULL,
+         attack INTEGER NOT NULL,
+         defense INTEGER NOT NULL,
+         speed INTEGER NOT NULL,
+         precision INTEGER NOT NULL,
+         instinct INTEGER NOT NULL,
+         required_souls INTEGER NOT NULL DEFAULT 50,
+         current_souls INTEGER NOT NULL DEFAULT 0,
+         description TEXT NOT NULL,
+         image_link TEXT NOT NULL,
+         move_1 TEXT NOT NULL,
+         move_1_unlock_level INTEGER DEFAULT 1,
+         move_2 TEXT NOT NULL,
+         move_2_unlock_level INTEGER DEFAULT 25,
+         move_3 TEXT NOT NULL,
+         move_3_unlock_level INTEGER DEFAULT 50,
+         special_ability_unlock_level INTEGER DEFAULT 50
+      )
+  ''')
+
+
+    # Insert multiple character base stats into the database
+    cursor.executemany('''
+        INSERT OR IGNORE INTO character_base_stats 
+        (name, required_exp, attack, defense, speed, precision, instinct, description, special_ability, devil_contract, image_link, required_souls, current_souls, move_1, move_2, move_3) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', [
+        (
+            "Hirokazu Arai", 10000, 75, 65, 73, 70, 70,
+            "A kind-hearted but determined devil hunter, Hirokazu values loyalty over strength. His mysterious contract shields him from death once but leaves him defenseless after.",
+            "Fox Bite", "Fox Devil", "https://files.catbox.moe/56udfe.jpg",
+            50, 0, "Quick Slash", "Defensive Stance", "Fox's Fury"
+        ),
+        (
+            "Akane Sawatari", 15000, 75, 65, 72, 72, 68,
+            "A ruthless and calculating former Yakuza, Akane wields the power of the Snake Devil to execute enemies instantly. Cold and efficient, she manipulates others to achieve her goals.",
+            "Serpent’s Execution", "Snake Devil", "https://files.catbox.moe/tc02h0.jpg",
+            50, 0, "Snake Strike", "Venomous Coil", "Serpent's Wrath"
+        ),
+        (
+            "Kobeni Higashiyama", 25000, 74, 68, 74, 68, 72,
+            "Timid yet incredibly fast, Kobeni survives against all odds. Though she hates fighting, her instincts and agility make her nearly untouchable in combat.",
+            "Survivor’s Instinct", "Unknown", "https://files.catbox.moe/ka15hs.jpg",
+            50, 0, "Agile Dash", "Evasive Maneuver", "Instinctive Strike"
+        )
+    ])
+
+    # Commit changes and close the connection
 
     connection.commit()
     connection.close()
@@ -246,7 +311,70 @@ def start_in_dm(message):
 
 
 
+@bot.callback_query_handler(func=lambda call: call.data == "choose_char")
+def show_character_options(call):
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(
+        InlineKeyboardButton("Hirokazu Arai", callback_data="select_char_1"),
+        InlineKeyboardButton("Akane Sawatari", callback_data="select_char_2"),
+        InlineKeyboardButton("Kobeni Higashiyama", callback_data="select_char_3")
+    )
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="Choose your character:",
+        reply_markup=keyboard
+    )
+ @bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
+def handle_character_selection(call):
+    user_id = call.from_user.id
+    character_id = int(call.data.split("_")[-1])
 
+    # Check if user has already selected
+    cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ?", (user_id,))
+    if cursor.fetchone():
+        bot.answer_callback_query(call.id, "You have already chosen a character!")
+        return
+
+    # Insert into DB
+    cursor.execute("INSERT INTO user_characters (user_id, character_id) VALUES (?, ?)", (user_id, character_id))
+    conn.commit()
+
+    # Fetch character stats
+    cursor.execute("SELECT name, attack, defense, speed, special_ability FROM character_base_stats WHERE character_id = ?", (character_id,))
+    char = cursor.fetchone()
+
+    if char:
+        name, atk, df, spd, ability = char
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
+            parse_mode="Markdown"
+        )
+    else:
+        bot.answer_callback_query(call.id, "Character not found.")   
+@bot.message_handler(commands=['myhunters'])
+def show_user_characters(message):
+    user_id = message.from_user.id
+
+    cursor.execute('''
+        SELECT c.name, uc.level, uc.exp
+        FROM user_characters uc
+        JOIN character_base_stats c ON uc.character_id = c.character_id
+        WHERE uc.user_id = ?
+    ''', (user_id,))
+    results = cursor.fetchall()
+
+    if not results:
+        bot.reply_to(message, "You haven't chosen any characters yet.")
+        return
+
+    response = "**Your Hunters:**\n\n"
+    for name, level, exp in results:
+        response += f"• {name} — Level {level} (EXP: {exp})\n"
+
+    bot.send_message(message.chat.id, response, parse_mode="Markdown")        
 @bot.message_handler(commands=['open'])
 def open_menu(message):
     if message.chat.type != 'private':
