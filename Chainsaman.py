@@ -26,9 +26,35 @@ def create_table():
     connection = create_connection()
     cursor = connection.cursor()
     
+    
 
     # Create user_data table
-
+       cursor.execute('''
+       CREATE TABLE IF NOT EXISTS character_base_stats (
+         character_id INTEGER PRIMARY KEY AUTOINCREMENT,
+         name TEXT NOT NULL,
+         exp INTEGER NOT NULL DEFAULT 0,
+         required_exp INTEGER NOT NULL,
+         devil_contract TEXT NOT NULL,
+         special_ability TEXT NOT NULL,
+         attack INTEGER NOT NULL,
+         defense INTEGER NOT NULL,
+         speed INTEGER NOT NULL,
+         precision INTEGER NOT NULL,
+         instinct INTEGER NOT NULL,
+         required_souls INTEGER NOT NULL DEFAULT 50,
+         current_souls INTEGER NOT NULL DEFAULT 0,
+         description TEXT NOT NULL,
+         image_link TEXT NOT NULL,
+         move_1 TEXT NOT NULL,
+         move_1_unlock_level INTEGER DEFAULT 1,
+         move_2 TEXT NOT NULL,
+         move_2_unlock_level INTEGER DEFAULT 25,
+         move_3 TEXT NOT NULL,
+         move_3_unlock_level INTEGER DEFAULT 50,
+         special_ability_unlock_level INTEGER DEFAULT 50
+      )
+  ''')
     cursor.executemany('''
     INSERT OR IGNORE INTO character_base_stats 
     (name, required_exp, attack, defense, speed, precision, instinct, description, special_ability, devil_contract, image_link, required_souls, current_souls, move_1, move_2, move_3) 
@@ -120,32 +146,7 @@ def create_table():
        )
    ''')
 
-   cursor.execute('''
-       CREATE TABLE IF NOT EXISTS character_base_stats (
-         character_id INTEGER PRIMARY KEY AUTOINCREMENT,
-         name TEXT NOT NULL,
-         exp INTEGER NOT NULL DEFAULT 0,
-         required_exp INTEGER NOT NULL,
-         devil_contract TEXT NOT NULL,
-         special_ability TEXT NOT NULL,
-         attack INTEGER NOT NULL,
-         defense INTEGER NOT NULL,
-         speed INTEGER NOT NULL,
-         precision INTEGER NOT NULL,
-         instinct INTEGER NOT NULL,
-         required_souls INTEGER NOT NULL DEFAULT 50,
-         current_souls INTEGER NOT NULL DEFAULT 0,
-         description TEXT NOT NULL,
-         image_link TEXT NOT NULL,
-         move_1 TEXT NOT NULL,
-         move_1_unlock_level INTEGER DEFAULT 1,
-         move_2 TEXT NOT NULL,
-         move_2_unlock_level INTEGER DEFAULT 25,
-         move_3 TEXT NOT NULL,
-         move_3_unlock_level INTEGER DEFAULT 50,
-         special_ability_unlock_level INTEGER DEFAULT 50
-      )
-  ''')
+
 
     
 
