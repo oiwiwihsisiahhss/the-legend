@@ -123,30 +123,33 @@ def create_table():
 
 
     # Insert multiple character base stats into the database
-    cursor.executemany('''
-        INSERT OR IGNORE INTO character_base_stats 
-        (name, required_exp, attack, defense, speed, precision, instinct, description, special_ability, devil_contract, image_link, required_souls, current_souls, move_1, move_2, move_3) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', [
-        (
-            "Hirokazu Arai", 10000, 75, 65, 73, 70, 70,
-            "A kind-hearted but determined devil hunter, Hirokazu values loyalty over strength. His mysterious contract shields him from death once but leaves him defenseless after.",
-            "Fox Bite", "Fox Devil", "https://files.catbox.moe/56udfe.jpg",
-            50, 0, "Quick Slash", "Defensive Stance", "Fox's Fury"
-        ),
-        (
-            "Akane Sawatari", 15000, 75, 65, 72, 72, 68,
-            "A ruthless and calculating former Yakuza, Akane wields the power of the Snake Devil to execute enemies instantly. Cold and efficient, she manipulates others to achieve her goals.",
-            "Serpent’s Execution", "Snake Devil", "https://files.catbox.moe/tc02h0.jpg",
-            50, 0, "Snake Strike", "Venomous Coil", "Serpent's Wrath"
-        ),
-        (
-            "Kobeni Higashiyama", 25000, 74, 68, 74, 68, 72,
-            "Timid yet incredibly fast, Kobeni survives against all odds. Though she hates fighting, her instincts and agility make her nearly untouchable in combat.",
-            "Survivor’s Instinct", "Unknown", "https://files.catbox.moe/ka15hs.jpg",
-            50, 0, "Agile Dash", "Evasive Maneuver", "Instinctive Strike"
-        )
-    ])
+cursor.executemany('''
+    INSERT OR IGNORE INTO character_base_stats 
+    (name, required_exp, attack, defense, speed, precision, instinct, description, special_ability, devil_contract, image_link, required_souls, current_souls, move_1, move_2, move_3) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+''', [
+    (
+        "Hirokazu Arai", 10000, 75, 65, 73, 70, 70,
+        "A kind-hearted but determined devil hunter, Hirokazu values loyalty over strength. His mysterious contract shields him from death once but leaves him defenseless after.",
+        "Fox Bite", "Fox Devil", "https://files.catbox.moe/56udfe.jpg",
+        50, 0, "Quick Slash", "Defensive Stance", "Fox's Fury"
+    ),
+    (
+        "Akane Sawatari", 15000, 75, 65, 72, 72, 68,
+        "A ruthless and calculating former Yakuza, Akane wields the power of the Snake Devil to execute enemies instantly. Cold and efficient, she manipulates others to achieve her goals.",
+        "Serpent’s Execution", "Snake Devil", "https://files.catbox.moe/tc02h0.jpg",
+        50, 0, "Snake Strike", "Venomous Coil", "Serpent's Wrath"
+    ),
+    (
+        "Kobeni Higashiyama", 25000, 74, 68, 74, 68, 72,
+        "Timid yet incredibly fast, Kobeni survives against all odds. Though she hates fighting, her instincts and agility make her nearly untouchable in combat.",
+        "Survivor’s Instinct", "Unknown", "https://files.catbox.moe/ka15hs.jpg",
+        50, 0, "Agile Dash", "Evasive Maneuver", "Instinctive Strike"
+    )
+])
+
+# Commit changes and close the connection
+conn.commit()
 
     # Commit changes and close the connection
 
