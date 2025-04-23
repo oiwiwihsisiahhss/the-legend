@@ -121,9 +121,7 @@ def create_table():
       )
   ''')
 
-
-    # Insert multiple character base stats into the database
-cursor.executemany('''
+    cursor.executemany('''
     INSERT OR IGNORE INTO character_base_stats 
     (name, required_exp, attack, defense, speed, precision, instinct, description, special_ability, devil_contract, image_link, required_souls, current_souls, move_1, move_2, move_3) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -149,7 +147,8 @@ cursor.executemany('''
 ])
 
 # Commit changes and close the connection
-conn.commit()
+conn.commit()        
+    
 
     # Commit changes and close the connection
 
