@@ -363,26 +363,29 @@ def handle_character_selection(call):
             text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
             parse_mode="Markdown"
         )   
-@bot.message_handler(commands=['myhunters'])
+@bot.message_handler(commands=['myhunters'])        
 def show_user_characters(message):
+    conn = sqlite3.connect("your_db.sqlite")  # Or whatever your DB is
+    cursor = conn.cursor()
+    
     user_id = message.from_user.id
-
     cursor.execute('''
-        SELECT c.name, uc.level, uc.exp
+        SELECT cb.name, uc.level
         FROM user_characters uc
-        JOIN character_base_stats c ON uc.character_id = c.character_id
+        JOIN character_base_stats cb ON uc.character_id = cb.character_id
         WHERE uc.user_id = ?
     ''', (user_id,))
-    results = cursor.fetchall()
-
-    if not results:
-        bot.reply_to(message, "You haven't chosen any characters yet.")
-        return
-
-    response = "**Your Hunters:**\n\n"
-    for name, level, exp in results:
-        response += f"• {name} — Level {level} (EXP: {exp})\n"
-
+    
+    characters = cursor.fetchall()
+    if not characters:
+        bot.send_message(message.chat.id, "You don't have any hunters yet.")
+    else:
+        response = "**Your Hunters:**\n"
+        for name, level in characters:
+            response += f"- {name} (Level {level})\n"
+        bot.send_message(message.chat.id, response, parse_mode="Markdown")
+    
+    conn.close()
     bot.send_message(message.chat.id, response, parse_mode="Markdown")        
 @bot.message_handler(commands=['open'])
 def open_menu(message):
