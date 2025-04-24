@@ -319,20 +319,6 @@ def start_in_dm(message):
 
 
 
-@bot.callback_query_handler(func=lambda call: call.data == "choose_char")
-def show_character_options(call):
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    keyboard.add(
-        InlineKeyboardButton("Hirokazu Arai", callback_data="select_char_1"),
-        InlineKeyboardButton("Akane Sawatari", callback_data="select_char_2"),
-        InlineKeyboardButton("Kobeni Higashiyama", callback_data="select_char_3")
-    )
-    bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        text="Choose your character:",
-        reply_markup=keyboard
-    )
 @bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
 def handle_character_selection(call):
     user_id = call.from_user.id
@@ -354,14 +340,17 @@ def handle_character_selection(call):
 
     if char:
         name, atk, df, spd, ability = char
-        bot.edit_message_text(
+        # Delete the previous keyboard message (optional)
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except:
+            pass
+
+        bot.send_message(
             chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
             text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
             parse_mode="Markdown"
-        )
-    else:
-        bot.answer_callback_query(call.id, "Character not found.")   
+        )   
 @bot.message_handler(commands=['myhunters'])
 def show_user_characters(message):
     user_id = message.from_user.id
