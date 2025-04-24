@@ -328,7 +328,6 @@ def show_character_options(call):
     )
     bot.send_message(
         chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
         text="Choose your character:",
         reply_markup=keyboard
     )
