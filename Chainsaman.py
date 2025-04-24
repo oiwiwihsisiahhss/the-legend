@@ -332,7 +332,7 @@ def show_character_options(call):
         text="Choose your character:",
         reply_markup=keyboard
     )
- @bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
 def handle_character_selection(call):
     user_id = call.from_user.id
     character_id = int(call.data.split("_")[-1])
