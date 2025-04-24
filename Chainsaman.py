@@ -21,7 +21,7 @@ def create_connection():
 #DB_PATH = "/mnt/data/chainsaw.db"  # This is the persistent directory on StackHost
 #os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-conn = sqlite3.connect(DB_PATH)
+#conn = sqlite3.connect(DB_PATH)
 def create_table():
     connection = create_connection()
     cursor = connection.cursor()
