@@ -326,7 +326,7 @@ def show_character_options(call):
         InlineKeyboardButton("Akane Sawatari", callback_data="select_char_2"),
         InlineKeyboardButton("Kobeni Higashiyama", callback_data="select_char_3")
     )
-    bot.edit_message_text(
+    bot.send_message(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
         text="Choose your character:",
