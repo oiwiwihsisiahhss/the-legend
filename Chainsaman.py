@@ -804,7 +804,7 @@ def character_stats(message):
     cursor = conn.cursor()
     
     cursor.execute('''
-        SELECT name, exp, required_exp, attack, defense, speed, precision, instinct, description, image_link
+        SELECT name, level, exp, required_exp, attack, defense, speed, precision, instinct, description, image_link
         FROM character_base_stats WHERE name = ?
     ''', (character_name,))
     data = cursor.fetchone()
@@ -814,7 +814,7 @@ def character_stats(message):
         bot.reply_to(message, "❌ Character not found. Please check the name.")
         return
 
-    name, exp, required_exp, attack, defense, speed, precision, instinct, description, image_link = data
+    name, level, exp, required_exp, attack, defense, speed, precision, instinct, description, image_link = data
     progress_ratio = exp / required_exp
     filled_blocks = int(progress_ratio * 10)
     empty_blocks = 10 - filled_blocks
@@ -823,7 +823,7 @@ def character_stats(message):
     caption = f"""<b>🧾 Character Info</b>
 ━━━━━━━━━━━━━━
 <b>📛 Name:</b> {name}
-<b>⭐ Level:</b> Coming Soon
+<b>⭐ Level:</b> {level}
 <b>🧾 Description:</b> {description}
 
 <b>🔥 EXP Progress</b>
@@ -842,5 +842,42 @@ def character_stats(message):
 
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton("🌀 Abilities", callback_data=f"abilities_{character_name}"))
-    bot.send_photo(message.chat.id, image_link, caption=caption, parse_mode="HTML", reply_to_message_id=message.message_id, reply_markup=keyboard)       
+    bot.send_photo(message.chat.id, image_link, caption=caption, parse_mode="HTML", reply_to_message_id=message.message_id, reply_markup=keyboard) 
+@bot.callback_query_handler(func=lambda call: call.data.startswith("abilities_"))
+def show_abilities(call):
+    character_name = call.data.split("_", 1)[1]
+
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT move_1, move_1_unlock_level, move_2, move_2_unlock_level, move_3, move_3_unlock_level,
+               special_ability, special_ability_unlock_level
+        FROM character_base_stats
+        WHERE name = ?
+    ''', (character_name,))
+    data = cursor.fetchone()
+    conn.close()
+
+    if not data:
+        bot.answer_callback_query(call.id, "Character not found.", show_alert=True)
+        return
+
+    move_1, lvl1, move_2, lvl2, move_3, lvl3, special, special_lvl = data
+
+    def lock_symbol(level):
+        return "✅" if level <= 1 else "🔐"
+
+    text = f"""<b>🌀 Abilities for {character_name}</b>
+━━━━━━━━━━━━━━
+<b>🌟 Special Ability:</b> {special} — Lv. {special_lvl} {lock_symbol(special_lvl)}
+
+<b>🔹 Move 1:</b> {move_1} — Lv. {lvl1} {lock_symbol(lvl1)}
+<b>🔹 Move 2:</b> {move_2} — Lv. {lvl2} {lock_symbol(lvl2)}
+<b>🔹 Move 3:</b> {move_3} — Lv. {lvl3} {lock_symbol(lvl3)}
+━━━━━━━━━━━━━━"""
+
+    bot.edit_message_caption(chat_id=call.message.chat.id,
+                             message_id=call.message.message_id,
+                             caption=text,
+                             parse_mode="HTML")    
 bot.polling(none_stop=True)
