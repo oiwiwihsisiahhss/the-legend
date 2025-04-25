@@ -383,7 +383,7 @@ def show_user_characters(message):
     if not characters:
         bot.send_message(message.chat.id, "❌ You don't have any hunters yet.")
     else:
-        response = "🧾 *<b>Your Hunters Collection<b>:*\n━━━━━━━━━━━━━━\n"
+        response = "🧾 *<b>Your Hunters Collection</b>:*\n━━━━━━━━━━━━━━\n"
         for i, (name, level) in enumerate(characters, start=1):
             response += f"*{i}. {name}*  —  `Level {level}`\n"
         response += "━━━━━━━━━━━━━━"
