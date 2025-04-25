@@ -846,7 +846,7 @@ def character_stats(message):
 <b>✨ Instinct:</b> {instinct}
 ━━━━━━━━━━━━━━"""
 
-        bot.send_photo(message.chat.id, image_url, caption=caption, parse_mode="HTML", reply_to_message_id=message.message_id)
+        bot.send_photo(message.chat.id, image_link, caption=caption, parse_mode="HTML", reply_to_message_id=message.message_id)
 
     except Exception as e:
         bot.reply_to(message, "⚠️ An error occurred while fetching stats.")
