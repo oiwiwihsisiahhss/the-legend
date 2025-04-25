@@ -794,47 +794,41 @@ def add_character(message):
         bot.reply_to(message, f"❌ Error: {str(e)}") 
 @bot.message_handler(commands=['stats'])
 def character_stats(message):
-    try:
-        args = message.text.split(maxsplit=1)
-        if len(args) < 2:
-            return bot.reply_to(message, "❌ Please provide a character name. Example: /stats Himeno")
+    args = message.text.split(maxsplit=1)
+    if len(args) != 2:
+        bot.reply_to(message, "❌ Please provide a character name.\nUsage: `/stats <character name>`", parse_mode="Markdown")
+        return
 
-        character_name = args[1].strip()
+    character_name = args[1]
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT name, exp, required_exp, attack, defense, speed, precision, instinct, description, image_link
+        FROM character_base_stats WHERE name = ?
+    ''', (character_name,))
+    data = cursor.fetchone()
+    conn.close()
 
-        conn = sqlite3.connect("chainsaw.db")
-        cursor = conn.cursor()
+    if not data:
+        bot.reply_to(message, "❌ Character not found. Please check the name.")
+        return
 
-        cursor.execute('''
-            SELECT cb.image_url, cb.name, uc.level, cb.description, cb.attack, cb.defense, cb.speed, cb.precision, cb.instinct, uc.exp
-            FROM user_characters uc
-            JOIN character_base_stats cb ON uc.character_id = cb.character_id
-            WHERE uc.user_id = ? AND cb.name = ?
-        ''', (message.from_user.id, character_name))
+    name, exp, required_exp, attack, defense, speed, precision, instinct, description, image_link = data
+    progress_ratio = exp / required_exp
+    filled_blocks = int(progress_ratio * 10)
+    empty_blocks = 10 - filled_blocks
+    exp_bar = '█' * filled_blocks + '░' * empty_blocks
 
-        result = cursor.fetchone()
-        conn.close()
-
-        if not result:
-            return bot.reply_to(message, "❌ Character not found in your collection or name is incorrect.")
-
-        (image_url, name, level, description, attack, defense, speed, precision, instinct, current_exp) = result
-        required_exp = 1000  # Fixed bar max for display
-
-        # EXP progress bar
-        progress_ratio = current_exp / required_exp
-        filled_blocks = int(progress_ratio * 10)
-        empty_blocks = 10 - filled_blocks
-        exp_bar = '█' * filled_blocks + '░' * empty_blocks
-
-        caption = f"""<b>🧾 Character Info</b>
+    caption = f"""<b>🧾 Character Info</b>
 ━━━━━━━━━━━━━━
 <b>📛 Name:</b> {name}
-<b>⭐ Level:</b> {level}
+<b>⭐ Level:</b> Coming Soon
 <b>🧾 Description:</b> {description}
 
 <b>🔥 EXP Progress</b>
 ━━━━━━━━━━━━━━
-<b>{current_exp} / {required_exp}</b>
+<b>{exp} / {required_exp}</b>
 <code>[{exp_bar}]</code>
 
 <b>⚔️ Battle Stats</b>
@@ -846,9 +840,7 @@ def character_stats(message):
 <b>✨ Instinct:</b> {instinct}
 ━━━━━━━━━━━━━━"""
 
-        bot.send_photo(message.chat.id, image_link, caption=caption, parse_mode="HTML", reply_to_message_id=message.message_id)
-
-    except Exception as e:
-        bot.reply_to(message, "⚠️ An error occurred while fetching stats.")
-        print(e)       
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton("🌀 Abilities", callback_data=f"abilities_{character_name}"))
+    bot.send_photo(message.chat.id, image_link, caption=caption, parse_mode="HTML", reply_to_message_id=message.message_id, reply_markup=keyboard)       
 bot.polling(none_stop=True)
