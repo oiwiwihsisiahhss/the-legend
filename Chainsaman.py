@@ -792,7 +792,7 @@ def add_character(message):
         )
     except Exception as e:
         bot.reply_to(message, f"❌ Error: {str(e)}") 
- @bot.message_handler(commands=['stats'])
+@bot.message_handler(commands=['stats'])
 def character_stats(message):
     try:
         args = message.text.split(maxsplit=1)
