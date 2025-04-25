@@ -387,7 +387,7 @@ def show_user_characters(message):
         for i, (name, level) in enumerate(characters, start=1):
             response += f"*{i}. {name}*  —  `Level {level}`\n"
         response += "━━━━━━━━━━━━━━"
-        bot.send_message(message.chat.id, response, parse_mode="HTML")        
+        bot.send_message(message, response, parse_mode="HTML")        
 @bot.message_handler(commands=['open'])
 def open_menu(message):
     if message.chat.type != 'private':
@@ -741,4 +741,55 @@ def handle_give(message):
     conn.close()
 
     bot.reply_to(message, f"✅ Successfully transferred {amount} {amount_type} to {message.reply_to_message.from_user.first_name}.")
+@bot.message_handler(commands=['c_add'])
+def add_character(message):
+    if message.from_user.id != 6306216999:
+        bot.reply_to(message, "❌ You are not authorized to use this command.")
+        return
+
+    if not message.reply_to_message:
+        bot.reply_to(message, "⚠️ Please reply to the user you want to add the character to.\nUsage: `/c_add <character_name>`", parse_mode="Markdown")
+        return
+
+    try:
+        args = message.text.split(maxsplit=1)
+        if len(args) < 2:
+            bot.reply_to(message, "⚠️ Usage: /c_add <character_name>")
+            return
+
+        character_name = args[1].strip().lower()
+        user = message.reply_to_message.from_user
+        user_id = user.id
+        user_name = user.first_name
+        user_link = f'<a href="tg://user?id={user_id}">{user_name}</a>'
+
+        conn = sqlite3.connect("chainsaw.db")
+        cursor = conn.cursor()
+
+        # Get character_id from name
+        cursor.execute("SELECT character_id, name FROM character_base_stats WHERE LOWER(name) = ?", (character_name,))
+        character = cursor.fetchone()
+
+        if not character:
+            bot.reply_to(message, "❌ Character not found. Please check the name and try again.")
+            conn.close()
+            return
+
+        character_id, char_name = character
+
+        # Insert character into user's collection
+        cursor.execute('''
+            INSERT OR IGNORE INTO user_characters (user_id, character_id, level)
+            VALUES (?, ?, 1)
+        ''', (user_id, character_id))
+        conn.commit()
+        conn.close()
+
+        bot.send_message(
+            message.chat.id,
+            f"✅ <b>{char_name}</b> has been added to {user_link}'s hunter list.",
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        bot.reply_to(message, f"❌ Error: {str(e)}")    
 bot.polling(none_stop=True)
