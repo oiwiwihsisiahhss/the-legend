@@ -365,9 +365,9 @@ def handle_character_selection(call):
         )   
 @bot.message_handler(commands=['myhunters'])        
 def show_user_characters(message):
-    conn = sqlite3.connect("your_db.sqlite")  # Or whatever your DB is
+    conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
-    
+
     user_id = message.from_user.id
     cursor.execute('''
         SELECT cb.name, uc.level
@@ -377,16 +377,16 @@ def show_user_characters(message):
     ''', (user_id,))
     
     characters = cursor.fetchall()
-    if not characters:
-        bot.send_message(message.chat.id, "You don't have any hunters yet.")
-    else:
-        response = "**Your Hunters:**\n"
-        for name, level in characters:
-            response += f"- {name} (Level {level})\n"
-        bot.send_message(message.chat.id, response, parse_mode="Markdown")
-    
     conn.close()
-    bot.send_message(message.chat.id, response, parse_mode="Markdown")        
+
+    if not characters:
+        bot.send_message(message.chat.id, "❌ You don't have any hunters yet.")
+    else:
+        response = "🧾 *<b>Your Hunters Collection<b>:*\n━━━━━━━━━━━━━━\n"
+        for i, (name, level) in enumerate(characters, start=1):
+            response += f"*{i}. {name}*  —  `Level {level}`\n"
+        response += "━━━━━━━━━━━━━━"
+        bot.send_message(message.chat.id, response, parse_mode="HTML")        
 @bot.message_handler(commands=['open'])
 def open_menu(message):
     if message.chat.type != 'private':
