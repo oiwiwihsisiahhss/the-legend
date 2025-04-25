@@ -138,13 +138,13 @@ def create_table():
         )
     ''')
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_characters (
-           user_id INTEGER NOT NULL,
-           character_id INTEGER NOT NULL,
-           PRIMARY KEY (user_id, character_id),
-           level INTEGER DEFAULT 1,
-           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-           FOREIGN KEY (character_id) REFERENCES character_base_stats(character_id) ON DELETE CASCADE
+    CREATE TABLE IF NOT EXISTS user_characters (
+        user_id INTEGER NOT NULL,
+        character_id INTEGER NOT NULL,
+        level INTEGER DEFAULT 1,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (character_id) REFERENCES character_base_stats(character_id) ON DELETE CASCADE,
+        PRIMARY KEY (user_id, character_id)
        )
    ''')
 
