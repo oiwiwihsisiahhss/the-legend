@@ -387,7 +387,7 @@ def show_user_characters(message):
         for i, (name, level) in enumerate(characters, start=1):
             response += f"*{i}. {name}*  —  `Level {level}`\n"
         response += "━━━━━━━━━━━━━━"
-        bot.send_message(message, response, parse_mode="HTML")        
+        bot.send_message(message.chat.id, response, parse_mode="HTML", reply_to_message_id=message.message_id)        
 @bot.message_handler(commands=['open'])
 def open_menu(message):
     if message.chat.type != 'private':
