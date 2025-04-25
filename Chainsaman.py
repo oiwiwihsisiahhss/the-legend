@@ -34,6 +34,7 @@ def create_table():
        CREATE TABLE IF NOT EXISTS character_base_stats (
          character_id INTEGER PRIMARY KEY AUTOINCREMENT,
          name TEXT NOT NULL,
+         level INTEGER DEFAULT 1,
          exp INTEGER NOT NULL DEFAULT 0,
          required_exp INTEGER NOT NULL,
          devil_contract TEXT NOT NULL,
