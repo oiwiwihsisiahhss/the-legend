@@ -794,91 +794,106 @@ def add_character(message):
     except Exception as e:
         bot.reply_to(message, f"❌ Error: {str(e)}") 
 @bot.message_handler(commands=['stats'])
-def character_stats(message):
-    args = message.text.split(maxsplit=1)
-    if len(args) != 2:
-        bot.reply_to(message, "❌ Please provide a character name.\nUsage: `/stats <character name>`", parse_mode="Markdown")
-        return
-
-    character_name = args[1]
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
+def stats(message):
+    args = message.text.split(' ', 1)
+    if len(args) == 1:
+        return bot.reply_to(message, "❌ Please provide a character name.")
     
+    name_input = args[1].strip().lower()
+    user_id = message.from_user.id
+
+    conn = sqlite3.connect('chainsaw.db')
+    cursor = conn.cursor()
+
     cursor.execute('''
-        SELECT name, level, exp, required_exp, attack, defense, speed, precision, instinct, description, image_link
-        FROM character_base_stats WHERE name = ?
-    ''', (character_name,))
-    data = cursor.fetchone()
+        SELECT cb.character_id, cb.name, cb.description, cb.attack, cb.defense, cb.speed, cb.precision,
+               cb.instinct, cb.image_link, cb.exp, cb.required_exp, uc.level
+        FROM user_characters uc
+        JOIN character_base_stats cb ON uc.character_id = cb.character_id
+        WHERE uc.user_id = ? AND LOWER(cb.name) LIKE ?
+    ''', (user_id, f"{name_input}%"))
+    result = cursor.fetchone()
     conn.close()
 
-    if not data:
-        bot.reply_to(message, "❌ Character not found. Please check the name.")
-        return
+    if not result:
+        return bot.reply_to(message, "❌ No character found with that name.")
 
-    name, level, exp, required_exp, attack, defense, speed, precision, instinct, description, image_link = data
-    progress_ratio = exp / required_exp
-    filled_blocks = int(progress_ratio * 10)
-    empty_blocks = 10 - filled_blocks
-    exp_bar = '█' * filled_blocks + '░' * empty_blocks
+    (char_id, name, desc, atk, defense, spd, prec, inst, img, exp, req_exp, lvl) = result
+    progress = int((exp / req_exp) * 10)
+    bar = '█' * progress + '░' * (10 - progress)
 
     caption = f"""<b>🧾 Character Info</b>
 ━━━━━━━━━━━━━━
 <b>📛 Name:</b> {name}
-<b>⭐ Level:</b> {level}
-<b>🧾 Description:</b> {description}
+<b>⭐ Level:</b> {lvl}
+<b>🧾 Description:</b> {desc}
 
 <b>🔥 EXP Progress</b>
 ━━━━━━━━━━━━━━
-<b>{exp} / {required_exp}</b>
-<code>[{exp_bar}]</code>
+<b>{exp} / {req_exp}</b>
+<code>[{bar}]</code>
 
 <b>⚔️ Battle Stats</b>
 ━━━━━━━━━━━━━━
-<b>⚔️ Attack:</b> {attack}
+<b>⚔️ Attack:</b> {atk}
 <b>🛡 Defense:</b> {defense}
-<b>⚡ Speed:</b> {speed}
-<b>🎯 Precision:</b> {precision}
-<b>✨ Instinct:</b> {instinct}
+<b>⚡ Speed:</b> {spd}
+<b>🎯 Precision:</b> {prec}
+<b>✨ Instinct:</b> {inst}
 ━━━━━━━━━━━━━━"""
 
-    keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(types.InlineKeyboardButton("🌀 Abilities", callback_data=f"abilities_{character_name}"))
-    bot.send_photo(message.chat.id, image_link, caption=caption, parse_mode="HTML", reply_to_message_id=message.message_id, reply_markup=keyboard) 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("abilities_"))
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("Abilities", callback_data=f"abilities:{char_id}"))
+    bot.send_photo(message.chat.id, img, caption=caption, parse_mode="HTML", reply_to_message_id=message.message_id, reply_markup=markup) 
+@bot.callback_query_handler(func=lambda call: call.data.startswith('abilities:'))
 def show_abilities(call):
-    character_name = call.data.split("_", 1)[1]
+    char_id = call.data.split(':')[1]
+    user_id = call.from_user.id
 
-    conn = sqlite3.connect("chainsaw.db")
+    conn = sqlite3.connect('chainsaw.db')
     cursor = conn.cursor()
+
     cursor.execute('''
-        SELECT move_1, move_1_unlock_level, move_2, move_2_unlock_level, move_3, move_3_unlock_level,
-               special_ability, special_ability_unlock_level
-        FROM character_base_stats
-        WHERE name = ?
-    ''', (character_name,))
-    data = cursor.fetchone()
+        SELECT cb.name, cb.move_1, cb.move_1_unlock_level,
+               cb.move_2, cb.move_2_unlock_level,
+               cb.move_3, cb.move_3_unlock_level,
+               cb.special_ability, cb.special_ability_unlock_level,
+               uc.level
+        FROM user_characters uc
+        JOIN character_base_stats cb ON uc.character_id = cb.character_id
+        WHERE uc.user_id = ? AND cb.character_id = ?
+    ''', (user_id, char_id))
+    result = cursor.fetchone()
     conn.close()
 
-    if not data:
-        bot.answer_callback_query(call.id, "Character not found.", show_alert=True)
-        return
+    if not result:
+        return bot.answer_callback_query(call.id, "❌ Character not found.")
 
-    move_1, lvl1, move_2, lvl2, move_3, lvl3, special, special_lvl = data
+    (name, m1, m1_lvl, m2, m2_lvl, m3, m3_lvl, special, special_lvl, lvl) = result
 
-    def lock_symbol(level):
-        return "✅" if level <= 1 else "🔐"
+    def lock_check(lvl_required):
+        return '✅' if lvl >= lvl_required else '🔐'
 
-    text = f"""<b>🌀 Abilities for {character_name}</b>
+    text = f"""<b>🌀 Abilities - {name}</b>
 ━━━━━━━━━━━━━━
-<b>🌟 Special Ability:</b> {special} — Lv. {special_lvl} {lock_symbol(special_lvl)}
-
-<b>🔹 Move 1:</b> {move_1} — Lv. {lvl1} {lock_symbol(lvl1)}
-<b>🔹 Move 2:</b> {move_2} — Lv. {lvl2} {lock_symbol(lvl2)}
-<b>🔹 Move 3:</b> {move_3} — Lv. {lvl3} {lock_symbol(lvl3)}
+<b>{lock_check(m1_lvl)}</b> <b>Move 1:</b> {m1} <i>(Lv. {m1_lvl})</i>
+<b>{lock_check(m2_lvl)}</b> <b>Move 2:</b> {m2} <i>(Lv. {m2_lvl})</i>
+<b>{lock_check(m3_lvl)}</b> <b>Move 3:</b> {m3} <i>(Lv. {m3_lvl})</i>
+<b>{lock_check(special_lvl)}</b> <b>Special:</b> {special} <i>(Lv. {special_lvl})</i>
 ━━━━━━━━━━━━━━"""
 
-    bot.edit_message_caption(chat_id=call.message.chat.id,
-                             message_id=call.message.message_id,
-                             caption=text,
-                             parse_mode="HTML")    
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("Stats", callback_data=f"statsback:{char_id}"))
+    bot.edit_message_caption(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                             caption=text, parse_mode="HTML", reply_markup=markup)
+ @bot.callback_query_handler(func=lambda call: call.data.startswith('statsback:'))
+def return_to_stats(call):
+    # You can reuse the same logic as the `/stats` command by refactoring it into a function
+    # For now, just recall the command handler manually
+    char_id = call.data.split(':')[1]
+    fake_message = call.message
+    fake_message.text = f"/stats {char_id}"
+    fake_message.from_user = call.from_user
+    stats(fake_message)   
+    
 bot.polling(none_stop=True)
