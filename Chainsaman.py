@@ -902,9 +902,15 @@ def return_to_stats(call):
     if not result:
         return bot.answer_callback_query(call.id, "❌ Character not found.")
 
-    name = result[0].split()[0]  # Gets first name only (e.g., "Himeno" from "Himeno Ghost")
-    fake_message = call.message
-    fake_message.text = f"/stats {name}"
-    fake_message.from_user = call.from_user
-    stats(fake_message)
+    name = result[0].split()[0]  # Gets the first name only (e.g., "Himeno" from "Himeno Ghost")
+
+    # Edit the existing message, not create a new one
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=f"/stats {name}"
+    )
+    
+    # Now call the stats function to fetch and display the character's details
+    stats(call.message)
 bot.polling(none_stop=True)
