@@ -843,7 +843,7 @@ def stats(message):
 ━━━━━━━━━━━━━━"""
 
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("Abilities", callback_data=f"abilities:{char_id}"))
+    markup.add(types.InlineKeyboardButton("🌀Abilities", callback_data=f"abilities:{char_id}"))
     bot.send_photo(message.chat.id, img, caption=caption, parse_mode="HTML", reply_to_message_id=message.message_id, reply_markup=markup) 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('abilities:'))
 def show_abilities(call):
