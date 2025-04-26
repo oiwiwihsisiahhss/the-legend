@@ -886,7 +886,7 @@ def show_abilities(call):
     markup.add(types.InlineKeyboardButton("Stats", callback_data=f"statsback:{char_id}"))
     bot.edit_message_caption(chat_id=call.message.chat.id, message_id=call.message.message_id,
                              caption=text, parse_mode="HTML", reply_markup=markup)
- @bot.callback_query_handler(func=lambda call: call.data.startswith('statsback:'))
+@bot.callback_query_handler(func=lambda call: call.data.startswith('statsback:'))
 def return_to_stats(call):
     # You can reuse the same logic as the `/stats` command by refactoring it into a function
     # For now, just recall the command handler manually
