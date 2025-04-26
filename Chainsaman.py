@@ -904,20 +904,62 @@ def return_to_stats(call):
 
     name = result[0].split()[0]  # Gets first name only (e.g., "Himeno" from "Himeno Ghost")
 
-    # Check if the original message has text or caption
-    if call.message.text:
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=f"/stats {name}"
-        )
-    elif call.message.caption:
-        bot.edit_message_caption(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            caption=f"/stats {name}"
-        )
+    # Construct the message text for the stats function
+    fake_message = call.message
+    fake_message.text = f"/stats {name}"  # Simulate a message text with the correct command
+    fake_message.from_user = call.from_user  # Add the user from the callback
 
-    # Now call the stats function to fetch and display the character's details
-    stats(call.message)
+    # Now, instead of directly calling stats(fake_message), we can send the stats text and edit the message.
+    conn = sqlite3.connect('chainsaw.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT cb.character_id, cb.name, cb.description, cb.attack, cb.defense, cb.speed, cb.precision,
+               cb.instinct, cb.image_link, cb.exp, cb.required_exp, uc.level
+        FROM user_characters uc
+        JOIN character_base_stats cb ON uc.character_id = cb.character_id
+        WHERE uc.user_id = ? AND LOWER(cb.name) LIKE ?
+    ''', (user_id, f"{name.lower()}%"))
+    result = cursor.fetchone()
+    conn.close()
+
+    if not result:
+        return bot.edit_message_text(chat_id=call.message.chat.id,
+                                      message_id=call.message.message_id,
+                                      text="❌ No character found with that name.")
+
+    (char_id, name, desc, atk, defense, spd, prec, inst, img, exp, req_exp, lvl) = result
+    progress = int((exp / req_exp) * 10)
+    bar = '█' * progress + '░' * (10 - progress)
+
+    caption = f"""<b>🧾 Character Info</b>
+━━━━━━━━━━━━━━
+<b>📛 Name:</b> {name}
+<b>⭐ Level:</b> {lvl}
+<b>🧾 Description:</b> {desc}
+
+<b>🔥 EXP Progress</b>
+━━━━━━━━━━━━━━
+<b>{exp} / {req_exp}</b>
+<code>[{bar}]</code>
+
+<b>⚔️ Battle Stats</b>
+━━━━━━━━━━━━━━
+<b>⚔️ Attack:</b> {atk}
+<b>🛡 Defense:</b> {defense}
+<b>⚡ Speed:</b> {spd}
+<b>🎯 Precision:</b> {prec}
+<b>✨ Instinct:</b> {inst}
+━━━━━━━━━━━━━━"""
+
+    # Adding the "Abilities" button back into the keyboard
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("Abilities", callback_data=f"abilities:{char_id}"))
+
+    # Editing the existing message with the stats information and adding the "Abilities" button
+    bot.edit_message_caption(chat_id=call.message.chat.id,
+                             message_id=call.message.message_id,
+                             caption=caption,
+                             parse_mode="HTML",
+                             reply_markup=markup)
 bot.polling(none_stop=True)
