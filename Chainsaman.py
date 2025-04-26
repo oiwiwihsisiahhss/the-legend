@@ -883,7 +883,7 @@ def show_abilities(call):
 ━━━━━━━━━━━━━━"""
 
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("Stats", callback_data=f"statsback:{char_id}"))
+    markup.add(types.InlineKeyboardButton("⚜️Stats", callback_data=f"statsback:{char_id}"))
     bot.edit_message_caption(chat_id=call.message.chat.id, message_id=call.message.message_id,
                              caption=text, parse_mode="HTML", reply_markup=markup)
 @bot.callback_query_handler(func=lambda call: call.data.startswith('statsback:'))
@@ -902,15 +902,22 @@ def return_to_stats(call):
     if not result:
         return bot.answer_callback_query(call.id, "❌ Character not found.")
 
-    name = result[0].split()[0]  # Gets the first name only (e.g., "Himeno" from "Himeno Ghost")
+    name = result[0].split()[0]  # Gets first name only (e.g., "Himeno" from "Himeno Ghost")
 
-    # Edit the existing message, not create a new one
-    bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        text=f"/stats {name}"
-    )
-    
+    # Check if the original message has text or caption
+    if call.message.text:
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=f"/stats {name}"
+        )
+    elif call.message.caption:
+        bot.edit_message_caption(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            caption=f"/stats {name}"
+        )
+
     # Now call the stats function to fetch and display the character's details
     stats(call.message)
 bot.polling(none_stop=True)
