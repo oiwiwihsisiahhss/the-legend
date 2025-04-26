@@ -888,12 +888,23 @@ def show_abilities(call):
                              caption=text, parse_mode="HTML", reply_markup=markup)
 @bot.callback_query_handler(func=lambda call: call.data.startswith('statsback:'))
 def return_to_stats(call):
-    # You can reuse the same logic as the `/stats` command by refactoring it into a function
-    # For now, just recall the command handler manually
     char_id = call.data.split(':')[1]
+    user_id = call.from_user.id
+
+    conn = sqlite3.connect('chainsaw.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT name FROM character_base_stats WHERE character_id = ?
+    ''', (char_id,))
+    result = cursor.fetchone()
+    conn.close()
+
+    if not result:
+        return bot.answer_callback_query(call.id, "❌ Character not found.")
+
+    name = result[0].split()[0]  # Gets first name only (e.g., "Himeno" from "Himeno Ghost")
     fake_message = call.message
-    fake_message.text = f"/stats {char_id}"
+    fake_message.text = f"/stats {name}"
     fake_message.from_user = call.from_user
-    stats(fake_message)   
-    
+    stats(fake_message)
 bot.polling(none_stop=True)
