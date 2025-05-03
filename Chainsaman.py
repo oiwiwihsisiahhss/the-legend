@@ -148,7 +148,59 @@ def create_table():
         PRIMARY KEY (user_id, character_id)
        )
    ''')
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS teams (
+        user_id INTEGER,
+        team_number INTEGER,
+        slot1 TEXT,
+        slot2 TEXT,
+        slot3 TEXT,
+        PRIMARY KEY (user_id, team_number)
+    )
+''')
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS user_team_selection (
+        user_id INTEGER PRIMARY KEY,
+        current_team INTEGER DEFAULT 1
+)
+''')
+#conn.commit()
+conn.commit()
 
+# Sample data function for testing (only if no data)
+#def initialize_sample_team(user_id):
+    #for i in range(1, 6):
+       # cursor.execute('''
+          #  INSERT OR IGNORE INTO teams (user_id, team_number, slot1, slot2, slot3)
+      #      VALUES (?, ?, ?, ?, ?)
+    #    ''', (user_id, i, 'Character A', 'Character B', 'Character C'))
+#    conn.commit()
+
+#import sqlite3
+
+# Establishing database connection
+def get_connection():
+    return sqlite3.connect('chainsaw.db', check_same_thread=False)
+
+# Function to get user team (slot1, slot2, slot3)
+def get_user_team(user_id, team_number=1):
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            SELECT slot1, slot2, slot3 FROM teams
+            WHERE user_id = ? AND team_number = ?
+        ''', (user_id, team_number))
+        row = cursor.fetchone()
+        if row and any(row):
+            return [char if char else "Empty" for char in row]
+        else:
+            return ["Empty", "Empty", "Empty"]
+    finally:
+        conn.close()
+
+# Function to set the user's main team
+def set_main_team(user_id, team_number):
 
 
     
