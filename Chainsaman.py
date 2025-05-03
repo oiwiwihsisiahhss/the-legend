@@ -200,8 +200,168 @@ def get_user_team(user_id, team_number=1):
         conn.close()
 
 # Function to set the user's main team
+#def set_main_team(user_id, team_number):
 def set_main_team(user_id, team_number):
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            INSERT INTO user_team_selection (user_id, current_team)
+            VALUES (?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET current_team = excluded.current_team
+        ''', (user_id, team_number))
+        conn.commit()
+    finally:
+        conn.close()
 
+# Function to get the user's main team
+def get_main_team(user_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('SELECT current_team FROM user_team_selection WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        return row[0] if row else 1  # Default to team 1 if nothing found
+    finally:
+        conn.close()
+@bot.message_handler(commands=['myteam'])
+def my_team(message):
+    user_id = message.from_user.id
+    team = get_user_team(user_id, team_number=1)
+
+    team_text = "✨<b>Your Current Team (Team 1)</b> ✨\n"
+    team_text += "━━━━━━━━━━━━━━━\n"
+    for i, char in enumerate(team, start=1):
+        team_text += f"<b>{i}\uFE0F\u20E3 {char}</b>\n"
+    team_text += "━━━━━━━━━━━━━━━"
+
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        types.InlineKeyboardButton("Team 1⃣", callback_data="team1"),
+        types.InlineKeyboardButton("Team 2⃣", callback_data="team2"),
+    )
+    markup.add(
+        types.InlineKeyboardButton("Team 3⃣", callback_data="team3"),
+        types.InlineKeyboardButton("Team 4⃣", callback_data="team4"),
+    )
+    markup.add(types.InlineKeyboardButton("Team 5⃣", callback_data="team5"))
+
+    if message.chat.type == 'private':
+        markup.add(types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team"))
+    user_id = message.from_user.id
+    # Close button (user-specific callback_data)
+    close_button = types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}")
+    markup.add(close_button)
+
+    bot.send_message(
+        message.chat.id,
+        team_text,
+        reply_markup=markup,
+        reply_to_message_id=message.message_id,
+        parse_mode="HTML"
+    )
+import logging
+
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callback(call):
+    user_id = call.from_user.id
+    if call.data.startswith("close_"):
+        caller_id = call.from_user.id
+        target_id = int(call.data.split("_")[1])
+
+        if caller_id != target_id:
+            # If the user who clicked the button isn't the one who it was assigned to
+            bot.answer_callback_query(call.id, "This button isn't for you!", show_alert=True)
+            return
+
+        # Edit the message text to indicate the team setup is closed
+        success_message = "<b>✅ Team Setup Successfully Closed!</b>\n\nYour team configuration has been saved and is now closed."
+        
+        # Remove the keyboard
+       # markup = types.InlineKeyboardMarkup()
+       # markup.add(types.InlineKeyboardButton("Okay", callback_data=f"close_{caller_id}"))
+        
+        # Edit the message
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=success_message,
+            #reply_markup=markup,
+            parse_mode="HTML"
+        )
+
+        # Optionally, you can send an alert confirming the closure
+        bot.answer_callback_query(call.id, "Your team setup has been successfully closed.", show_alert=True)
+
+
+    elif call.data == "edit_team":
+        if call.message.chat.type != 'group':
+            bot.answer_callback_query(call.id, "⚠️ Edit team feature is under development!", show_alert=True)
+        else:
+            pass  # Do nothing if it's a group
+    elif call.data.startswith("team"):
+        team_number = int(call.data[-1])  # Extract team number from "team1" to "team5"
+
+        # Check if this team is already set as the main team
+        current_main = get_main_team(user_id)
+        if team_number == current_main:
+            bot.answer_callback_query(call.id, "⚠️ You have already set this team as your main team.", show_alert=True)
+            return
+        else:
+            set_main_team(user_id, team_number)
+
+        team = get_user_team(user_id, team_number)
+
+        team_text = f"<b>✨ Your Current Team (Team {team_number})</b> ✨\n"
+        team_text += "━━━━━━━━━━━━━━━\n"
+        for i, char in enumerate(team, start=1):
+            team_text += f"<b>{i}\uFE0F\u20E3 {char if char else 'Empty'}</b>\n"
+        team_text += "━━━━━━━━━━━━━━━"
+
+        # Reuse the same keyboard
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        row1 = [
+            types.InlineKeyboardButton("Team 1⃣", callback_data="team1"),
+            types.InlineKeyboardButton("Team 2⃣", callback_data="team2"),
+        ]
+        row2 = [
+            types.InlineKeyboardButton("Team 3⃣", callback_data="team3"),
+            types.InlineKeyboardButton("Team 4⃣", callback_data="team4"),
+        ]
+        row3 = [types.InlineKeyboardButton("Team 5⃣", callback_data="team5")]
+        if call.message.chat.type == 'private':
+            row4 = [types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team")]
+            markup.add(*row4)
+        #row4 = [types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team")]
+        # Ensure you're getting the user ID in context
+        
+        user_id = call.from_user.id  # This will be inside your callback query handler
+
+# Now you can create the callback data using the user_id
+        #callback_data = f"close_{user_id}"  # Use the user_id to generate the callback data
+
+        #row5 = types.InlineKeyboardButton("Close ❌", callback_data=callback_data)
+       # markup.add(btn)
+        callback_data = f"close_{user_id}"      
+        close_button= types.InlineKeyboardButton("Close ❌", callback_data=callback_data)
+
+        markup.add(*row1)
+        markup.add(*row2)
+        markup.add(*row3)
+       # markup.add(*row4)
+        markup.add(close_button)
+
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=team_text,
+            reply_markup=markup, 
+            parse_mode="HTML"
+        )
+   # message_id = msg.message_id
+     
+#(call.id, "Your team setup has been closed.", show_alert=True)#sage(chat_id=call.message.chat.id, message_id=call.message.message_id)
+bot.polling() 
 
     
 
