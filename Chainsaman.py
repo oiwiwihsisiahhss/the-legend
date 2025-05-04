@@ -322,52 +322,52 @@ def handle_callback(call):
         else:
             pass  # Do nothing if it's a group
     elif call.data.startswith("team"):
-    team_number = int(call.data[-1])  # Extract team number from "team1" to "team5"
+        user_id = call.from_user.id
+        team_number = int(call.data[-1])  # Extract team number from "team1" to "team5"
 
     # Check if this team is already set as the main team
-    current_main = get_main_team(user_id)
-    if team_number == current_main:
-        bot.answer_callback_query(call.id, "⚠️ You have already set this team as your main team.", show_alert=True)
-        return
-    else:
-        set_main_team(user_id, team_number)
+        current_main = get_main_team(user_id)
+        if team_number == current_main:
+            bot.answer_callback_query(call.id, "⚠️ You have already set this team as your main team.", show_alert=True)
+            return
+        else:
+            set_main_team(user_id, team_number)
 
-    team = get_user_team(user_id, team_number)
+        team = get_user_team(user_id, team_number)
 
-    team_text = f"<b>✨ Your Current Team (Team {team_number})</b> ✨\n"
-    team_text += "━━━━━━━━━━━━━━━\n"
-    for i, char in enumerate(team, start=1):
+        team_text = f"<b>✨ Your Current Team (Team {team_number})</b> ✨\n"
+        team_text += "━━━━━━━━━━━━━━━\n"
+        for i, char in enumerate(team, start=1):
         team_text += f"<b>{i}\uFE0F\u20E3 {char if char else 'Empty'}</b>\n"
-    team_text += "━━━━━━━━━━━━━━━"
+        team_text += "━━━━━━━━━━━━━━━"
 
     # Reuse the same keyboard
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    row1 = [
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        row1 = [
         types.InlineKeyboardButton("Team 1⃣", callback_data="team1"),
         types.InlineKeyboardButton("Team 2⃣", callback_data="team2"),
     ]
-    row2 = [
+        row2 = [
         types.InlineKeyboardButton("Team 3⃣", callback_data="team3"),
         types.InlineKeyboardButton("Team 4⃣", callback_data="team4"),
     ]
-    row3 = [types.InlineKeyboardButton("Team 5⃣", callback_data="team5")]
+        row3 = [types.InlineKeyboardButton("Team 5⃣", callback_data="team5")]
+        markup.add(*row1)
+        markup.add(*row2)
+        markup.add(*row3)
+
     if call.message.chat.type == 'private':
         row4 = [types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team")]
         markup.add(*row4)
 
-    callback_data = f"close_{user_id}"      
-    close_button = types.InlineKeyboardButton("Close ❌", callback_data=callback_data)
-
-    markup.add(*row1)
-    markup.add(*row2)
-    markup.add(*row3)
+    close_button = types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}")
     markup.add(close_button)
 
     bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
         text=team_text,
-        reply_markup=markup, 
+        reply_markup=markup,
         parse_mode="HTML"
     )
    # message_id = msg.message_id
