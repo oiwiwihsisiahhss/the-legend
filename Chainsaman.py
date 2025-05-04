@@ -25,7 +25,12 @@ def create_connection():
 #conn = sqlite3.connect(DB_PATH)
 def create_table():
     connection = create_connection()
-    cursor = connection.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_team_selection (
+            user_id INTEGER PRIMARY KEY,
+            current_team INTEGER
+        );
+    ''')
     
     
 
@@ -186,55 +191,68 @@ def get_connection():
 def get_user_team(user_id, team_number=1):
     conn = get_connection()
     cursor = conn.cursor()
-    try:
-        cursor.execute('''
-            SELECT slot1, slot2, slot3 FROM teams
-            WHERE user_id = ? AND team_number = ?
-        ''', (user_id, team_number))
-        row = cursor.fetchone()
-        if row and any(row):
-            return [char if char else "Empty" for char in row]
-        else:
-            return ["Empty", "Empty", "Empty"]
-    finally:
-        conn.close()
+    cursor.execute('''
+        SELECT slot1, slot2, slot3 FROM teams
+        WHERE user_id = ? AND team_number = ?
+    ''', (user_id, team_number))
+    row = cursor.fetchone()
+    conn.close()
+    if row and any(row):
+        return [char if char else "Empty" for char in row]
+    return ["Empty", "Empty", "Empty"]
 
 # Function to set the user's main team
 #def set_main_team(user_id, team_number):
 def set_main_team(user_id, team_number):
     conn = get_connection()
     cursor = conn.cursor()
-    try:
-        cursor.execute('''
-            INSERT INTO user_team_selection (user_id, current_team)
-            VALUES (?, ?)
-            ON CONFLICT(user_id) DO UPDATE SET current_team = excluded.current_team
-        ''', (user_id, team_number))
-        conn.commit()
-    finally:
-        conn.close()
+    cursor.execute('''
+        INSERT INTO user_team_selection (user_id, current_team)
+        VALUES (?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET current_team = excluded.current_team
+    ''', (user_id, team_number))
+    conn.commit()
+    conn.close()
 
 # Function to get the user's main team
 def get_main_team(user_id):
     conn = get_connection()
     cursor = conn.cursor()
-    try:
-        cursor.execute('SELECT current_team FROM user_team_selection WHERE user_id = ?', (user_id,))
-        row = cursor.fetchone()
-        return row[0] if row else 1  # Default to team 1 if nothing found
-    finally:
-        conn.close()
+    cursor.execute('SELECT current_team FROM user_team_selection WHERE user_id = ?', (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else 1  # Defaults to team 1
+ def set_user_team(user_id, team_number, slot1, slot2, slot3):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        INSERT INTO teams (user_id, team_number, slot1, slot2, slot3)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, team_number)
+        DO UPDATE SET slot1 = excluded.slot1, slot2 = excluded.slot2, slot3 = excluded.slot3
+    ''', (user_id, team_number, slot1, slot2, slot3))
+
+    conn.commit()
+    conn.close()   
 @bot.message_handler(commands=['myteam'])
 def my_team(message):
     user_id = message.from_user.id
-    team = get_user_team(user_id, team_number=1)
 
-    team_text = "✨<b>Your Current Team (Team 1)</b> ✨\n"
+    # Get the user's last selected team
+    selected_team_number = get_main_team(user_id)
+    
+    # Get the team details based on the selected team number
+    team = get_user_team(user_id, team_number=selected_team_number)
+
+    # Generate team display text
+    team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     for i, char in enumerate(team, start=1):
         team_text += f"<b>{i}\uFE0F\u20E3 {char}</b>\n"
     team_text += "━━━━━━━━━━━━━━━"
 
+    # Inline keyboard for team selection
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
         types.InlineKeyboardButton("Team 1⃣", callback_data="team1"),
@@ -246,13 +264,15 @@ def my_team(message):
     )
     markup.add(types.InlineKeyboardButton("Team 5⃣", callback_data="team5"))
 
+    # If the chat is private, allow editing the team
     if message.chat.type == 'private':
         markup.add(types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team"))
-    user_id = message.from_user.id
+    
     # Close button (user-specific callback_data)
     close_button = types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}")
     markup.add(close_button)
 
+    # Send the message with the team info and the inline keyboard
     bot.send_message(
         message.chat.id,
         team_text,
@@ -300,64 +320,54 @@ def handle_callback(call):
         else:
             pass  # Do nothing if it's a group
     elif call.data.startswith("team"):
-        team_number = int(call.data[-1])  # Extract team number from "team1" to "team5"
+    team_number = int(call.data[-1])  # Extract team number from "team1" to "team5"
 
-        # Check if this team is already set as the main team
-        current_main = get_main_team(user_id)
-        if team_number == current_main:
-            bot.answer_callback_query(call.id, "⚠️ You have already set this team as your main team.", show_alert=True)
-            return
-        else:
-            set_main_team(user_id, team_number)
+    # Check if this team is already set as the main team
+    current_main = get_main_team(user_id)
+    if team_number == current_main:
+        bot.answer_callback_query(call.id, "⚠️ You have already set this team as your main team.", show_alert=True)
+        return
+    else:
+        set_main_team(user_id, team_number)
 
-        team = get_user_team(user_id, team_number)
+    team = get_user_team(user_id, team_number)
 
-        team_text = f"<b>✨ Your Current Team (Team {team_number})</b> ✨\n"
-        team_text += "━━━━━━━━━━━━━━━\n"
-        for i, char in enumerate(team, start=1):
-            team_text += f"<b>{i}\uFE0F\u20E3 {char if char else 'Empty'}</b>\n"
-        team_text += "━━━━━━━━━━━━━━━"
+    team_text = f"<b>✨ Your Current Team (Team {team_number})</b> ✨\n"
+    team_text += "━━━━━━━━━━━━━━━\n"
+    for i, char in enumerate(team, start=1):
+        team_text += f"<b>{i}\uFE0F\u20E3 {char if char else 'Empty'}</b>\n"
+    team_text += "━━━━━━━━━━━━━━━"
 
-        # Reuse the same keyboard
-        markup = types.InlineKeyboardMarkup(row_width=2)
-        row1 = [
-            types.InlineKeyboardButton("Team 1⃣", callback_data="team1"),
-            types.InlineKeyboardButton("Team 2⃣", callback_data="team2"),
-        ]
-        row2 = [
-            types.InlineKeyboardButton("Team 3⃣", callback_data="team3"),
-            types.InlineKeyboardButton("Team 4⃣", callback_data="team4"),
-        ]
-        row3 = [types.InlineKeyboardButton("Team 5⃣", callback_data="team5")]
-        if call.message.chat.type == 'private':
-            row4 = [types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team")]
-            markup.add(*row4)
-        #row4 = [types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team")]
-        # Ensure you're getting the user ID in context
-        
-        user_id = call.from_user.id  # This will be inside your callback query handler
+    # Reuse the same keyboard
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    row1 = [
+        types.InlineKeyboardButton("Team 1⃣", callback_data="team1"),
+        types.InlineKeyboardButton("Team 2⃣", callback_data="team2"),
+    ]
+    row2 = [
+        types.InlineKeyboardButton("Team 3⃣", callback_data="team3"),
+        types.InlineKeyboardButton("Team 4⃣", callback_data="team4"),
+    ]
+    row3 = [types.InlineKeyboardButton("Team 5⃣", callback_data="team5")]
+    if call.message.chat.type == 'private':
+        row4 = [types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team")]
+        markup.add(*row4)
 
-# Now you can create the callback data using the user_id
-        #callback_data = f"close_{user_id}"  # Use the user_id to generate the callback data
+    callback_data = f"close_{user_id}"      
+    close_button = types.InlineKeyboardButton("Close ❌", callback_data=callback_data)
 
-        #row5 = types.InlineKeyboardButton("Close ❌", callback_data=callback_data)
-       # markup.add(btn)
-        callback_data = f"close_{user_id}"      
-        close_button= types.InlineKeyboardButton("Close ❌", callback_data=callback_data)
+    markup.add(*row1)
+    markup.add(*row2)
+    markup.add(*row3)
+    markup.add(close_button)
 
-        markup.add(*row1)
-        markup.add(*row2)
-        markup.add(*row3)
-       # markup.add(*row4)
-        markup.add(close_button)
-
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=team_text,
-            reply_markup=markup, 
-            parse_mode="HTML"
-        )
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=team_text,
+        reply_markup=markup, 
+        parse_mode="HTML"
+    )
    # message_id = msg.message_id
      
 #(call.id, "Your team setup has been closed.", show_alert=True)#sage(chat_id=call.message.chat.id, message_id=call.message.message_id)
