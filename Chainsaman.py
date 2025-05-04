@@ -221,10 +221,10 @@ def get_main_team(user_id):
     cursor.execute('SELECT current_team FROM user_team_selection WHERE user_id = ?', (user_id,))
     row = cursor.fetchone()
     conn.close()
-    return row[0] if row else 1  # Defaults to team 1
- def set_user_team(user_id, team_number, slot1, slot2, slot3):
-    conn = get_connection()
-    cursor = conn.cursor()
+    return row[0] if row else 1  # Defaults to team 1 
+def set_user_team(user_id, team_number, slot1, slot2, slot3):
+       conn = get_connection()
+       cursor = conn.cursor()
 
     cursor.execute('''
         INSERT INTO teams (user_id, team_number, slot1, slot2, slot3)
@@ -235,6 +235,7 @@ def get_main_team(user_id):
 
     conn.commit()
     conn.close()   
+ 
 @bot.message_handler(commands=['myteam'])
 def my_team(message):
     user_id = message.from_user.id
