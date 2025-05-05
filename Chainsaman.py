@@ -170,7 +170,7 @@ def create_table():
 )
 ''')
 #conn.commit()
-conn.commit()
+    conn.commit()
 
 # Sample data function for testing (only if no data)
 #def initialize_sample_team(user_id):
