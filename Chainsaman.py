@@ -1204,4 +1204,45 @@ def handle_edit_team_callback(call):
     )
 
     bot.answer_callback_query(call.id, "Edit options loaded.")    
+@bot.callback_query_handler(func=lambda call: call.data == "edit_back")
+def handle_edit_back(call):
+    user_id = call.from_user.id
+
+    # Same logic from the /myteam command
+    selected_team_number = get_main_team(user_id)
+    team = get_user_team(user_id, team_number=selected_team_number)
+
+    team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"
+    team_text += "━━━━━━━━━━━━━━━\n"
+    for i, char in enumerate(team, start=1):
+        team_text += f"<b>{i}\uFE0F\u20E3 {char}</b>\n"
+    team_text += "━━━━━━━━━━━━━━━"
+
+    # Rebuild the team selection buttons
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        types.InlineKeyboardButton("Team 1⃣", callback_data="team1"),
+        types.InlineKeyboardButton("Team 2⃣", callback_data="team2"),
+    )
+    markup.add(
+        types.InlineKeyboardButton("Team 3⃣", callback_data="team3"),
+        types.InlineKeyboardButton("Team 4⃣", callback_data="team4"),
+    )
+    markup.add(types.InlineKeyboardButton("Team 5⃣", callback_data="team5"))
+
+    if call.message.chat.type == 'private':
+        markup.add(types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team"))
+    
+    markup.add(types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}"))
+
+    # Edit the current message with updated content
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=team_text,
+        reply_markup=markup,
+        parse_mode="HTML"
+    )
+
+    bot.answer_callback_query(call.id, "Back to team view.")   
 bot.polling(none_stop=True)
