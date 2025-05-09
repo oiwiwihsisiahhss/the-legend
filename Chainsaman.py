@@ -1293,7 +1293,7 @@ def handle_add_button(call):
 
     # Back and Close buttons
     navigation_buttons = [
-        types.InlineKeyboardButton("Back ↪️", callback_data="back_to_myteam"),
+        types.InlineKeyboardButton("Back ↪️", callback_data="edit_back"),
         types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}")
     ]
 
