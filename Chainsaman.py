@@ -329,13 +329,7 @@ def handle_close_callback(call):
 
     bot.answer_callback_query(call.id, "Your team setup has been successfully closed.", show_alert=True)
 
-@bot.callback_query_handler(func=lambda call: call.data == "edit_team")
-def handle_edit_team_callback(call):
-    if call.message.chat.type != 'group':
-        bot.answer_callback_query(call.id, "⚠️ Edit team feature is under development!", show_alert=True)
-    else:
-        bot.answer_callback_query(call.id, "Group edit feature coming soon.")
-        
+
 create_table() 
     
 # GROUP START HANDLER
