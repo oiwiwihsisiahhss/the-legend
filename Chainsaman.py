@@ -1183,15 +1183,17 @@ def handle_team_selection(call):
 def handle_edit_team_callback(call):
     user_id = call.from_user.id
 
-    # New action buttons
+    # Adjusted button layout
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
         types.InlineKeyboardButton("➕ Add", callback_data="edit_add"),
-        types.InlineKeyboardButton("🚫 Remove", callback_data="edit_remove"),
-        types.InlineKeyboardButton("🔄 Swap", callback_data="edit_swap"),
+        types.InlineKeyboardButton("🚫 Remove", callback_data="edit_remove")
     )
     markup.add(
-        types.InlineKeyboardButton("↪️ Back", callback_data="edit_back"),
+        types.InlineKeyboardButton("🔄 Swap", callback_data="edit_swap"),
+        types.InlineKeyboardButton("↪️ Back", callback_data="edit_back")
+    )
+    markup.add(
         types.InlineKeyboardButton("❌ Close", callback_data=f"close_{user_id}")
     )
 
