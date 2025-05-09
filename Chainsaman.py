@@ -1245,4 +1245,111 @@ def handle_edit_back(call):
     )
 
     bot.answer_callback_query(call.id, "Back to team view.")   
+ # Global variable to keep track of page numbers
+page_number = 1
+characters_per_page = 5
+
+# Helper function to get the characters a user owns with pagination
+def get_user_owned_characters(user_id, page):
+    offset = (page - 1) * characters_per_page
+    conn = create_connection()
+    cursor = conn.cursor()
+    
+    # Query to fetch the characters the user owns
+    cursor.execute('''
+        SELECT character_base_stats.name
+        FROM user_characters
+        JOIN character_base_stats ON user_characters.character_id = character_base_stats.character_id
+        WHERE user_characters.user_id = ?
+        LIMIT ? OFFSET ?
+    ''', (user_id, characters_per_page, offset))
+    
+    characters = cursor.fetchall()
+    conn.close()
+    return characters
+
+# Callback for the Add button
+@bot.callback_query_handler(func=lambda call: call.data == "edit_add")
+def handle_add_button(call):
+    user_id = call.from_user.id
+    global page_number  # Accessing the global page number variable
+    
+    characters = get_user_owned_characters(user_id, page_number)
+
+    # Build the list of characters
+    character_buttons = []
+    for char in characters:
+        char_name = char[0]  # Get the character name from the tuple
+        character_buttons.append(
+            types.InlineKeyboardButton(f"Add {char_name}", callback_data=f"addchar_{char_name}")
+        )
+    
+    # Pagination buttons
+    pagination_buttons = [
+        types.InlineKeyboardButton("⏪ Previous", callback_data="previous_page"),
+        types.InlineKeyboardButton(f"Page {page_number}", callback_data="current_page"),
+        types.InlineKeyboardButton("⏩ Next", callback_data="next_page")
+    ]
+
+    # Back and Close buttons
+    navigation_buttons = [
+        types.InlineKeyboardButton("Back ↪️", callback_data="back_to_myteam"),
+        types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}")
+    ]
+
+    # Combine everything into one markup
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup.add(*character_buttons)  # Add character selection buttons
+    markup.add(*pagination_buttons)  # Add pagination buttons
+    markup.add(*navigation_buttons)  # Add back and close buttons
+
+    # Send the message with the list of characters
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="Select a character to add to your team:",
+        reply_markup=markup
+    )
+
+# Callback for pagination (Previous Page)
+@bot.callback_query_handler(func=lambda call: call.data == "previous_page")
+def handle_previous_page(call):
+    global page_number
+    if page_number > 1:
+        page_number -= 1
+        handle_add_button(call)  # Re-call the function to show the new page
+
+# Callback for pagination (Next Page)
+@bot.callback_query_handler(func=lambda call: call.data == "next_page")
+def handle_next_page(call):
+    global page_number
+    page_number += 1
+    handle_add_button(call)  # Re-call the function to show the new page
+
+# Callback for when a character is added to the user's team
+@bot.callback_query_handler(func=lambda call: call.data.startswith("addchar_"))
+def handle_add_character(call):
+    user_id = call.from_user.id
+    character_name = call.data.split("_")[1]  # Extract character name
+    
+    # Get the character_id from the database
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT character_id FROM character_base_stats WHERE name = ?", (character_name,))
+    result = cursor.fetchone()
+    
+    if result:
+        character_id = result[0]
+        
+        # Check if the character is already added to the user's team
+        cursor.execute("SELECT * FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
+        if cursor.fetchone():
+            bot.answer_callback_query(call.id, "You already have this character in your team.", show_alert=True)
+        else:
+            # Add the character to the user's team
+            cursor.execute("INSERT INTO user_characters (user_id, character_id) VALUES (?, ?)", (user_id, character_id))
+            conn.commit()
+            bot.answer_callback_query(call.id, f"{character_name} has been added to your team!", show_alert=True)
+    
+    conn.close()   
 bot.polling(none_stop=True)
