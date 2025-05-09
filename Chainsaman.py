@@ -14,109 +14,6 @@ API_KEY = '7215821191:AAEzFPwyx8FjlXMr2mpVTbYzpHoMbPsaCDc'
 bot = telebot.TeleBot(API_KEY)
 
 
-def create_connection():
-    return sqlite3.connect('chainsaw.db')
-    
-
-
-#DB_PATH = "/mnt/data/chainsaw.db"  # This is the persistent directory on StackHost
-#os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-
-#conn = sqlite3.connect(DB_PATH)
-def create_table():
-    connection = create_connection()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_team_selection (
-            user_id INTEGER PRIMARY KEY,
-            current_team INTEGER
-        );
-    ''')
-    
-    
-
-    # Create user_data table
-    cursor.execute('''
-       CREATE TABLE IF NOT EXISTS character_base_stats (
-         character_id INTEGER PRIMARY KEY AUTOINCREMENT,
-         name TEXT NOT NULL,
-         level INTEGER DEFAULT 1,
-         exp INTEGER NOT NULL DEFAULT 0,
-         required_exp INTEGER NOT NULL,
-         devil_contract TEXT NOT NULL,
-         special_ability TEXT NOT NULL,
-         attack INTEGER NOT NULL,
-         defense INTEGER NOT NULL,
-         speed INTEGER NOT NULL,
-         precision INTEGER NOT NULL,
-         instinct INTEGER NOT NULL,
-         required_souls INTEGER NOT NULL DEFAULT 50,
-         current_souls INTEGER NOT NULL DEFAULT 0,
-         description TEXT NOT NULL,
-         image_link TEXT NOT NULL,
-         move_1 TEXT NOT NULL,
-         move_1_unlock_level INTEGER DEFAULT 1,
-         move_2 TEXT NOT NULL,
-         move_2_unlock_level INTEGER DEFAULT 25,
-         move_3 TEXT NOT NULL,
-         move_3_unlock_level INTEGER DEFAULT 50,
-         special_ability_unlock_level INTEGER DEFAULT 50
-      )
-  ''')
-    cursor.executemany('''
-    INSERT OR IGNORE INTO character_base_stats 
-    (name, required_exp, attack, defense, speed, precision, instinct, description, special_ability, devil_contract, image_link, required_souls, current_souls, move_1, move_2, move_3) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-''', [
-    (
-        "Hirokazu Arai", 10000, 75, 65, 73, 70, 70,
-        "A kind-hearted but determined devil hunter, Hirokazu values loyalty over strength. His mysterious contract shields him from death once but leaves him defenseless after.",
-        "Fox Bite", "Fox Devil", "https://files.catbox.moe/56udfe.jpg",
-        50, 0, "Quick Slash", "Defensive Stance", "Fox's Fury"
-    ),
-    (
-        "Akane Sawatari", 15000, 75, 65, 72, 72, 68,
-        "A ruthless and calculating former Yakuza, Akane wields the power of the Snake Devil to execute enemies instantly. Cold and efficient, she manipulates others to achieve her goals.",
-        "Serpent’s Execution", "Snake Devil", "https://files.catbox.moe/tc02h0.jpg",
-        50, 0, "Snake Strike", "Venomous Coil", "Serpent's Wrath"
-    ),
-    (
-        "Kobeni Higashiyama", 25000, 74, 68, 74, 68, 72,
-        "Timid yet incredibly fast, Kobeni survives against all odds. Though she hates fighting, her instincts and agility make her nearly untouchable in combat.",
-        "Survivor’s Instinct", "Unknown", "https://files.catbox.moe/ka15hs.jpg",
-        50, 0, "Agile Dash", "Evasive Maneuver", "Instinctive Strike"
-    )
-])
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_data (
-            user_id INTEGER PRIMARY KEY,
-            username TEXT,
-            join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            level INTEGER DEFAULT 1,
-            exp INTEGER DEFAULT 0,
-            required_exp INTEGER DEFAULT 12345,
-            yens INTEGER DEFAULT 250,
-            crystals INTEGER DEFAULT 0,
-            tickets INTEGER DEFAULT 0,
-            energy INTEGER DEFAULT 10000,
-            max_energy INTEGER DEFAULT 10000,
-            last_energy_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            choosen_character TEXT DEFAULT NULL
-        )
-    ''')
-
-    # Create daily_rewards table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS daily_rewards (
-            user_id INTEGER PRIMARY KEY,  
-            last_claimed TIMESTAMP DEFAULT NULL,  
-            FOREIGN KEY (user_id) REFERENCES user_data (user_id)
-        )
-    ''')
-
-    # Create hunter_ranks table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS hunter_ranks (
-            rank TEXT PRIMARY KEY,
 import sqlite3
 
 def create_connection():
@@ -130,7 +27,7 @@ def create_table():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_team_selection (
             user_id INTEGER PRIMARY KEY,
-            current_team INTEGER
+            current_team INTEGER DEFAULT 1
         );
     ''')
 
@@ -160,10 +57,10 @@ def create_table():
          move_3 TEXT NOT NULL,
          move_3_unlock_level INTEGER DEFAULT 50,
          special_ability_unlock_level INTEGER DEFAULT 50
-      )
+       )
     ''')
 
-    # Insert characters
+    # Insert default characters
     cursor.executemany('''
         INSERT OR IGNORE INTO character_base_stats 
         (name, required_exp, attack, defense, speed, precision, instinct, description, special_ability, devil_contract, image_link, required_souls, current_souls, move_1, move_2, move_3) 
@@ -211,8 +108,8 @@ def create_table():
     # Create daily_rewards table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS daily_rewards (
-            user_id INTEGER PRIMARY KEY,  
-            last_claimed TIMESTAMP DEFAULT NULL,  
+            user_id INTEGER PRIMARY KEY,
+            last_claimed TIMESTAMP DEFAULT NULL,
             FOREIGN KEY (user_id) REFERENCES user_data (user_id)
         )
     ''')
@@ -271,6 +168,11 @@ def create_table():
             PRIMARY KEY (user_id, team_number)
         )
     ''')
+
+    # Final commit and close
+   # conn.commit()
+   # conn.close()
+        
 
     # Already created earlier but added again — optional:
     cursor.execute('''
