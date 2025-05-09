@@ -298,63 +298,44 @@ def my_team(message):
     )
 import logging
 
-@bot.callback_query_handler(func=lambda call: True)
-def handle_callback(call):
+@bot.callback_query_handler(func=lambda call: call.data.startswith("close_"))
+def handle_close_callback(call):
     user_id = call.from_user.id
-    if call.data.startswith("close_"):
-        caller_id = call.from_user.id
-        target_id = int(call.data.split("_")[1])
+    target_id = int(call.data.split("_")[1])
 
-        if caller_id != target_id:
-            # If the user who clicked the button isn't the one who it was assigned to
-            bot.answer_callback_query(call.id, "This button isn't for you!", show_alert=True)
-            return
+    if user_id != target_id:
+        bot.answer_callback_query(call.id, "This button isn't for you!", show_alert=True)
+        return
 
-        # Edit the message text to indicate the team setup is closed
-        success_message = "<b>✅ Team Setup Successfully Closed!</b>\n\nYour team configuration has been saved and is now closed."
+    # Save to DB (if needed)
+    conn = create_connection()
+    cursor = conn.cursor()
+    # Example: cursor.execute("UPDATE teams SET locked = 1 WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+    # Respond with message
+    success_message = (
+        "<b>✅ Team Setup Successfully Closed!</b>\n\n"
+        "Your team configuration has been saved and is now closed."
+    )
+
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=success_message,
+        parse_mode="HTML"
+    )
+
+    bot.answer_callback_query(call.id, "Your team setup has been successfully closed.", show_alert=True)
+
+@bot.callback_query_handler(func=lambda call: call.data == "edit_team")
+def handle_edit_team_callback(call):
+    if call.message.chat.type != 'group':
+        bot.answer_callback_query(call.id, "⚠️ Edit team feature is under development!", show_alert=True)
+    else:
+        bot.answer_callback_query(call.id, "Group edit feature coming soon.")
         
-        # Remove the keyboard
-       # markup = types.InlineKeyboardMarkup()
-       # markup.add(types.InlineKeyboardButton("Okay", callback_data=f"close_{caller_id}"))
-        
-        # Edit the message
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=success_message,
-            #reply_markup=markup,
-            parse_mode="HTML"
-        )
-
-        # Optionally, you can send an alert confirming the closure
-        bot.answer_callback_query(call.id, "Your team setup has been successfully closed.", show_alert=True)
-
-
-    elif call.data == "edit_team":
-        if call.message.chat.type != 'group':
-            bot.answer_callback_query(call.id, "⚠️ Edit team feature is under development!", show_alert=True)
-        else:
-            pass  # Do nothing if it's a group
-    
-   # message_id = msg.message_id
-     
-#(call.id, "Your team setup has been closed.", show_alert=True)#sage(chat_id=call.message.chat.id, message_id=call.message.message_id)
-#bot.polling() 
-
-    
-
-# Commit changes and close the connection
-
-
-    
-
-    # Commit changes and close the connection
-
-    connection = create_connection()
-# Do your database operations here
-    connection.commit()
-    connection.close()
-
 create_table() 
     
 # GROUP START HANDLER
