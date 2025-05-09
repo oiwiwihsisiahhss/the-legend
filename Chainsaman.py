@@ -1185,4 +1185,27 @@ def handle_team_selection(call):
         reply_markup=markup,
         parse_mode="HTML"
     )
+@bot.callback_query_handler(func=lambda call: call.data == "edit_team")
+def handle_edit_team_callback(call):
+    user_id = call.from_user.id
+
+    # New action buttons
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        types.InlineKeyboardButton("➕ Add", callback_data="edit_add"),
+        types.InlineKeyboardButton("🚫 Remove", callback_data="edit_remove"),
+        types.InlineKeyboardButton("🔄 Swap", callback_data="edit_swap"),
+    )
+    markup.add(
+        types.InlineKeyboardButton("↪️ Back", callback_data="edit_back"),
+        types.InlineKeyboardButton("❌ Close", callback_data=f"close_{user_id}")
+    )
+
+    bot.edit_message_reply_markup(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        reply_markup=markup
+    )
+
+    bot.answer_callback_query(call.id, "Edit options loaded.")    
 bot.polling(none_stop=True)
