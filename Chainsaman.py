@@ -350,6 +350,8 @@ def handle_callback(call):
 
     # Commit changes and close the connection
 
+    connection = create_connection()
+# Do your database operations here
     connection.commit()
     connection.close()
 
