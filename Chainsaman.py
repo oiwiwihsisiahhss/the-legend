@@ -1246,110 +1246,66 @@ def handle_edit_back(call):
 
     bot.answer_callback_query(call.id, "Back to team view.")   
  # Global variable to keep track of page numbers
-page_number = 1
-characters_per_page = 5
+import sqlite3
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# Helper function to get the characters a user owns with pagination
-def get_user_owned_characters(user_id, page):
-    offset = (page - 1) * characters_per_page
-    conn = create_connection()
+def generate_add_team_interface(user_id, team_number, page=1):
+    conn = sqlite3.connect("your_db.sqlite")
     cursor = conn.cursor()
-    
-    # Query to fetch the characters the user owns
+
+    # Get all character names the user owns via JOIN
     cursor.execute('''
-        SELECT character_base_stats.name
-        FROM user_characters
-        JOIN character_base_stats ON user_characters.character_id = character_base_stats.character_id
-        WHERE user_characters.user_id = ?
-        LIMIT ? OFFSET ?
-    ''', (user_id, characters_per_page, offset))
-    
-    characters = cursor.fetchall()
+        SELECT cbs.name 
+        FROM user_characters uc
+        JOIN character_base_stats cbs ON uc.name = cbs.name
+        WHERE uc.user_id = ?
+    ''', (user_id,))
+    all_chars = [row[0] for row in cursor.fetchall()]
+
+    # Fetch current team selection
+    cursor.execute('''
+        SELECT slot1, slot2, slot3
+        FROM teams
+        WHERE user_id = ? AND team_number = ?
+    ''', (user_id, team_number))
+    team = cursor.fetchone()
+    selected_chars = set(team) if team else set()
+
+    # Pagination
+    per_page = 6
+    total_pages = max(1, (len(all_chars) + per_page - 1) // per_page)
+    page = max(1, min(page, total_pages))
+    start = (page - 1) * per_page
+    end = start + per_page
+    visible_chars = all_chars[start:end]
+
+    # Build keyboard
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    buttons = []
+
+    for name in visible_chars:
+        checkmark = " ☑" if name in selected_chars else ""
+        buttons.append(InlineKeyboardButton(text=name + checkmark, callback_data=f"select_{name}"))
+
+    # Add character buttons in rows of 2
+    for i in range(0, len(buttons), 2):
+        keyboard.row(*buttons[i:i+2])
+
+    # Navigation row: ⏪ page ⏩
+    nav_buttons = []
+    nav_buttons.append(InlineKeyboardButton("⏪", callback_data=f"edit_add:{team_number}:{page-1}"))
+    nav_buttons.append(InlineKeyboardButton(f"[{page}/{total_pages}]", callback_data="noop"))
+    nav_buttons.append(InlineKeyboardButton("⏩", callback_data=f"edit_add:{team_number}:{page+1}"))
+    keyboard.row(*nav_buttons)
+
+    # Save button row
+    keyboard.row(InlineKeyboardButton("💬 Save", callback_data=f"save_team:{team_number}"))
+
+    # Back and Close rows
+    keyboard.row(InlineKeyboardButton("Back", callback_data="back_to_menu"))
+    keyboard.row(InlineKeyboardButton("Close", callback_data="close_menu"))
+
     conn.close()
-    return characters
+    return keyboard
 
-# Callback for the Add button
-@bot.callback_query_handler(func=lambda call: call.data == "edit_add")
-def handle_add_button(call):
-    user_id = call.from_user.id
-    global page_number  # Accessing the global page number variable
-    
-    characters = get_user_owned_characters(user_id, page_number)
-
-    # Build the list of characters
-    character_buttons = []
-    for char in characters:
-        char_name = char[0]  # Get the character name from the tuple
-        character_buttons.append(
-            types.InlineKeyboardButton(f"Add {char_name}", callback_data=f"addchar_{char_name}")
-        )
-    
-    # Pagination buttons
-    pagination_buttons = [
-        types.InlineKeyboardButton("⏪ Previous", callback_data="previous_page"),
-        types.InlineKeyboardButton(f"Page {page_number}", callback_data="current_page"),
-        types.InlineKeyboardButton("⏩ Next", callback_data="next_page")
-    ]
-
-    # Back and Close buttons
-    navigation_buttons = [
-        types.InlineKeyboardButton("Back ↪️", callback_data="edit_back"),
-        types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}")
-    ]
-
-    # Combine everything into one markup
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(*character_buttons)  # Add character selection buttons
-    markup.add(*pagination_buttons)  # Add pagination buttons
-    markup.add(*navigation_buttons)  # Add back and close buttons
-
-    # Send the message with the list of characters
-    bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        text="Select a character to add to your team:",
-        reply_markup=markup
-    )
-
-# Callback for pagination (Previous Page)
-@bot.callback_query_handler(func=lambda call: call.data == "previous_page")
-def handle_previous_page(call):
-    global page_number
-    if page_number > 1:
-        page_number -= 1
-        handle_add_button(call)  # Re-call the function to show the new page
-
-# Callback for pagination (Next Page)
-@bot.callback_query_handler(func=lambda call: call.data == "next_page")
-def handle_next_page(call):
-    global page_number
-    page_number += 1
-    handle_add_button(call)  # Re-call the function to show the new page
-
-# Callback for when a character is added to the user's team
-@bot.callback_query_handler(func=lambda call: call.data.startswith("addchar_"))
-def handle_add_character(call):
-    user_id = call.from_user.id
-    character_name = call.data.split("_")[1]  # Extract character name
-    
-    # Get the character_id from the database
-    conn = create_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT character_id FROM character_base_stats WHERE name = ?", (character_name,))
-    result = cursor.fetchone()
-    
-    if result:
-        character_id = result[0]
-        
-        # Check if the character is already added to the user's team
-        cursor.execute("SELECT * FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
-        if cursor.fetchone():
-            bot.answer_callback_query(call.id, "You already have this character in your team.", show_alert=True)
-        else:
-            # Add the character to the user's team
-            cursor.execute("INSERT INTO user_characters (user_id, character_id) VALUES (?, ?)", (user_id, character_id))
-            conn.commit()
-            bot.answer_callback_query(call.id, f"{character_name} has been added to your team!", show_alert=True)
-    
-    conn.close()   
 bot.polling(none_stop=True)
