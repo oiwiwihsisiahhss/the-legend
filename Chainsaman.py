@@ -1302,10 +1302,21 @@ def generate_add_team_interface(user_id, team_number, page=1):
     keyboard.row(InlineKeyboardButton("💬 Save", callback_data=f"save_team:{team_number}"))
 
     # Back and Close rows
-    keyboard.row(InlineKeyboardButton("Back", callback_data="back_to_menu"))
-    keyboard.row(InlineKeyboardButton("Close", callback_data="close_menu"))
+    keyboard.row(InlineKeyboardButton("Back", callback_data="edit_back"))
+    keyboard.row(InlineKeyboardButton("Close", callback_data=f"close_{user_id}"))
 
     conn.close()
     return keyboard
+@bot.callback_query_handler(func=lambda call: call.data.startswith("edit_add"))
+def handle_edit_add(call):
+    _, team_number, page = call.data.split(":")
+    team_number = int(team_number)
+    page = int(page)
 
+    markup = generate_add_team_interface(call.from_user.id, team_number, page)
+    bot.edit_message_reply_markup(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        reply_markup=markup
+    )
 bot.polling(none_stop=True)
