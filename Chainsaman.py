@@ -1250,7 +1250,7 @@ import sqlite3
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 def generate_add_team_interface(user_id, team_number, page=1):
-    conn = sqlite3.connect("your_db.sqlite")
+    conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
     # Get all character names the user owns via JOIN
@@ -1309,14 +1309,49 @@ def generate_add_team_interface(user_id, team_number, page=1):
     return keyboard
 @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_add"))
 def handle_edit_add(call):
-    _, team_number, page = call.data.split(":")
+    parts = call.data.split(":")
+    if len(parts) != 3:
+        bot.answer_callback_query(call.id, "Invalid callback data.")
+        return
+
+    _, team_number, page = parts
+    user_id = call.from_user.id
     team_number = int(team_number)
     page = int(page)
 
-    markup = generate_add_team_interface(call.from_user.id, team_number, page)
-    bot.edit_message_reply_markup(
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+
+    # Fetch team slots
+    cursor.execute(
+        "SELECT slot1, slot2, slot3 FROM teams WHERE user_id = ? AND team_number = ?",
+        (user_id, team_number)
+    )
+    row = cursor.fetchone()
+
+    if row:
+        slot1, slot2, slot3 = row
+    else:
+        slot1 = slot2 = slot3 = "Empty"
+
+    def format_slot(slot, index):
+        return f"{index}️⃣ {slot if slot != None else 'Empty'}"
+
+    team_message = (
+        f"✨Your Current Team (Team {team_number}) ✨\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"{format_slot(slot1, 1)}\n"
+        f"{format_slot(slot2, 2)}\n"
+        f"{format_slot(slot3, 3)}\n"
+        f"━━━━━━━━━━━━━━━"
+    )
+
+    conn.close()
+
+    bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        reply_markup=markup
+        text=team_message,
+        reply_markup=generate_character_interface(user_id, team_number, page)  # You must define this function
     )
 bot.polling(none_stop=True)
