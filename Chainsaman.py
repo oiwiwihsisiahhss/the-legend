@@ -1311,7 +1311,7 @@ def generate_add_team_interface(user_id, team_number, page=1):
 
 # Callback to open character add interface
 #@bot.callback_query_handler(func=lambda call: call.data.startswith("edit_add"))
-@bot.callback_query_handler(func=lambda call: call.data and call.data.startswith("edit_add:"))
+@bot.callback_query_handler(func=lambda call: call.data and call.data.startswith("edit_add"))
 def handle_edit_add(call):
     try:
         parts = call.data.split(":")
