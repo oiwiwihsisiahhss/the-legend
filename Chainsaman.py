@@ -1248,7 +1248,6 @@ def handle_edit_back(call):
  # Global variable to keep track of page numbers
 import sqlite3
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-
 def generate_add_team_interface(user_id, team_number, page=1):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
@@ -1285,14 +1284,14 @@ def generate_add_team_interface(user_id, team_number, page=1):
 
     for name in visible_chars:
         mark = " ☑" if name in selected_chars else ""
-        callback = f"selectchar:{name}:{team_number}:{page}"
-        buttons.append(InlineKeyboardButton(text=name + mark, callback_data=callback[:64]))  # limit to 64 chars
+        safe_name = name[:30]  # avoid long names breaking callback_data
+        callback = f"selectchar:{safe_name}:{team_number}:{page}"
+        buttons.append(InlineKeyboardButton(text=name + mark, callback_data=callback[:64]))
 
-    # Add buttons in rows of 2
     for i in range(0, len(buttons), 2):
         keyboard.row(*buttons[i:i+2])
 
-    # Pagination buttons (with boundary checks)
+    # Pagination buttons
     prev_page = max(1, page - 1)
     next_page = min(total_pages, page + 1)
     nav_row = [
@@ -1312,7 +1311,7 @@ def generate_add_team_interface(user_id, team_number, page=1):
 
 # Callback to open character add interface
 #@bot.callback_query_handler(func=lambda call: call.data.startswith("edit_add"))
-@bot.callback_query_handler(func=lambda call: call.data.startswith("edit_add"))
+@bot.callback_query_handler(func=lambda call: call.data and call.data.startswith("edit_add:"))
 def handle_edit_add(call):
     try:
         parts = call.data.split(":")
@@ -1328,7 +1327,6 @@ def handle_edit_add(call):
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
 
-        # Fetch team slots
         cursor.execute('''
             SELECT slot1, slot2, slot3 
             FROM teams 
@@ -1357,5 +1355,4 @@ def handle_edit_add(call):
         )
     except Exception as e:
         bot.answer_callback_query(call.id, f"Error: {str(e)}")
-
 bot.polling(none_stop=True)
