@@ -1312,7 +1312,7 @@ def generate_add_team_interface(user_id, team_number, page=1):
 
 # Callback to open character add interface
 #@bot.callback_query_handler(func=lambda call: call.data.startswith("edit_add"))
-@bot.callback_query_handler(func=lambda call: call.data.startswith("edit_add"))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("edit_add:"))
 def handle_edit_add(call):
     try:
         parts = call.data.split(":")
@@ -1320,48 +1320,42 @@ def handle_edit_add(call):
             bot.answer_callback_query(call.id, "Invalid callback format.")
             return
 
-        _, team_number_str, page_str = parts
-        team_number = int(team_number_str)
-        page = int(page_str)
+        _, team_number, page = parts
+        team_number = int(team_number)
+        page = int(page)
         user_id = call.from_user.id
 
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
+
+        # Fetch team slots
         cursor.execute('''
-            SELECT slot1, slot2, slot3
-            FROM teams
+            SELECT slot1, slot2, slot3 
+            FROM teams 
             WHERE user_id = ? AND team_number = ?
         ''', (user_id, team_number))
-        team = cursor.fetchone()
+        team = cursor.fetchone() or ("Empty", "Empty", "Empty")
         conn.close()
 
-        slot1, slot2, slot3 = ("Empty", "Empty", "Empty")
-        if team:
-            slot1, slot2, slot3 = team
-
         def format_slot(slot, index):
-            return f"{index}️⃣ {slot if slot else 'Empty'}"
+            return f"{index}️⃣ {slot if slot and slot != 'Empty' else 'Empty'}"
 
-        message = (
-            f"✨Your Current Team (Team {team_number}) ✨\n"
+        team_message = (
+            f"✨ Your Current Team (Team {team_number}) ✨\n"
             f"━━━━━━━━━━━━━━━\n"
-            f"{format_slot(slot1, 1)}\n"
-            f"{format_slot(slot2, 2)}\n"
-            f"{format_slot(slot3, 3)}\n"
+            f"{format_slot(team[0], 1)}\n"
+            f"{format_slot(team[1], 2)}\n"
+            f"{format_slot(team[2], 3)}\n"
             f"━━━━━━━━━━━━━━━"
         )
-
-        keyboard = generate_add_team_interface(user_id, team_number, page)
 
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text=message,
-            reply_markup=keyboard
+            text=team_message,
+            reply_markup=generate_add_team_interface(user_id, team_number, page)
         )
-
     except Exception as e:
-        bot.answer_callback_query(call.id, "Error occurred.")
-        print("Error in handle_edit_add:", e)
+        bot.answer_callback_query(call.id, f"Error: {str(e)}")
 
 bot.polling(none_stop=True)
