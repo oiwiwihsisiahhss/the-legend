@@ -1308,12 +1308,18 @@ def generate_add_team_interface(user_id, team_number, page=1):
     return keyboard
 
 # Callback to open character add interface
+#@bot.callback_query_handler(func=lambda call: call.data.startswith("edit_add"))
 @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_add"))
 def handle_edit_add(call):
     try:
-        _, team_number, page = call.data.split(":")
-        team_number = int(team_number)
-        page = int(page)
+        parts = call.data.split(":")
+        if len(parts) != 3:
+            bot.answer_callback_query(call.id, "Invalid callback format.")
+            return
+
+        _, team_number_str, page_str = parts
+        team_number = int(team_number_str)
+        page = int(page_str)
         user_id = call.from_user.id
 
         conn = sqlite3.connect("chainsaw.db")
@@ -1323,20 +1329,23 @@ def handle_edit_add(call):
             FROM teams
             WHERE user_id = ? AND team_number = ?
         ''', (user_id, team_number))
-        team = cursor.fetchone() or ("Empty", "Empty", "Empty")
+        team = cursor.fetchone()
         conn.close()
 
-        def format_slot(slot, index):
-            return f"{index}️⃣ {slot if slot != 'Empty' else 'Empty'}"
+        slot1, slot2, slot3 = ("Empty", "Empty", "Empty")
+        if team:
+            slot1, slot2, slot3 = team
 
-        msg = (
+        def format_slot(slot, index):
+            return f"{index}️⃣ {slot if slot else 'Empty'}"
+
+        message = (
             f"✨Your Current Team (Team {team_number}) ✨\n"
             f"━━━━━━━━━━━━━━━\n"
-            f"{format_slot(team[0], 1)}\n"
-            f"{format_slot(team[1], 2)}\n"
-            f"{format_slot(team[2], 3)}\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"Choose a character to add."
+            f"{format_slot(slot1, 1)}\n"
+            f"{format_slot(slot2, 2)}\n"
+            f"{format_slot(slot3, 3)}\n"
+            f"━━━━━━━━━━━━━━━"
         )
 
         keyboard = generate_add_team_interface(user_id, team_number, page)
@@ -1344,12 +1353,12 @@ def handle_edit_add(call):
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text=msg,
+            text=message,
             reply_markup=keyboard
         )
 
     except Exception as e:
         bot.answer_callback_query(call.id, "Error occurred.")
-        print("Error in edit_add:", e)
+        print("Error in handle_edit_add:", e)
 
 bot.polling(none_stop=True)
