@@ -1249,21 +1249,20 @@ def handle_edit_back(call):
 import sqlite3
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# Interface builder
 def generate_add_team_interface(user_id, team_number, page=1):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Fetch all owned characters
+    # Fetch all owned characters, sorted
     cursor.execute('''
         SELECT cbs.name 
         FROM user_characters uc
         JOIN character_base_stats cbs ON uc.name = cbs.name
         WHERE uc.user_id = ?
     ''', (user_id,))
-    all_chars = [row[0] for row in cursor.fetchall()]
+    all_chars = sorted([row[0] for row in cursor.fetchall()])
 
-    # Get current team
+    # Get current team slots
     cursor.execute('''
         SELECT slot1, slot2, slot3
         FROM teams
@@ -1272,7 +1271,7 @@ def generate_add_team_interface(user_id, team_number, page=1):
     team = cursor.fetchone() or ("Empty", "Empty", "Empty")
     selected_chars = set(filter(lambda x: x and x != "Empty", team))
 
-    # Pagination
+    # Pagination setup
     per_page = 6
     total_pages = max(1, (len(all_chars) + per_page - 1) // per_page)
     page = max(1, min(page, total_pages))
@@ -1286,20 +1285,24 @@ def generate_add_team_interface(user_id, team_number, page=1):
 
     for name in visible_chars:
         mark = " ☑" if name in selected_chars else ""
-        buttons.append(InlineKeyboardButton(text=name + mark, callback_data=f"selectchar:{name}:{team_number}:{page}"))
+        callback = f"selectchar:{name}:{team_number}:{page}"
+        buttons.append(InlineKeyboardButton(text=name + mark, callback_data=callback[:64]))  # limit to 64 chars
 
+    # Add buttons in rows of 2
     for i in range(0, len(buttons), 2):
         keyboard.row(*buttons[i:i+2])
 
-    # Navigation
+    # Pagination buttons (with boundary checks)
+    prev_page = max(1, page - 1)
+    next_page = min(total_pages, page + 1)
     nav_row = [
-        InlineKeyboardButton("⏪", callback_data=f"edit_add:{team_number}:{page - 1}"),
+        InlineKeyboardButton("⏪", callback_data=f"edit_add:{team_number}:{prev_page}"),
         InlineKeyboardButton(f"[{page}/{total_pages}]", callback_data="noop"),
-        InlineKeyboardButton("⏩", callback_data=f"edit_add:{team_number}:{page + 1}")
+        InlineKeyboardButton("⏩", callback_data=f"edit_add:{team_number}:{next_page}")
     ]
     keyboard.row(*nav_row)
 
-    # Save, Back, Close
+    # Save, Back, Close buttons
     keyboard.row(InlineKeyboardButton("💬 Save", callback_data=f"save_team:{team_number}"))
     keyboard.row(InlineKeyboardButton("Back", callback_data="edit_back"))
     keyboard.row(InlineKeyboardButton("Close", callback_data=f"close_{user_id}"))
