@@ -1249,11 +1249,12 @@ def handle_edit_back(call):
 import sqlite3
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+# Interface builder
 def generate_add_team_interface(user_id, team_number, page=1):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Get all character names the user owns via JOIN
+    # Fetch all owned characters
     cursor.execute('''
         SELECT cbs.name 
         FROM user_characters uc
@@ -1262,14 +1263,14 @@ def generate_add_team_interface(user_id, team_number, page=1):
     ''', (user_id,))
     all_chars = [row[0] for row in cursor.fetchall()]
 
-    # Fetch current team selection
+    # Get current team
     cursor.execute('''
         SELECT slot1, slot2, slot3
         FROM teams
         WHERE user_id = ? AND team_number = ?
     ''', (user_id, team_number))
-    team = cursor.fetchone()
-    selected_chars = set(team) if team else set()
+    team = cursor.fetchone() or ("Empty", "Empty", "Empty")
+    selected_chars = set(filter(lambda x: x and x != "Empty", team))
 
     # Pagination
     per_page = 6
@@ -1284,74 +1285,71 @@ def generate_add_team_interface(user_id, team_number, page=1):
     buttons = []
 
     for name in visible_chars:
-        checkmark = " ☑" if name in selected_chars else ""
-        buttons.append(InlineKeyboardButton(text=name + checkmark, callback_data=f"select_{name}"))
+        mark = " ☑" if name in selected_chars else ""
+        buttons.append(InlineKeyboardButton(text=name + mark, callback_data=f"selectchar:{name}:{team_number}:{page}"))
 
-    # Add character buttons in rows of 2
     for i in range(0, len(buttons), 2):
         keyboard.row(*buttons[i:i+2])
 
-    # Navigation row: ⏪ page ⏩
-    nav_buttons = []
-    nav_buttons.append(InlineKeyboardButton("⏪", callback_data=f"edit_add:{team_number}:{page-1}"))
-    nav_buttons.append(InlineKeyboardButton(f"[{page}/{total_pages}]", callback_data="noop"))
-    nav_buttons.append(InlineKeyboardButton("⏩", callback_data=f"edit_add:{team_number}:{page+1}"))
-    keyboard.row(*nav_buttons)
+    # Navigation
+    nav_row = [
+        InlineKeyboardButton("⏪", callback_data=f"edit_add:{team_number}:{page - 1}"),
+        InlineKeyboardButton(f"[{page}/{total_pages}]", callback_data="noop"),
+        InlineKeyboardButton("⏩", callback_data=f"edit_add:{team_number}:{page + 1}")
+    ]
+    keyboard.row(*nav_row)
 
-    # Save button row
+    # Save, Back, Close
     keyboard.row(InlineKeyboardButton("💬 Save", callback_data=f"save_team:{team_number}"))
-
-    # Back and Close rows
     keyboard.row(InlineKeyboardButton("Back", callback_data="edit_back"))
     keyboard.row(InlineKeyboardButton("Close", callback_data=f"close_{user_id}"))
 
     conn.close()
     return keyboard
+
+# Callback to open character add interface
 @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_add"))
 def handle_edit_add(call):
-    parts = call.data.split(":")
-    if len(parts) != 3:
-        bot.answer_callback_query(call.id, "Invalid callback data.")
-        return
+    try:
+        _, team_number, page = call.data.split(":")
+        team_number = int(team_number)
+        page = int(page)
+        user_id = call.from_user.id
 
-    _, team_number, page = parts
-    user_id = call.from_user.id
-    team_number = int(team_number)
-    page = int(page)
+        conn = sqlite3.connect("chainsaw.db")
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT slot1, slot2, slot3
+            FROM teams
+            WHERE user_id = ? AND team_number = ?
+        ''', (user_id, team_number))
+        team = cursor.fetchone() or ("Empty", "Empty", "Empty")
+        conn.close()
 
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
+        def format_slot(slot, index):
+            return f"{index}️⃣ {slot if slot != 'Empty' else 'Empty'}"
 
-    # Fetch team slots
-    cursor.execute(
-        "SELECT slot1, slot2, slot3 FROM teams WHERE user_id = ? AND team_number = ?",
-        (user_id, team_number)
-    )
-    row = cursor.fetchone()
+        msg = (
+            f"✨Your Current Team (Team {team_number}) ✨\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"{format_slot(team[0], 1)}\n"
+            f"{format_slot(team[1], 2)}\n"
+            f"{format_slot(team[2], 3)}\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"Choose a character to add."
+        )
 
-    if row:
-        slot1, slot2, slot3 = row
-    else:
-        slot1 = slot2 = slot3 = "Empty"
+        keyboard = generate_add_team_interface(user_id, team_number, page)
 
-    def format_slot(slot, index):
-        return f"{index}️⃣ {slot if slot != None else 'Empty'}"
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=msg,
+            reply_markup=keyboard
+        )
 
-    team_message = (
-        f"✨Your Current Team (Team {team_number}) ✨\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"{format_slot(slot1, 1)}\n"
-        f"{format_slot(slot2, 2)}\n"
-        f"{format_slot(slot3, 3)}\n"
-        f"━━━━━━━━━━━━━━━"
-    )
+    except Exception as e:
+        bot.answer_callback_query(call.id, "Error occurred.")
+        print("Error in edit_add:", e)
 
-    conn.close()
-
-    bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        text=team_message,
-        reply_markup=generate_character_interface(user_id, team_number, page)  # You must define this function
-    )
 bot.polling(none_stop=True)
