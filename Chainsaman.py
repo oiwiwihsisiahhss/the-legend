@@ -1179,31 +1179,36 @@ def handle_team_selection(call):
         reply_markup=markup,
         parse_mode="HTML"
     )
+#@bot.callback_query_handler(func=lambda call: call.data == "edit_team")
 @bot.callback_query_handler(func=lambda call: call.data == "edit_team")
 def handle_edit_team_callback(call):
     user_id = call.from_user.id
 
-    # Adjusted button layout
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    markup.add(
-        types.InlineKeyboardButton("➕ Add", callback_data=f"edit_add:{team_number}:{prev_page}"),
-        types.InlineKeyboardButton("🚫 Remove", callback_data="edit_remove")
-    )
-    markup.add(
-        types.InlineKeyboardButton("🔄 Swap", callback_data="edit_swap"),
-        types.InlineKeyboardButton("↪️ Back", callback_data="edit_back")
-    )
-    markup.add(
-        types.InlineKeyboardButton("❌ Close", callback_data=f"close_{user_id}")
-    )
+    try:
+        selected_team_number = get_main_team(user_id)
+        prev_page = 0  # Assuming 0 or another appropriate default value
 
-    bot.edit_message_reply_markup(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        reply_markup=markup
-    )
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            types.InlineKeyboardButton("➕ Add", callback_data=f"edit_add:{selected_team_number}:{prev_page}"),
+            types.InlineKeyboardButton("🚫 Remove", callback_data="edit_remove")
+        )
+        markup.add(
+            types.InlineKeyboardButton("🔄 Swap", callback_data="edit_swap"),
+            types.InlineKeyboardButton("↪️ Back", callback_data="edit_back")
+        )
+        markup.add(
+            types.InlineKeyboardButton("❌ Close", callback_data=f"close_{user_id}")
+        )
 
-    bot.answer_callback_query(call.id, "Edit options loaded.")    
+        bot.edit_message_reply_markup(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            reply_markup=markup
+        )
+        bot.answer_callback_query(call.id, "Edit options loaded.")
+    except Exception as e:
+        bot.send_message(user_id, f"[EditTeam Error]\nUser: {user_id}\nError: {str(e)}")    
 @bot.callback_query_handler(func=lambda call: call.data == "edit_back")
 def handle_edit_back(call):
     user_id = call.from_user.id
