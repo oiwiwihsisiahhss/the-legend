@@ -1247,61 +1247,6 @@ def handle_edit_back(call):
     bot.answer_callback_query(call.id, "Back to team view.")   
  # Global variable to keep track of page numbers
 
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-import sqlite3
-
-def generate_add_team_interface(user_id, team_number, page=1):
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT cbs.name 
-        FROM user_characters uc
-        JOIN character_base_stats cbs ON uc.name = cbs.name
-        WHERE uc.user_id = ?
-    ''', (user_id,))
-    all_chars = sorted([row[0] for row in cursor.fetchall()])
-
-    cursor.execute('''
-        SELECT slot1, slot2, slot3
-        FROM teams
-        WHERE user_id = ? AND team_number = ?
-    ''', (user_id, team_number))
-    team = cursor.fetchone() or ("Empty", "Empty", "Empty")
-    selected_chars = set(filter(lambda x: x and x != "Empty", team))
-
-    per_page = 6
-    total_pages = max(1, (len(all_chars) + per_page - 1) // per_page)
-    page = max(1, min(page, total_pages))
-    start = (page - 1) * per_page
-    end = start + per_page
-    visible_chars = all_chars[start:end]
-
-    keyboard = InlineKeyboardMarkup(row_width=2)
-    buttons = []
-
-    for name in visible_chars:
-        mark = " ☑" if name in selected_chars else ""
-        safe_name = name[:30]
-        callback = f"selectchar:{safe_name}:{team_number}:{page}"
-        buttons.append(InlineKeyboardButton(text=name + mark, callback_data=callback[:64]))
-
-    for i in range(0, len(buttons), 2):
-        keyboard.row(*buttons[i:i+2])
-
-    keyboard.row(
-        InlineKeyboardButton("⏪", callback_data=f"edit_add:{team_number}:{max(1, page - 1)}"),
-        InlineKeyboardButton(f"[{page}/{total_pages}]", callback_data="noop"),
-        InlineKeyboardButton("⏩", callback_data=f"edit_add:{team_number}:{min(total_pages, page + 1)}")
-    )
-
-    keyboard.row(InlineKeyboardButton("💬 Save", callback_data=f"save_team:{team_number}"))
-    keyboard.row(InlineKeyboardButton("Back", callback_data="edit_back"))
-    keyboard.row(InlineKeyboardButton("Close", callback_data=f"close_{user_id}"))
-
-    conn.close()
-    return keyboard
-
 @bot.callback_query_handler(func=lambda call: call.data and call.data.startswith("edit_add"))
 def handle_edit_add(call):
     try:
@@ -1313,20 +1258,63 @@ def handle_edit_add(call):
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
 
-        # Ensure the team row exists
+        # Get all characters
+        cursor.execute('''
+            SELECT cbs.name 
+            FROM user_characters uc
+            JOIN character_base_stats cbs ON uc.name = cbs.name
+            WHERE uc.user_id = ?
+        ''', (user_id,))
+        all_chars = sorted([row[0] for row in cursor.fetchall()])
+
+        # Ensure team row exists
         cursor.execute('''
             INSERT OR IGNORE INTO teams (user_id, team_number, slot1, slot2, slot3)
             VALUES (?, ?, 'Empty', 'Empty', 'Empty')
         ''', (user_id, team_number))
         conn.commit()
 
-        # Now safely fetch team data
+        # Get current team
         cursor.execute('''
-            SELECT slot1, slot2, slot3 
-            FROM teams 
+            SELECT slot1, slot2, slot3
+            FROM teams
             WHERE user_id = ? AND team_number = ?
         ''', (user_id, team_number))
         team = cursor.fetchone() or ("Empty", "Empty", "Empty")
+        selected_chars = set(filter(lambda x: x and x != "Empty", team))
+
+        # Pagination
+        per_page = 6
+        total_pages = max(1, (len(all_chars) + per_page - 1) // per_page)
+        page = max(1, min(page, total_pages))
+        start = (page - 1) * per_page
+        end = start + per_page
+        visible_chars = all_chars[start:end]
+
+        # Build inline keyboard
+        from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+        keyboard = InlineKeyboardMarkup(row_width=2)
+        buttons = []
+
+        for name in visible_chars:
+            mark = " ☑" if name in selected_chars else ""
+            safe_name = name[:30]
+            callback = f"selectchar:{safe_name}:{team_number}:{page}"
+            buttons.append(InlineKeyboardButton(text=name + mark, callback_data=callback[:64]))
+
+        for i in range(0, len(buttons), 2):
+            keyboard.row(*buttons[i:i+2])
+
+        keyboard.row(
+            InlineKeyboardButton("⏪", callback_data=f"edit_add:{team_number}:{max(1, page - 1)}"),
+            InlineKeyboardButton(f"[{page}/{total_pages}]", callback_data="noop"),
+            InlineKeyboardButton("⏩", callback_data=f"edit_add:{team_number}:{min(total_pages, page + 1)}")
+        )
+
+        keyboard.row(InlineKeyboardButton("💬 Save", callback_data=f"save_team:{team_number}"))
+        keyboard.row(InlineKeyboardButton("Back", callback_data="edit_back"))
+        keyboard.row(InlineKeyboardButton("Close", callback_data=f"close_{user_id}"))
+
         conn.close()
 
         def format_slot(slot, index):
@@ -1345,10 +1333,15 @@ def handle_edit_add(call):
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
             text=team_message,
-            reply_markup=generate_add_team_interface(user_id, team_number, page)
+            reply_markup=keyboard
         )
-
+    ADMIN_ID = 6306216999
     except Exception as e:
-        print(f"Error in handle_edit_add: {e}")
+        error_message = f"[EditAdd Error]\nUser: {call.from_user.id}\nError: {e}"
+        print(error_message)
         bot.answer_callback_query(call.id, "An error occurred!")
+        try:
+            bot.send_message(ADMIN_ID, error_message)
+        except:
+            print("Failed to send error message to admin.")
 bot.polling(none_stop=True)
