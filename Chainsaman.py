@@ -1186,7 +1186,7 @@ def handle_edit_team_callback(call):
     # Adjusted button layout
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
-        types.InlineKeyboardButton("➕ Add", callback_data="edit_add:1:1"),
+        types.InlineKeyboardButton("➕ Add", callback_data=f"edit_add:{team_number}:{prev_page}"),
         types.InlineKeyboardButton("🚫 Remove", callback_data="edit_remove")
     )
     markup.add(
