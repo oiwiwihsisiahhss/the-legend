@@ -1312,6 +1312,15 @@ def handle_edit_add(call):
 
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
+
+        # Ensure the team row exists
+        cursor.execute('''
+            INSERT OR IGNORE INTO teams (user_id, team_number, slot1, slot2, slot3)
+            VALUES (?, ?, 'Empty', 'Empty', 'Empty')
+        ''', (user_id, team_number))
+        conn.commit()
+
+        # Now safely fetch team data
         cursor.execute('''
             SELECT slot1, slot2, slot3 
             FROM teams 
@@ -1338,6 +1347,7 @@ def handle_edit_add(call):
             text=team_message,
             reply_markup=generate_add_team_interface(user_id, team_number, page)
         )
+
     except Exception as e:
         print(f"Error in handle_edit_add: {e}")
         bot.answer_callback_query(call.id, "An error occurred!")
