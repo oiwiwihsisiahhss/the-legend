@@ -1246,11 +1246,16 @@ def handle_edit_back(call):
 
     bot.answer_callback_query(call.id, "Back to team view.")   
  # Global variable to keep track of page numbers
-ADMIN_ID = 6306216999
+ADMIN_ID = 6306216999  # Your Telegram ID
+
 @bot.callback_query_handler(func=lambda call: call.data and call.data.startswith("edit_add"))
 def handle_edit_add(call):
     try:
-        _, team_number, page = call.data.split(":")
+        parts = call.data.split(":")
+        if len(parts) != 3:
+            raise ValueError(f"Invalid callback data: {call.data}")
+        
+        _, team_number, page = parts
         user_id = call.from_user.id
         team_number = int(team_number)
         page = int(page)
@@ -1258,7 +1263,7 @@ def handle_edit_add(call):
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
 
-        # Get all characters
+        # Fetch all character names owned by user
         cursor.execute('''
             SELECT cbs.name 
             FROM user_characters uc
@@ -1267,21 +1272,27 @@ def handle_edit_add(call):
         ''', (user_id,))
         all_chars = sorted([row[0] for row in cursor.fetchall()])
 
-        # Ensure team row exists
+        # Fetch team slots
         cursor.execute('''
-            INSERT OR IGNORE INTO teams (user_id, team_number, slot1, slot2, slot3)
-            VALUES (?, ?, 'Empty', 'Empty', 'Empty')
-        ''', (user_id, team_number))
-        conn.commit()
-
-        # Get current team
-        cursor.execute('''
-            SELECT slot1, slot2, slot3
-            FROM teams
+            SELECT slot1, slot2, slot3 
+            FROM teams 
             WHERE user_id = ? AND team_number = ?
         ''', (user_id, team_number))
         team = cursor.fetchone() or ("Empty", "Empty", "Empty")
         selected_chars = set(filter(lambda x: x and x != "Empty", team))
+
+        # Format message
+        def format_slot(slot, index):
+            return f"{index}️⃣ {slot if slot and slot != 'Empty' else 'Empty'}"
+
+        team_message = (
+            f"✨ Your Current Team (Team {team_number}) ✨\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"{format_slot(team[0], 1)}\n"
+            f"{format_slot(team[1], 2)}\n"
+            f"{format_slot(team[2], 3)}\n"
+            f"━━━━━━━━━━━━━━━"
+        )
 
         # Pagination
         per_page = 6
@@ -1291,8 +1302,7 @@ def handle_edit_add(call):
         end = start + per_page
         visible_chars = all_chars[start:end]
 
-        # Build inline keyboard
-        from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+        # Generate inline keyboard
         keyboard = InlineKeyboardMarkup(row_width=2)
         buttons = []
 
@@ -1310,24 +1320,11 @@ def handle_edit_add(call):
             InlineKeyboardButton(f"[{page}/{total_pages}]", callback_data="noop"),
             InlineKeyboardButton("⏩", callback_data=f"edit_add:{team_number}:{min(total_pages, page + 1)}")
         )
-
         keyboard.row(InlineKeyboardButton("💬 Save", callback_data=f"save_team:{team_number}"))
         keyboard.row(InlineKeyboardButton("Back", callback_data="edit_back"))
         keyboard.row(InlineKeyboardButton("Close", callback_data=f"close_{user_id}"))
 
         conn.close()
-
-        def format_slot(slot, index):
-            return f"{index}️⃣ {slot if slot and slot != 'Empty' else 'Empty'}"
-
-        team_message = (
-            f"✨ Your Current Team (Team {team_number}) ✨\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"{format_slot(team[0], 1)}\n"
-            f"{format_slot(team[1], 2)}\n"
-            f"{format_slot(team[2], 3)}\n"
-            f"━━━━━━━━━━━━━━━"
-        )
 
         bot.edit_message_text(
             chat_id=call.message.chat.id,
@@ -1335,7 +1332,7 @@ def handle_edit_add(call):
             text=team_message,
             reply_markup=keyboard
         )
-    #ADMIN_ID = 6306216999
+
     except Exception as e:
         error_message = f"[EditAdd Error]\nUser: {call.from_user.id}\nError: {e}"
         print(error_message)
@@ -1343,5 +1340,5 @@ def handle_edit_add(call):
         try:
             bot.send_message(ADMIN_ID, error_message)
         except:
-            print("Failed to send error message to admin.")
+            print("Failed to notify admin.")
 bot.polling(none_stop=True)
