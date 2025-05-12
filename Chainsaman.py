@@ -1369,7 +1369,7 @@ def add_character_to_team(user_id, team_number, character_name):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Get character_id for the character name
+    # Get the character_id for the given character name
     cursor.execute('''
         SELECT character_id FROM character_base_stats WHERE name = ?
     ''', (character_name,))
@@ -1381,7 +1381,7 @@ def add_character_to_team(user_id, team_number, character_name):
 
     character_id = character[0]
 
-    # Check if there is an empty slot available
+    # Check for an empty slot in the team
     cursor.execute('''
         SELECT slot1, slot2, slot3
         FROM teams
@@ -1404,12 +1404,10 @@ def add_character_to_team(user_id, team_number, character_name):
             break
 
     conn.close()
-
     return updated
 @bot.callback_query_handler(func=lambda call: call.data and call.data.startswith("selectchar"))
 def handle_select_char(call):
     try:
-        # Get the callback data
         data_parts = call.data.split(":")
         if len(data_parts) != 4:
             raise ValueError("Invalid callback data: " + call.data)
@@ -1423,7 +1421,7 @@ def handle_select_char(call):
         added = add_character_to_team(user_id, team_number, character_name)
 
         if added:
-            # After adding, we retrieve the updated team and send a new message
+            # After adding, retrieve the updated team
             conn = sqlite3.connect("chainsaw.db")
             cursor = conn.cursor()
             cursor.execute('''
@@ -1434,6 +1432,7 @@ def handle_select_char(call):
             team = cursor.fetchone() or ("Empty", "Empty", "Empty")
             conn.close()
 
+            # Format the team message
             def format_slot(slot, index):
                 return f"{index}️⃣ {slot if slot and slot != 'Empty' else 'Empty'}"
 
@@ -1446,13 +1445,14 @@ def handle_select_char(call):
                 f"━━━━━━━━━━━━━━━"
             )
 
-            # Update the team message
-            bot.edit_message_text(
-                chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                text=team_message,
-                reply_markup=generate_add_team_interface(user_id, team_number, page)
-            )
+            # If the team has changed, update the message
+            if team_message != call.message.text:
+                bot.edit_message_text(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    text=team_message,
+                    reply_markup=generate_add_team_interface(user_id, team_number, page)
+                )
         else:
             # If no character was added, notify the user that the team is full
             bot.answer_callback_query(call.id, "No empty slots available for this character.")
