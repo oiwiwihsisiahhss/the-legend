@@ -1364,6 +1364,44 @@ def format_team_message(team, team_number):
         f"━━━━━━━━━━━━━━━"
     )
     return team_message
+ def add_character_to_team(user_id, team_number, character_name):
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+
+    # Get character_id for the character name
+    cursor.execute('''
+        SELECT character_id FROM character_base_stats WHERE name = ?
+    ''', (character_name,))
+    character = cursor.fetchone()
+
+    if not character:
+        conn.close()
+        return None
+
+    character_id = character[0]
+
+    # Check if there is an empty slot available
+    cursor.execute('''
+        SELECT slot1, slot2, slot3
+        FROM teams
+        WHERE user_id = ? AND team_number = ?
+    ''', (user_id, team_number))
+    team = cursor.fetchone() or ("Empty", "Empty", "Empty")
+    
+    for i, slot in enumerate(team):
+        if slot == "Empty":
+            # Update the empty slot with the character
+            cursor.execute(f'''
+                UPDATE teams
+                SET slot{i + 1} = ?
+                WHERE user_id = ? AND team_number = ?
+            ''', (character_name, user_id, team_number))
+            conn.commit()
+            conn.close()
+            return character_name
+
+    conn.close()
+    return None   
 @bot.callback_query_handler(func=lambda call: call.data and call.data.startswith("selectchar"))
 def handle_character_selection(call):
     try:
