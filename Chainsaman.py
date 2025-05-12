@@ -1364,7 +1364,7 @@ def format_team_message(team, team_number):
         f"━━━━━━━━━━━━━━━"
     )
     return team_message
- def add_character_to_team(user_id, team_number, character_name):
+def add_character_to_team(user_id, team_number, character_name):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
