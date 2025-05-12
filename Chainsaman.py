@@ -1246,13 +1246,14 @@ def handle_edit_back(call):
 
     bot.answer_callback_query(call.id, "Back to team view.")   
  # Global variable to keep track of page numbers
-import sqlite3
+
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+import sqlite3
+
 def generate_add_team_interface(user_id, team_number, page=1):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Fetch all owned characters, sorted
     cursor.execute('''
         SELECT cbs.name 
         FROM user_characters uc
@@ -1261,7 +1262,6 @@ def generate_add_team_interface(user_id, team_number, page=1):
     ''', (user_id,))
     all_chars = sorted([row[0] for row in cursor.fetchall()])
 
-    # Get current team slots
     cursor.execute('''
         SELECT slot1, slot2, slot3
         FROM teams
@@ -1270,7 +1270,6 @@ def generate_add_team_interface(user_id, team_number, page=1):
     team = cursor.fetchone() or ("Empty", "Empty", "Empty")
     selected_chars = set(filter(lambda x: x and x != "Empty", team))
 
-    # Pagination setup
     per_page = 6
     total_pages = max(1, (len(all_chars) + per_page - 1) // per_page)
     page = max(1, min(page, total_pages))
@@ -1278,30 +1277,24 @@ def generate_add_team_interface(user_id, team_number, page=1):
     end = start + per_page
     visible_chars = all_chars[start:end]
 
-    # Build keyboard
     keyboard = InlineKeyboardMarkup(row_width=2)
     buttons = []
 
     for name in visible_chars:
         mark = " ☑" if name in selected_chars else ""
-        safe_name = name[:30]  # avoid long names breaking callback_data
+        safe_name = name[:30]
         callback = f"selectchar:{safe_name}:{team_number}:{page}"
         buttons.append(InlineKeyboardButton(text=name + mark, callback_data=callback[:64]))
 
     for i in range(0, len(buttons), 2):
         keyboard.row(*buttons[i:i+2])
 
-    # Pagination buttons
-    prev_page = max(1, page - 1)
-    next_page = min(total_pages, page + 1)
-    nav_row = [
-        InlineKeyboardButton("⏪", callback_data=f"edit_add:{team_number}:{prev_page}"),
+    keyboard.row(
+        InlineKeyboardButton("⏪", callback_data=f"edit_add:{team_number}:{max(1, page - 1)}"),
         InlineKeyboardButton(f"[{page}/{total_pages}]", callback_data="noop"),
-        InlineKeyboardButton("⏩", callback_data=f"edit_add:{team_number}:{next_page}")
-    ]
-    keyboard.row(*nav_row)
+        InlineKeyboardButton("⏩", callback_data=f"edit_add:{team_number}:{min(total_pages, page + 1)}")
+    )
 
-    # Save, Back, Close buttons
     keyboard.row(InlineKeyboardButton("💬 Save", callback_data=f"save_team:{team_number}"))
     keyboard.row(InlineKeyboardButton("Back", callback_data="edit_back"))
     keyboard.row(InlineKeyboardButton("Close", callback_data=f"close_{user_id}"))
@@ -1309,24 +1302,16 @@ def generate_add_team_interface(user_id, team_number, page=1):
     conn.close()
     return keyboard
 
-# Callback to open character add interface
-#@bot.callback_query_handler(func=lambda call: call.data.startswith("edit_add"))
 @bot.callback_query_handler(func=lambda call: call.data and call.data.startswith("edit_add"))
 def handle_edit_add(call):
     try:
-        parts = call.data.split(":")
-        if len(parts) != 3:
-            bot.answer_callback_query(call.id, "Invalid callback format.")
-            return
-
-        _, team_number, page = parts
+        _, team_number, page = call.data.split(":")
+        user_id = call.from_user.id
         team_number = int(team_number)
         page = int(page)
-        user_id = call.from_user.id
 
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
-
         cursor.execute('''
             SELECT slot1, slot2, slot3 
             FROM teams 
@@ -1354,5 +1339,6 @@ def handle_edit_add(call):
             reply_markup=generate_add_team_interface(user_id, team_number, page)
         )
     except Exception as e:
-        bot.answer_callback_query(call.id, f"Error: {str(e)}")
+        print(f"Error in handle_edit_add: {e}")
+        bot.answer_callback_query(call.id, "An error occurred!")
 bot.polling(none_stop=True)
