@@ -1365,6 +1365,7 @@ def format_team_message(team, team_number):
     )
     return team_message
 def add_character_to_team(user_id, team_number, character_name):
+def add_character_to_team(user_id, team_number, character_name):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
@@ -1388,6 +1389,8 @@ def add_character_to_team(user_id, team_number, character_name):
     ''', (user_id, team_number))
     team = cursor.fetchone() or ("Empty", "Empty", "Empty")
     
+    updated = False  # Track if the team is updated
+
     for i, slot in enumerate(team):
         if slot == "Empty":
             # Update the empty slot with the character
@@ -1397,56 +1400,66 @@ def add_character_to_team(user_id, team_number, character_name):
                 WHERE user_id = ? AND team_number = ?
             ''', (character_name, user_id, team_number))
             conn.commit()
-            conn.close()
-            return character_name
+            updated = True
+            break
 
     conn.close()
-    return None   
+
+    # Return True if the team was updated, otherwise False
+    return updated
 @bot.callback_query_handler(func=lambda call: call.data and call.data.startswith("selectchar"))
-def handle_character_selection(call):
+def handle_select_char(call):
     try:
-        # Parse callback data
+        # Get the callback data
         data_parts = call.data.split(":")
         if len(data_parts) != 4:
             raise ValueError("Invalid callback data: " + call.data)
 
         _, character_name, team_number, page = data_parts
-        user_id = call.from_user.id
         team_number = int(team_number)
         page = int(page)
+        user_id = call.from_user.id
 
-        # Add the character to the team (only if the user owns it)
-        added_character = add_character_to_team(user_id, team_number, character_name)
+        # Attempt to add the character to the team
+        added = add_character_to_team(user_id, team_number, character_name)
 
-        if added_character:
-            # Get updated team
+        if added:
+            # After adding, we retrieve the updated team and send a new message
             conn = sqlite3.connect("chainsaw.db")
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT slot1, slot2, slot3 
-                FROM teams 
+                SELECT slot1, slot2, slot3
+                FROM teams
                 WHERE user_id = ? AND team_number = ?
             ''', (user_id, team_number))
-            team = list(cursor.fetchone() or ("Empty", "Empty", "Empty"))
+            team = cursor.fetchone() or ("Empty", "Empty", "Empty")
             conn.close()
 
-            # Format the updated team message
-            team_message = format_team_message(team, team_number)
+            def format_slot(slot, index):
+                return f"{index}️⃣ {slot if slot and slot != 'Empty' else 'Empty'}"
 
-            # Update the message with the new team layout
+            team_message = (
+                f"✨ Your Current Team (Team {team_number}) ✨\n"
+                f"━━━━━━━━━━━━━━━\n"
+                f"{format_slot(team[0], 1)}\n"
+                f"{format_slot(team[1], 2)}\n"
+                f"{format_slot(team[2], 3)}\n"
+                f"━━━━━━━━━━━━━━━"
+            )
+
+            # Update the team message
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
                 text=team_message,
                 reply_markup=generate_add_team_interface(user_id, team_number, page)
             )
-
-            bot.answer_callback_query(call.id, f"Character {added_character} added to your team!")
         else:
-            bot.answer_callback_query(call.id, "You do not own this character!")
+            # If no character was added, notify the user that the team is full
+            bot.answer_callback_query(call.id, "No empty slots available for this character.")
 
     except Exception as e:
         error_msg = f"[Add Character Error]\nUser: {call.from_user.id}\nError: {str(e)}"
         bot.send_message(ADMIN_ID, error_msg)
-        bot.answer_callback_query(call.id, "An error occurred while adding the character.")    
+        bot.answer_callback_query(call.id, "An error occurred!")
 bot.polling(none_stop=True)
