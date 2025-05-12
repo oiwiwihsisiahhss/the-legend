@@ -1377,7 +1377,7 @@ def add_character_to_team(user_id, team_number, character_name):
 
     if not character:
         conn.close()
-        return None
+        return False  # No such character
 
     character_id = character[0]
 
@@ -1405,7 +1405,6 @@ def add_character_to_team(user_id, team_number, character_name):
 
     conn.close()
 
-    # Return True if the team was updated, otherwise False
     return updated
 @bot.callback_query_handler(func=lambda call: call.data and call.data.startswith("selectchar"))
 def handle_select_char(call):
