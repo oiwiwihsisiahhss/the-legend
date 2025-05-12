@@ -1405,50 +1405,44 @@ def add_character_to_team(user_id, team_number, character_name):
 
     conn.close()
     return updated
-@bot.callback_query_handler(func=lambda call: call.data.startswith("selectchar"))
-def handle_select_char(call):
-    # Extract the callback data
-    data_parts = call.data.split(":")
-    _, character_name, team_number, page = data_parts
-    team_number = int(team_number)
-    page = int(page)
-    user_id = call.from_user.id
+@bot.callback_query_handler(func=lambda call: call.data.startswith("selectchar_"))
+def selectchar_callback(call):
+    try:
+        _, char_name = call.data.split("_", 1)
+        user_id = call.from_user.id
 
-    # Add the character to the team (implement this function)
-    add_character_to_team(user_id, team_number, character_name)
+        # Load user data
+        user_data = get_user_data(user_id)
+        if not user_data:
+            bot.answer_callback_query(call.id, "You need to start the game first.")
+            return
 
-    # Retrieve the updated team and update the message
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT slot1, slot2, slot3
-        FROM teams
-        WHERE user_id = ? AND team_number = ?
-    ''', (user_id, team_number))
-    team = cursor.fetchone() or ("Empty", "Empty", "Empty")
-    conn.close()
+        # Get the selected team number from storage (session, database, etc.)
+        team_number = get_selected_team_number(user_id)
+        if team_number is None:
+            bot.answer_callback_query(call.id, "Please select a team first.")
+            return
 
-    # Update the message with the updated team and inline keyboard
-    team_message = (
-        f"✨ Your Current Team (Team {team_number}) ✨\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"1️⃣ {team[0] if team[0] != 'Empty' else 'Empty'}\n"
-        f"2️⃣ {team[1] if team[1] != 'Empty' else 'Empty'}\n"
-        f"3️⃣ {team[2] if team[2] != 'Empty' else 'Empty'}\n"
-        f"━━━━━━━━━━━━━━━"
-    )
+        # Add character if slot available
+        success, message = add_character_to_team(user_id, team_number, char_name)
+        if not success:
+            bot.answer_callback_query(call.id, message, show_alert=True)
+            return
 
-    if call.message.text != team_message:
-        bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        text=team_message,
-        reply_markup=generate_add_team_interface(user_id, team_number, page)
-    )
-    else:
-        bot.edit_message_reply_markup(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        reply_markup=generate_add_team_interface(user_id, team_number, page)
-    )
+        # Prepare new team message
+        new_text = generate_team_message(user_id, team_number)
+        new_markup = generate_add_team_interface(user_id, team_number)
+
+        # Edit message only if something changed
+        if call.message.text != new_text or call.message.reply_markup != new_markup:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text=new_text,
+                reply_markup=new_markup
+            )
+        else:
+            bot.answer_callback_query(call.id, "Character already added.")
+    except Exception as e:
+        bot.send_message(ADMIN_ID, f"[SelectChar Error]\nUser: {call.from_user.id}\nError: {e}")
 bot.polling(none_stop=True)
