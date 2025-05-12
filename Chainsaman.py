@@ -1438,10 +1438,17 @@ def handle_select_char(call):
         f"━━━━━━━━━━━━━━━"
     )
 
+    if call.message.text != team_message:
     bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
         text=team_message,
+        reply_markup=generate_add_team_interface(user_id, team_number, page)
+    )
+    else:
+    bot.edit_message_reply_markup(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
         reply_markup=generate_add_team_interface(user_id, team_number, page)
     )
 bot.polling(none_stop=True)
