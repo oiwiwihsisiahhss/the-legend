@@ -1246,7 +1246,7 @@ def handle_edit_back(call):
 
     bot.answer_callback_query(call.id, "Back to team view.")   
  # Global variable to keep track of page numbers
-
+ADMIN_ID = 6306216999
 @bot.callback_query_handler(func=lambda call: call.data and call.data.startswith("edit_add"))
 def handle_edit_add(call):
     try:
@@ -1335,7 +1335,7 @@ def handle_edit_add(call):
             text=team_message,
             reply_markup=keyboard
         )
-    ADMIN_ID = 6306216999
+    #ADMIN_ID = 6306216999
     except Exception as e:
         error_message = f"[EditAdd Error]\nUser: {call.from_user.id}\nError: {e}"
         print(error_message)
