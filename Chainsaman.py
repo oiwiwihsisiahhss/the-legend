@@ -1397,49 +1397,82 @@ def update_team_message(user_id, team_number, message_id, chat_id):
         )
     except Exception as e:
         print(f"[Update Team Error] {e}")
-@bot.callback_query_handler(func=lambda call: call.data.startswith("selectchar"))
-def handle_character_selection(call):
-    user_id = call.from_user.id
+@bot.callback_query_handler(func=lambda call: call.data.startswith("selectchar:"))
+def handle_selectchar(call):
     try:
         _, char_name, team_number, page = call.data.split(":")
+        user_id = call.from_user.id
         team_number = int(team_number)
+        page = int(page)
 
-        conn = sqlite3.connect("chainsaw.db")
-        cursor = conn.cursor()
+        key = (user_id, team_number)
 
-        # Get team
-        cursor.execute('''
-            SELECT slot1, slot2, slot3
-            FROM teams
-            WHERE user_id = ? AND team_number = ?
-        ''', (user_id, team_number))
-        team = list(cursor.fetchone() or ("Empty", "Empty", "Empty"))
+        # Initialize temporary selection if not exists
+        if key not in temp_team_selection:
+            conn = sqlite3.connect("chainsaw.db")
+            cursor = conn.cursor()
+            cursor.execute("SELECT slot1, slot2, slot3 FROM teams WHERE user_id = ? AND team_number = ?", (user_id, team_number))
+            team = cursor.fetchone() or ("Empty", "Empty", "Empty")
+            temp_team_selection[key] = list(team)
+            conn.close()
 
+        team = temp_team_selection[key]
+
+        # Toggle character in team
         if char_name in team:
-            bot.answer_callback_query(call.id, "Already in the team.")
-            conn.close()
+            team[team.index(char_name)] = "Empty"
+        elif "Empty" in team:
+            team[team.index("Empty")] = char_name
+        else:
+            bot.answer_callback_query(call.id, "All slots are full. Remove one to add.")
             return
 
-        if "Empty" not in team:
-            bot.answer_callback_query(call.id, "Team is already full.")
-            conn.close()
-            return
+        # Update message
+        preview_text = f"✨ Your Current Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━\n"
+        for i, name in enumerate(team, start=1):
+            preview_text += f"{i}️⃣ {name}\n"
+        preview_text += "━━━━━━━━━━━━━━━"
 
-        index = team.index("Empty")
-        team[index] = char_name
+        keyboard = generate_add_team_interface(user_id, team_number, page)
+        bot.edit_message_text(preview_text, call.message.chat.id, call.message.message_id, reply_markup=keyboard)
 
-        cursor.execute(f'''
-            INSERT OR REPLACE INTO teams (user_id, team_number, slot1, slot2, slot3)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (user_id, team_number, *team))
-
-        conn.commit()
-        conn.close()
-
-        update_team_message(user_id, team_number, call.message.message_id, call.message.chat.id)
-        bot.answer_callback_query(call.id, f"{char_name} added to Team {team_number}.")
+    except Exception as e:
+        print(f"[SelectChar Error]\nUser: {call.from_user.id}\nError: {e}")
+        bot.answer_callback_query(call.id, "An error occurred.")
 
     except Exception as e:
         print(f"[Add Character Error]\nUser: {user_id}\nError: {e}")
         bot.answer_callback_query(call.id, "An error occurred.")
+@bot.callback_query_handler(func=lambda call: call.data.startswith("save_team:"))
+def handle_save_team(call):
+    try:
+        user_id = call.from_user.id
+        team_number = int(call.data.split(":")[1])
+        key = (user_id, team_number)
+
+        if key not in temp_team_selection:
+            bot.answer_callback_query(call.id, "No changes to save.")
+            return
+
+        team = temp_team_selection[key]
+
+        conn = sqlite3.connect("chainsaw.db")
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO teams (user_id, team_number, slot1, slot2, slot3)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_id, team_number) DO UPDATE SET
+                slot1=excluded.slot1,
+                slot2=excluded.slot2,
+                slot3=excluded.slot3
+        ''', (user_id, team_number, *team))
+        conn.commit()
+        conn.close()
+
+        del temp_team_selection[key]  # Clear temp after saving
+
+        bot.edit_message_text("✅ Team saved successfully!", call.message.chat.id, call.message.message_id)
+    except Exception as e:
+        print(f"[SaveTeam Error]\nUser: {call.from_user.id}\nError: {e}")
+        bot.answer_callback_query(call.id, "Error saving team.")        
 bot.polling(none_stop=True)
