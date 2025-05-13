@@ -8,7 +8,8 @@ from telebot import types
 from datetime import datetime, timedelta
 
 import html
-
+# Temporary in-memory selection before saving
+temp_team_selection = {}
 # Initialize bot with your API key
 API_KEY = '7215821191:AAEzFPwyx8FjlXMr2mpVTbYzpHoMbPsaCDc'
 bot = telebot.TeleBot(API_KEY)
@@ -1254,7 +1255,7 @@ def handle_edit_back(call):
 
 ADMIN_ID = 6306216999  # Replace with your Telegram ID
 
-def generate_add_team_interface(user_id, team_number, page=1):
+def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
@@ -1272,7 +1273,7 @@ def generate_add_team_interface(user_id, team_number, page=1):
         WHERE user_id = ? AND team_number = ?
     ''', (user_id, team_number))
     team = cursor.fetchone() or ("Empty", "Empty", "Empty")
-    selected_chars = set(filter(lambda x: x and x != "Empty", team))
+    selected_chars = set(temp_selected if temp_selected else filter(lambda x: x and x != "Empty", team))
 
     per_page = 6
     total_pages = max(1, (len(all_chars) + per_page - 1) // per_page)
@@ -1286,8 +1287,10 @@ def generate_add_team_interface(user_id, team_number, page=1):
 
     for name in visible_chars:
         mark = " ☑" if name in selected_chars else ""
-        safe_name = name[:30]
-        callback = f"selectchar:{safe_name}:{team_number}:{page}"
+        encoded_name = name.replace(":", "").replace("|", "")[:50]
+        cursor.execute("SELECT character_id FROM character_base_stats WHERE name = ?", (name,))
+        char_id = cursor.fetchone()[0]
+        callback = f"selectchar:{char_id}:{team_number}:{page}"
         buttons.append(InlineKeyboardButton(text=name + mark, callback_data=callback[:64]))
 
     for i in range(0, len(buttons), 2):
