@@ -1288,9 +1288,8 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
     for name in visible_chars:
         mark = " ☑" if name in selected_chars else ""
         encoded_name = name.replace(":", "").replace("|", "")[:50]
-        cursor.execute("SELECT character_id FROM character_base_stats WHERE name = ?", (name,))
-        char_id = cursor.fetchone()[0]
-        callback = f"selectchar:{char_id}:{team_number}:{page}"
+        safe_name = name.replace(":", "").replace("|", "")[:50]
+        callback = f"selectchar:{safe_name}:{team_number}:{page}"
         buttons.append(InlineKeyboardButton(text=name + mark, callback_data=callback[:64]))
 
     for i in range(0, len(buttons), 2):
