@@ -1365,84 +1365,81 @@ def format_team_message(team, team_number):
     )
     return team_message
 #def add_character_to_team(user_id, team_number, character_name):
-def add_character_to_team(user_id, team_number, character_name):
+def update_team_message(user_id, team_number, message_id, chat_id):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Get the character_id for the given character name
-    cursor.execute('''
-        SELECT character_id FROM character_base_stats WHERE name = ?
-    ''', (character_name,))
-    character = cursor.fetchone()
-
-    if not character:
-        conn.close()
-        return False  # No such character
-
-    character_id = character[0]
-
-    # Check for an empty slot in the team
     cursor.execute('''
         SELECT slot1, slot2, slot3
         FROM teams
         WHERE user_id = ? AND team_number = ?
     ''', (user_id, team_number))
     team = cursor.fetchone() or ("Empty", "Empty", "Empty")
-    
-    updated = False  # Track if the team is updated
-
-    for i, slot in enumerate(team):
-        if slot == "Empty":
-            # Update the empty slot with the character
-            cursor.execute(f'''
-                UPDATE teams
-                SET slot{i + 1} = ?
-                WHERE user_id = ? AND team_number = ?
-            ''', (character_name, user_id, team_number))
-            conn.commit()
-            updated = True
-            break
-
     conn.close()
-    return updated
-@bot.callback_query_handler(func=lambda call: call.data.startswith("selectchar_"))
-def selectchar_callback(call):
+
+    updated_text = (
+        f"✨ Your Current Team (Team {team_number}) ✨\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"1️⃣ {team[0]}\n"
+        f"2️⃣ {team[1]}\n"
+        f"3️⃣ {team[2]}\n"
+        f"━━━━━━━━━━━━━━━"
+    )
+
+    keyboard = generate_add_team_interface(user_id, team_number)
+
     try:
-        _, char_name = call.data.split("_", 1)
-        user_id = call.from_user.id
-
-        # Load user data
-        user_data = get_user_data(user_id)
-        if not user_data:
-            bot.answer_callback_query(call.id, "You need to start the game first.")
-            return
-
-        # Get the selected team number from storage (session, database, etc.)
-        team_number = get_selected_team_number(user_id)
-        if team_number is None:
-            bot.answer_callback_query(call.id, "Please select a team first.")
-            return
-
-        # Add character if slot available
-        success, message = add_character_to_team(user_id, team_number, char_name)
-        if not success:
-            bot.answer_callback_query(call.id, message, show_alert=True)
-            return
-
-        # Prepare new team message
-        new_text = generate_team_message(user_id, team_number)
-        new_markup = generate_add_team_interface(user_id, team_number)
-
-        # Edit message only if something changed
-        if call.message.text != new_text or call.message.reply_markup != new_markup:
-            bot.edit_message_text(
-                chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                text=new_text,
-                reply_markup=new_markup
-            )
-        else:
-            bot.answer_callback_query(call.id, "Character already added.")
+        bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=message_id,
+            text=updated_text,
+            reply_markup=keyboard
+        )
     except Exception as e:
-        bot.send_message(ADMIN_ID, f"[SelectChar Error]\nUser: {call.from_user.id}\nError: {e}")
+        print(f"[Update Team Error] {e}")
+@bot.callback_query_handler(func=lambda call: call.data.startswith("selectchar"))
+def handle_character_selection(call):
+    user_id = call.from_user.id
+    try:
+        _, char_name, team_number, page = call.data.split(":")
+        team_number = int(team_number)
+
+        conn = sqlite3.connect("chainsaw.db")
+        cursor = conn.cursor()
+
+        # Get team
+        cursor.execute('''
+            SELECT slot1, slot2, slot3
+            FROM teams
+            WHERE user_id = ? AND team_number = ?
+        ''', (user_id, team_number))
+        team = list(cursor.fetchone() or ("Empty", "Empty", "Empty"))
+
+        if char_name in team:
+            bot.answer_callback_query(call.id, "Already in the team.")
+            conn.close()
+            return
+
+        if "Empty" not in team:
+            bot.answer_callback_query(call.id, "Team is already full.")
+            conn.close()
+            return
+
+        index = team.index("Empty")
+        team[index] = char_name
+
+        cursor.execute(f'''
+            INSERT OR REPLACE INTO teams (user_id, team_number, slot1, slot2, slot3)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (user_id, team_number, *team))
+
+        conn.commit()
+        conn.close()
+
+        update_team_message(user_id, team_number, call.message.message_id, call.message.chat.id)
+        bot.answer_callback_query(call.id, f"{char_name} added to Team {team_number}.")
+
+    except Exception as e:
+        print(f"[Add Character Error]\nUser: {user_id}\nError: {e}")
+        bot.answer_callback_query(call.id, "An error occurred.")
 bot.polling(none_stop=True)
