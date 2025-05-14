@@ -1568,7 +1568,7 @@ def handle_swap_to(call):
     preview += "\n━━━━━━━━━━━━━━━"
 
     keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton("✅ Save", callback_data=f"save_team:{team_number}"))
+    keyboard.add(InlineKeyboardButton("✅ Save", callback_data=f"team_save:{team_number}"))
     keyboard.add(InlineKeyboardButton("🔄 Swap Again", callback_data=f"edit_swap:{team_number}"))
     keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
 
@@ -1578,7 +1578,7 @@ def handle_swap_to(call):
         text=preview,
         reply_markup=keyboard
     )
-@bot.callback_query_handler(func=lambda call: call.data.startswith("save_team:"))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("team_save:"))
 def save_team(call):
     user_id = call.from_user.id
     team_number = int(call.data.split(":")[1])
