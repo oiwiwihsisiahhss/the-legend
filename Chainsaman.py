@@ -1557,7 +1557,8 @@ def handle_swap_to(call):
     # Perform the swap
     team[from_index], team[to_index] = team[to_index], team[from_index]
 
-    # Mark as modified so we can save
+    # Store back updated team and set modified flag
+    temp_swaps[user_id]["team"] = team
     temp_swaps[user_id]["modified"] = True
 
     preview = f"✨ Your Swapped Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━"
@@ -1570,16 +1571,12 @@ def handle_swap_to(call):
     keyboard.add(InlineKeyboardButton("🔄 Swap Again", callback_data=f"edit_swap:{team_number}"))
     keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
 
-    try:
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=preview,
-            reply_markup=keyboard
-        )
-    except Exception as e:
-        print("Error editing message:", e)
-
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=preview,
+        reply_markup=keyboard
+    )
 @bot.callback_query_handler(func=lambda call: call.data.startswith("save_team:"))
 def save_team(call):
     user_id = call.from_user.id
@@ -1587,9 +1584,9 @@ def save_team(call):
 
     swap_data = temp_swaps.get(user_id)
     if not swap_data:
-        return bot.answer_callback_query(call.id, "No swap to save.")
+        return bot.answer_callback_query(call.id, "No team data to save.")
 
-    if not swap_data.get("modified"):
+    if not swap_data.get("modified", False):
         return bot.answer_callback_query(call.id, "⚠️ No changes made to the team.")
 
     team = swap_data["team"]
@@ -1609,13 +1606,9 @@ def save_team(call):
 
     del temp_swaps[user_id]
 
-    try:
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text="✅ Team saved successfully!"
-        )
-    except Exception as e:
-        print("Error editing message:", e)
-
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="✅ Team saved successfully!"
+    )
 bot.polling(none_stop=True)
