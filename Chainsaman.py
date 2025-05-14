@@ -1541,6 +1541,7 @@ def handle_swap_from(call):
         print("Error editing message:", e)
 
 
+#@bot.callback_query_handler(func=lambda call: call.data.startswith("swap_to:"))
 @bot.callback_query_handler(func=lambda call: call.data.startswith("swap_to:"))
 def handle_swap_to(call):
     user_id = call.from_user.id
@@ -1556,19 +1557,17 @@ def handle_swap_to(call):
 
     # Swap characters
     team[from_index], team[to_index] = team[to_index], team[from_index]
-
-    # Update the dict
     temp_swaps[user_id]["team"] = team
-    temp_swaps[user_id]["modified"] = True  # <- THIS IS THE FIX
+    temp_swaps[user_id]["modified"] = True
 
-    # Show preview
+    # Show updated team
     preview = f"✨ Your Swapped Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━"
     for idx, char in enumerate(team, 1):
         preview += f"\n{idx}️⃣ {char}"
     preview += "\n━━━━━━━━━━━━━━━"
 
     keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton("✅ Save", callback_data=f"team_save:{team_number}"))
+    keyboard.add(InlineKeyboardButton("✅ Confirm Swap", callback_data=f"team_save:{team_number}"))
     keyboard.add(InlineKeyboardButton("🔄 Swap Again", callback_data=f"edit_swap:{team_number}"))
     keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
 
@@ -1584,24 +1583,21 @@ def save_team(call):
     team_number = int(call.data.split(":")[1])
 
     swap_data = temp_swaps.get(user_id)
-
     if not swap_data or not swap_data.get("modified"):
-        return bot.answer_callback_query(call.id, "⚠️ You haven't swapped any characters.")
+        return bot.answer_callback_query(call.id, "⚠️ No changes made to the team.")
 
-    new_team_order = swap_data["team"]
+    team = swap_data["team"]
 
+    # Only update the slot order — no new team insertions
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
-
-    # Just update the slots of the existing team
     cursor.execute('''
         UPDATE teams SET
             slot1 = ?,
             slot2 = ?,
             slot3 = ?
         WHERE user_id = ? AND team_number = ?
-    ''', (new_team_order[0], new_team_order[1], new_team_order[2], user_id, team_number))
-
+    ''', (team[0], team[1], team[2], user_id, team_number))
     conn.commit()
     conn.close()
 
@@ -1610,6 +1606,6 @@ def save_team(call):
     bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        text="✅ Your team's order has been updated!"
+        text="✅ Your team’s order has been updated!"
     )
 bot.polling(none_stop=True)
