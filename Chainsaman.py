@@ -1554,7 +1554,11 @@ def handle_swap_to(call):
     from_index = swap_data["from_index"]
     team = swap_data["team"]
 
+    # Perform the swap
     team[from_index], team[to_index] = team[to_index], team[from_index]
+
+    # Mark as modified so we can save
+    temp_swaps[user_id]["modified"] = True
 
     preview = f"✨ Your Swapped Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━"
     for idx, char in enumerate(team, 1):
@@ -1576,16 +1580,19 @@ def handle_swap_to(call):
     except Exception as e:
         print("Error editing message:", e)
 
-
 @bot.callback_query_handler(func=lambda call: call.data.startswith("save_team:"))
 def save_team(call):
     user_id = call.from_user.id
     team_number = int(call.data.split(":")[1])
 
-    if user_id not in temp_swaps:
+    swap_data = temp_swaps.get(user_id)
+    if not swap_data:
         return bot.answer_callback_query(call.id, "No swap to save.")
 
-    team = temp_swaps[user_id]["team"]
+    if not swap_data.get("modified"):
+        return bot.answer_callback_query(call.id, "⚠️ No changes made to the team.")
+
+    team = swap_data["team"]
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
