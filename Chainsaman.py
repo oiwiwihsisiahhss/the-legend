@@ -235,10 +235,10 @@ def set_main_team(user_id, team_number):
 def get_team_character_ids(user_id, team_number):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT character_id FROM teams WHERE user_id = ? AND team_number = ? ORDER BY slot', (user_id, team_number))
-    chars = [row[0] for row in cursor.fetchall()]
+    cursor.execute('SELECT slot1, slot2, slot3 FROM teams WHERE user_id = ? AND team_number = ?', (user_id, team_number))
+    row = cursor.fetchone()
     conn.close()
-    return chars
+    return list(row) if row else []
 def get_main_team(user_id):
     conn = get_connection()
     cursor = conn.cursor()
