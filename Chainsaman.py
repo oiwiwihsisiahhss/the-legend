@@ -1541,39 +1541,42 @@ def handle_swap_from(call):
         print("Error editing message:", e)
 
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("save_team:"))
-def save_team(call):
+@bot.callback_query_handler(func=lambda call: call.data.startswith("swap_to:"))
+def handle_swap_to(call):
     user_id = call.from_user.id
-    team_number = int(call.data.split(":")[1])
+    _, team_number, to_index = call.data.split(":")
+    to_index = int(to_index)
 
     swap_data = temp_swaps.get(user_id)
-    if not swap_data:
-        return bot.answer_callback_query(call.id, "No team data to save.")
+    if not swap_data or "from_index" not in swap_data:
+        return bot.answer_callback_query(call.id, "Invalid swap state.")
 
-    if not swap_data.get("modified", False):
-        return bot.answer_callback_query(call.id, "⚠️ No changes made to the team.")
-
+    from_index = swap_data["from_index"]
     team = swap_data["team"]
 
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO teams (user_id, team_number, slot1, slot2, slot3)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(user_id, team_number) DO UPDATE SET
-            slot1 = excluded.slot1,
-            slot2 = excluded.slot2,
-            slot3 = excluded.slot3
-    ''', (user_id, team_number, team[0], team[1], team[2]))
-    conn.commit()
-    conn.close()
+    # Swap characters
+    team[from_index], team[to_index] = team[to_index], team[from_index]
 
-    del temp_swaps[user_id]
+    # Update the dict
+    temp_swaps[user_id]["team"] = team
+    temp_swaps[user_id]["modified"] = True  # <- THIS IS THE FIX
+
+    # Show preview
+    preview = f"✨ Your Swapped Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━"
+    for idx, char in enumerate(team, 1):
+        preview += f"\n{idx}️⃣ {char}"
+    preview += "\n━━━━━━━━━━━━━━━"
+
+    keyboard = InlineKeyboardMarkup()
+    keyboard.add(InlineKeyboardButton("✅ Save", callback_data=f"save_team:{team_number}"))
+    keyboard.add(InlineKeyboardButton("🔄 Swap Again", callback_data=f"edit_swap:{team_number}"))
+    keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
 
     bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        text="✅ Team saved successfully!"
+        text=preview,
+        reply_markup=keyboard
     )
 @bot.callback_query_handler(func=lambda call: call.data.startswith("save_team:"))
 def save_team(call):
