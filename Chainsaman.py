@@ -11,6 +11,7 @@ import html
 # Temporary in-memory selection before saving
 temp_team_selection = {}
 swap_selection = {}
+temp_swaps = {}  # {user_id: {"team_number": 1, "first_slot": 0}}
 # Initialize bot with your API key
 API_KEY = '7215821191:AAEzFPwyx8FjlXMr2mpVTbYzpHoMbPsaCDc'
 bot = telebot.TeleBot(API_KEY)
@@ -1478,74 +1479,115 @@ def handle_save_team(call):
     except Exception as e:
         print(f"[SaveTeam Error]\nUser: {call.from_user.id}\nError: {e}")
         bot.answer_callback_query(call.id, "Error saving team.")     
-@bot.callback_query_handler(func=lambda call: call.data.startswith("edit_swap:"))
-def start_swap(call):
+@bot.callback_query_handler(func=lambda call: call.data.startswith("edit_swap"))
+def handle_swap_start(call):
+    user_id = call.from_user.id
+    team_number = int(call.data.split(":")[1]) if ":" in call.data else 1
+
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT slot1, slot2, slot3 FROM teams WHERE user_id = ? AND team_number = ?", (user_id, team_number))
+    team = list(cursor.fetchone() or ["Empty", "Empty", "Empty"])
+    conn.close()
+
+    temp_swaps[user_id] = {"team_number": team_number, "team": team}
+
+    # First slot selection
+    keyboard = InlineKeyboardMarkup()
+    for i, char in enumerate(team):
+        keyboard.add(InlineKeyboardButton(f"{i+1}️⃣ {char}", callback_data=f"swap_from:{team_number}:{i}"))
+    keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
+
+    bot.edit_message_text(
+        call.message.chat.id,
+        call.message.message_id,
+        f"🔄 Choose the character slot to swap FROM:",
+        reply_markup=keyboard
+    )
+@bot.callback_query_handler(func=lambda call: call.data.startswith("swap_from:"))
+def handle_swap_from(call):
+    user_id = call.from_user.id
+    _, team_number, from_index = call.data.split(":")
+    from_index = int(from_index)
+
+    temp_swaps[user_id]["from_index"] = from_index
+
+    team = temp_swaps[user_id]["team"]
+
+    # Show options to swap TO
+    keyboard = InlineKeyboardMarkup()
+    for i, char in enumerate(team):
+        if i != from_index:
+            keyboard.add(InlineKeyboardButton(f"{i+1}️⃣ {char}", callback_data=f"swap_to:{team_number}:{i}"))
+    keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
+
+    bot.edit_message_text(
+        call.message.chat.id,
+        call.message.message_id,
+        "🔁 Choose the character slot to swap TO:",
+        reply_markup=keyboard
+    )    
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("swap_to:"))
+def handle_swap_to(call):
+    user_id = call.from_user.id
+    _, team_number, to_index = call.data.split(":")
+    to_index = int(to_index)
+
+    swap_data = temp_swaps.get(user_id)
+    if not swap_data or "from_index" not in swap_data:
+        return bot.answer_callback_query(call.id, "Invalid swap state.")
+
+    from_index = swap_data["from_index"]
+    team = swap_data["team"]
+
+    # Perform the swap
+    team[from_index], team[to_index] = team[to_index], team[from_index]
+
+    preview = f"✨ Your Swapped Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━"
+    for idx, char in enumerate(team, 1):
+        preview += f"\n{idx}️⃣ {char}"
+    preview += "\n━━━━━━━━━━━━━━━"
+
+    keyboard = InlineKeyboardMarkup()
+    keyboard.add(InlineKeyboardButton("✅ Save", callback_data=f"save_team:{team_number}"))
+    keyboard.add(InlineKeyboardButton("🔄 Swap Again", callback_data=f"edit_swap:{team_number}"))
+    keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
+
+    bot.edit_message_text(
+        call.message.chat.id,
+        call.message.message_id,
+        preview,
+        reply_markup=keyboard
+    )
+@bot.callback_query_handler(func=lambda call: call.data.startswith("save_team:"))
+def save_team(call):
     user_id = call.from_user.id
     team_number = int(call.data.split(":")[1])
-    
-    markup = InlineKeyboardMarkup(row_width=3)
-    for i in range(1, 4):
-        markup.insert(InlineKeyboardButton(f"{i}️⃣", callback_data=f"swap_from:{team_number}:{i}"))
-    markup.add(InlineKeyboardButton("Cancel", callback_data=f"edit_add:{team_number}:1"))
+
+    if user_id not in temp_swaps:
+        return bot.answer_callback_query(call.id, "No swap to save.")
+
+    team = temp_swaps[user_id]["team"]
+
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO teams (user_id, team_number, slot1, slot2, slot3)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, team_number) DO UPDATE SET
+            slot1 = excluded.slot1,
+            slot2 = excluded.slot2,
+            slot3 = excluded.slot3
+    ''', (user_id, team_number, team[0], team[1], team[2]))
+    conn.commit()
+    conn.close()
+
+    del temp_swaps[user_id]
 
     bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        text="Select the character slot you want to swap *from*:",
-        reply_markup=markup,
-        parse_mode="Markdown"
-    )       
-@bot.callback_query_handler(func=lambda call: call.data.startswith("swap_from:"))
-def select_swap_from(call):
-    _, team_number, from_slot = call.data.split(":")
-    user_id = call.from_user.id
-    team_number = int(team_number)
-    from_slot = int(from_slot)
-
-    swap_selection[user_id] = {"team": team_number, "from": from_slot}
-
-    markup = InlineKeyboardMarkup(row_width=3)
-    for i in range(1, 4):
-        markup.insert(InlineKeyboardButton(f"{i}️⃣", callback_data=f"swap_to:{team_number}:{i}"))
-    markup.add(InlineKeyboardButton("Cancel", callback_data=f"edit_add:{team_number}:1"))
-
-    bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        text="Select the character slot you want to swap *to*:",
-        reply_markup=markup,
-        parse_mode="Markdown"
-    )
-@bot.callback_query_handler(func=lambda call: call.data.startswith("swap_to:"))
-def perform_swap(call):
-    _, team_number, to_slot = call.data.split(":")
-    user_id = call.from_user.id
-    team_number = int(team_number)
-    to_slot = int(to_slot)
-
-    key = (user_id, team_number)
-    if user_id not in swap_selection or key not in temp_teams:
-        bot.answer_callback_query(call.id, "Swap session expired.")
-        return
-
-    from_slot = swap_selection[user_id]["from"]
-    team = temp_teams.get(key, ["Empty", "Empty", "Empty"])
-
-    team[from_slot - 1], team[to_slot - 1] = team[to_slot - 1], team[from_slot - 1]
-    temp_teams[key] = team
-    swap_selection.pop(user_id, None)
-
-    # Regenerate the interface
-    text = f"✨ Your Current Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━"
-    for idx, name in enumerate(team, 1):
-        text += f"\n{idx}️⃣ {name}"
-    text += "\n━━━━━━━━━━━━━━━"
-
-    markup = generate_add_team_interface(user_id, team_number)
-    bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        text=text,
-        reply_markup=markup
-    )    
+        text="✅ Team saved successfully!"
+)    
 bot.polling(none_stop=True)
