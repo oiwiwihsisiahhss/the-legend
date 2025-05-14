@@ -1585,23 +1585,23 @@ def save_team(call):
 
     swap_data = temp_swaps.get(user_id)
 
-    # Check if user has made a swap
     if not swap_data or not swap_data.get("modified"):
-        return bot.answer_callback_query(call.id, "⚠️ No changes made to the team.")
+        return bot.answer_callback_query(call.id, "⚠️ You haven't swapped any characters.")
 
-    team = swap_data["team"]
+    new_team_order = swap_data["team"]
 
-    # Save team to database
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
+
+    # Just update the slots of the existing team
     cursor.execute('''
-        INSERT INTO teams (user_id, team_number, slot1, slot2, slot3)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(user_id, team_number) DO UPDATE SET
-            slot1 = excluded.slot1,
-            slot2 = excluded.slot2,
-            slot3 = excluded.slot3
-    ''', (user_id, team_number, team[0], team[1], team[2]))
+        UPDATE teams SET
+            slot1 = ?,
+            slot2 = ?,
+            slot3 = ?
+        WHERE user_id = ? AND team_number = ?
+    ''', (new_team_order[0], new_team_order[1], new_team_order[2], user_id, team_number))
+
     conn.commit()
     conn.close()
 
@@ -1610,6 +1610,6 @@ def save_team(call):
     bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        text="✅ Team saved successfully!"
+        text="✅ Your team's order has been updated!"
     )
 bot.polling(none_stop=True)
