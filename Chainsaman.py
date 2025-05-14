@@ -1578,26 +1578,23 @@ def handle_swap_to(call):
         reply_markup=keyboard
     )
 @bot.callback_query_handler(func=lambda call: call.data.startswith("team_save:"))
-def save_team(call):
+def handle_team_save(call):
     user_id = call.from_user.id
     team_number = int(call.data.split(":")[1])
 
     swap_data = temp_swaps.get(user_id)
-    if not swap_data or not swap_data.get("modified"):
-        return bot.answer_callback_query(call.id, "⚠️ No changes made to the team.")
+    if not swap_data or "modified" not in swap_data:
+        return bot.answer_callback_query(call.id, "Nothing to save.")
 
     team = swap_data["team"]
 
-    # Only update the slot order — no new team insertions
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
-    cursor.execute('''
-        UPDATE teams SET
-            slot1 = ?,
-            slot2 = ?,
-            slot3 = ?
+    cursor.execute("""
+        UPDATE teams
+        SET slot1 = ?, slot2 = ?, slot3 = ?
         WHERE user_id = ? AND team_number = ?
-    ''', (team[0], team[1], team[2], user_id, team_number))
+    """, (team[0], team[1], team[2], user_id, team_number))
     conn.commit()
     conn.close()
 
@@ -1606,6 +1603,7 @@ def save_team(call):
     bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        text="✅ Your team’s order has been updated!"
+        text=f"✅ Team {team_number} has been saved successfully!"
     )
+    bot.answer_callback_query(call.id, "Team saved!")
 bot.polling(none_stop=True)
