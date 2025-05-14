@@ -232,6 +232,13 @@ def set_main_team(user_id, team_number):
     conn.close()
 
 # Function to get the user's main team
+def get_team_character_ids(user_id, team_number):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT character_id FROM user_teams WHERE user_id = ? AND team_number = ? ORDER BY slot', (user_id, team_number))
+    chars = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return chars
 def get_main_team(user_id):
     conn = get_connection()
     cursor = conn.cursor()
@@ -1137,12 +1144,18 @@ def return_to_stats(call):
 @bot.callback_query_handler(func=lambda call: call.data.startswith("team"))
 def handle_team_selection(call):
     user_id = call.from_user.id
-    team_number = int(call.data[-1])  # Extract team number from "team1" to "team5"
+    team_number = int(call.data[-1])
 
     current_main = get_main_team(user_id)
     if team_number == current_main:
-        bot.answer_callback_query(call.id, "⚠️ You have already set this team as your main team.", show_alert=True)
-        return
+        selected_team = get_team_character_ids(user_id, team_number)
+        current_team = get_team_character_ids(user_id, current_main)
+
+        if selected_team == current_team:
+            bot.answer_callback_query(call.id, "⚠️ You have already set this team as your main team.", show_alert=True)
+            return
+
+    # Proceed with setting the team...
     else:
         set_main_team(user_id, team_number)
 
