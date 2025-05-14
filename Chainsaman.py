@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import html
 # Temporary in-memory selection before saving
 temp_team_selection = {}
+swap_selection = {}
 # Initialize bot with your API key
 API_KEY = '7215821191:AAEzFPwyx8FjlXMr2mpVTbYzpHoMbPsaCDc'
 bot = telebot.TeleBot(API_KEY)
@@ -1476,5 +1477,75 @@ def handle_save_team(call):
         bot.edit_message_text("✅ Team saved successfully!", call.message.chat.id, call.message.message_id)
     except Exception as e:
         print(f"[SaveTeam Error]\nUser: {call.from_user.id}\nError: {e}")
-        bot.answer_callback_query(call.id, "Error saving team.")        
+        bot.answer_callback_query(call.id, "Error saving team.")     
+@bot.callback_query_handler(func=lambda call: call.data.startswith("edit_swap:"))
+def start_swap(call):
+    user_id = call.from_user.id
+    team_number = int(call.data.split(":")[1])
+    
+    markup = InlineKeyboardMarkup(row_width=3)
+    for i in range(1, 4):
+        markup.insert(InlineKeyboardButton(f"{i}️⃣", callback_data=f"swap_from:{team_number}:{i}"))
+    markup.add(InlineKeyboardButton("Cancel", callback_data=f"edit_add:{team_number}:1"))
+
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="Select the character slot you want to swap *from*:",
+        reply_markup=markup,
+        parse_mode="Markdown"
+    )       
+@bot.callback_query_handler(func=lambda call: call.data.startswith("swap_from:"))
+def select_swap_from(call):
+    _, team_number, from_slot = call.data.split(":")
+    user_id = call.from_user.id
+    team_number = int(team_number)
+    from_slot = int(from_slot)
+
+    swap_selection[user_id] = {"team": team_number, "from": from_slot}
+
+    markup = InlineKeyboardMarkup(row_width=3)
+    for i in range(1, 4):
+        markup.insert(InlineKeyboardButton(f"{i}️⃣", callback_data=f"swap_to:{team_number}:{i}"))
+    markup.add(InlineKeyboardButton("Cancel", callback_data=f"edit_add:{team_number}:1"))
+
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="Select the character slot you want to swap *to*:",
+        reply_markup=markup,
+        parse_mode="Markdown"
+    )
+@bot.callback_query_handler(func=lambda call: call.data.startswith("swap_to:"))
+def perform_swap(call):
+    _, team_number, to_slot = call.data.split(":")
+    user_id = call.from_user.id
+    team_number = int(team_number)
+    to_slot = int(to_slot)
+
+    key = (user_id, team_number)
+    if user_id not in swap_selection or key not in temp_teams:
+        bot.answer_callback_query(call.id, "Swap session expired.")
+        return
+
+    from_slot = swap_selection[user_id]["from"]
+    team = temp_teams.get(key, ["Empty", "Empty", "Empty"])
+
+    team[from_slot - 1], team[to_slot - 1] = team[to_slot - 1], team[from_slot - 1]
+    temp_teams[key] = team
+    swap_selection.pop(user_id, None)
+
+    # Regenerate the interface
+    text = f"✨ Your Current Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━"
+    for idx, name in enumerate(team, 1):
+        text += f"\n{idx}️⃣ {name}"
+    text += "\n━━━━━━━━━━━━━━━"
+
+    markup = generate_add_team_interface(user_id, team_number)
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=text,
+        reply_markup=markup
+    )    
 bot.polling(none_stop=True)
