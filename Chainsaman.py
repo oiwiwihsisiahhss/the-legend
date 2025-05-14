@@ -1479,6 +1479,10 @@ def handle_save_team(call):
     except Exception as e:
         print(f"[SaveTeam Error]\nUser: {call.from_user.id}\nError: {e}")
         bot.answer_callback_query(call.id, "Error saving team.")     
+
+
+
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_swap"))
 def handle_swap_start(call):
     user_id = call.from_user.id
@@ -1492,41 +1496,50 @@ def handle_swap_start(call):
 
     temp_swaps[user_id] = {"team_number": team_number, "team": team}
 
-    # First slot selection
     keyboard = InlineKeyboardMarkup()
     for i, char in enumerate(team):
         keyboard.add(InlineKeyboardButton(f"{i+1}️⃣ {char}", callback_data=f"swap_from:{team_number}:{i}"))
     keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
 
-    bot.edit_message_text(
-        call.message.chat.id,
-        call.message.message_id,
-        f"🔄 Choose the character slot to swap FROM:",
-        reply_markup=keyboard
-    )
+    try:
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="🔄 Choose the character slot to swap FROM:",
+            reply_markup=keyboard
+        )
+    except Exception as e:
+        print("Error editing message:", e)
+
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("swap_from:"))
 def handle_swap_from(call):
     user_id = call.from_user.id
     _, team_number, from_index = call.data.split(":")
     from_index = int(from_index)
 
-    temp_swaps[user_id]["from_index"] = from_index
+    if user_id not in temp_swaps:
+        return bot.answer_callback_query(call.id, "No team found to swap.")
 
+    temp_swaps[user_id]["from_index"] = from_index
     team = temp_swaps[user_id]["team"]
 
-    # Show options to swap TO
     keyboard = InlineKeyboardMarkup()
     for i, char in enumerate(team):
         if i != from_index:
             keyboard.add(InlineKeyboardButton(f"{i+1}️⃣ {char}", callback_data=f"swap_to:{team_number}:{i}"))
     keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
 
-    bot.edit_message_text(
-        call.message.chat.id,
-        call.message.message_id,
-        "🔁 Choose the character slot to swap TO:",
-        reply_markup=keyboard
-    )    
+    try:
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="🔁 Choose the character slot to swap TO:",
+            reply_markup=keyboard
+        )
+    except Exception as e:
+        print("Error editing message:", e)
+
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("swap_to:"))
 def handle_swap_to(call):
@@ -1541,7 +1554,6 @@ def handle_swap_to(call):
     from_index = swap_data["from_index"]
     team = swap_data["team"]
 
-    # Perform the swap
     team[from_index], team[to_index] = team[to_index], team[from_index]
 
     preview = f"✨ Your Swapped Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━"
@@ -1554,12 +1566,17 @@ def handle_swap_to(call):
     keyboard.add(InlineKeyboardButton("🔄 Swap Again", callback_data=f"edit_swap:{team_number}"))
     keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
 
-    bot.edit_message_text(
-        call.message.chat.id,
-        call.message.message_id,
-        preview,
-        reply_markup=keyboard
-    )
+    try:
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=preview,
+            reply_markup=keyboard
+        )
+    except Exception as e:
+        print("Error editing message:", e)
+
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("save_team:"))
 def save_team(call):
     user_id = call.from_user.id
@@ -1585,9 +1602,13 @@ def save_team(call):
 
     del temp_swaps[user_id]
 
-    bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        text="✅ Team saved successfully!"
-)    
+    try:
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="✅ Team saved successfully!"
+        )
+    except Exception as e:
+        print("Error editing message:", e)
+
 bot.polling(none_stop=True)
