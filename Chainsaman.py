@@ -8,7 +8,7 @@ from telebot import types
 from datetime import datetime, timedelta
 
 import html
-# Temporary in-memory selection before saving
+# Temporary in-memory sel pgection before saving
 temp_team_selection = {}
 swap_selection = {}
 temp_swaps = {}  # {user_id: {"team_number": 1, "first_slot": 0}}
@@ -1142,27 +1142,11 @@ def return_to_stats(call):
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("team"))
-@bot.callback_query_handler(func=lambda call: call.data.startswith("team"))
 def handle_team_selection(call):
     user_id = call.from_user.id
     team_number = int(call.data[-1])  # Extract team number from "team1" to "team5"
 
     current_main = get_main_team(user_id)
-
-    # Fetch swapped team data from memory (or wherever your temp swap is stored)
-    swapped_team = user_swaps.get(user_id)  # Example structure: ['charA', 'charB', 'charC']
-
-    if swapped_team:
-        # Save the swapped team to the database
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE teams SET slot1 = ?, slot2 = ?, slot3 = ?
-            WHERE user_id = ? AND team_number = ?
-        ''', (swapped_team[0], swapped_team[1], swapped_team[2], user_id, team_number))
-        conn.commit()
-        conn.close()
-
     selected_team = get_team_character_ids(user_id, team_number)
     current_team = get_team_character_ids(user_id, current_main)
 
@@ -1181,11 +1165,8 @@ def handle_team_selection(call):
     conn.commit()
     conn.close()
 
+    set_main_team(user_id, team_number)  # Store in-memory or wherever needed
     bot.answer_callback_query(call.id, f"✅ Team {team_number} is now your main team!", show_alert=True)
-
-    # Proceed with setting the team...
-    else:
-        set_main_team(user_id, team_number)
 
     team = get_user_team(user_id, team_number)
 
@@ -1210,11 +1191,9 @@ def handle_team_selection(call):
     markup.add(*row3)
 
     if call.message.chat.type == 'private':
-        row4 = [types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team")]
-        markup.add(*row4)
+        markup.add(types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team"))
 
-    close_button = types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}")
-    markup.add(close_button)
+    markup.add(types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}"))
 
     bot.edit_message_text(
         chat_id=call.message.chat.id,
