@@ -1142,18 +1142,46 @@ def return_to_stats(call):
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("team"))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("team"))
 def handle_team_selection(call):
     user_id = call.from_user.id
-    team_number = int(call.data[-1])
+    team_number = int(call.data[-1])  # Extract team number from "team1" to "team5"
 
     current_main = get_main_team(user_id)
-    if team_number == current_main:
-        selected_team = get_team_character_ids(user_id, team_number)
-        current_team = get_team_character_ids(user_id, current_main)
 
+    # Fetch swapped team data from memory (or wherever your temp swap is stored)
+    swapped_team = user_swaps.get(user_id)  # Example structure: ['charA', 'charB', 'charC']
+
+    if swapped_team:
+        # Save the swapped team to the database
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE teams SET slot1 = ?, slot2 = ?, slot3 = ?
+            WHERE user_id = ? AND team_number = ?
+        ''', (swapped_team[0], swapped_team[1], swapped_team[2], user_id, team_number))
+        conn.commit()
+        conn.close()
+
+    selected_team = get_team_character_ids(user_id, team_number)
+    current_team = get_team_character_ids(user_id, current_main)
+
+    if team_number == current_main:
         if selected_team == current_team:
             bot.answer_callback_query(call.id, "⚠️ You have already set this team as your main team.", show_alert=True)
             return
+
+    # Update the main team
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR REPLACE INTO user_team_selection (user_id, current_team)
+        VALUES (?, ?)
+    ''', (user_id, team_number))
+    conn.commit()
+    conn.close()
+
+    bot.answer_callback_query(call.id, f"✅ Team {team_number} is now your main team!", show_alert=True)
 
     # Proceed with setting the team...
     else:
