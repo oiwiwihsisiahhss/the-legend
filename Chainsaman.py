@@ -1648,4 +1648,53 @@ def handle_team_save(call):
         text=f"✅ Team {team_number} has been saved successfully!"
     )
     bot.answer_callback_query(call.id, "Team saved!")
+@bot.callback_query_handler(func=lambda call: call.data.startswith("edit_remove:"))
+def handle_remove_char(call):
+    user_id = call.from_user.id
+    _, team_number, slot_index = call.data.split(":")
+    team_number = int(team_number)
+    slot_index = int(slot_index)
+
+    slot_names = ['slot1', 'slot2', 'slot3']
+    slot_column = slot_names[slot_index]
+
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+
+    # Update slot to NULL (or use "Empty" string if preferred)
+    cursor.execute(f'''
+        UPDATE teams
+        SET {slot_column} = NULL
+        WHERE user_id = ? AND team_number = ?
+    ''', (user_id, team_number))
+    conn.commit()
+
+    # Fetch updated team
+    cursor.execute('SELECT slot1, slot2, slot3 FROM teams WHERE user_id = ? AND team_number = ?', (user_id, team_number))
+    row = cursor.fetchone()
+    conn.close()
+
+    team = [char if char else "Empty" for char in row]
+
+    # Build preview message
+    preview = f"✨ Team {team_number} after removal ✨\n━━━━━━━━━━━━━━━"
+    for idx, char in enumerate(team, 1):
+        preview += f"\n{idx}️⃣ {char}"
+    preview += "\n━━━━━━━━━━━━━━━"
+
+    # Add buttons to swap or remove again
+    keyboard = InlineKeyboardMarkup()
+    for idx, _ in enumerate(team):
+        keyboard.add(InlineKeyboardButton(f"❌ Remove Slot {idx + 1}", callback_data=f"remove_char:{team_number}:{idx}"))
+    keyboard.add(InlineKeyboardButton("🔄 Swap", callback_data=f"edit_swap:{team_number}"))
+    keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
+
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=preview,
+        reply_markup=keyboard
+    )
+
+    bot.answer_callback_query(call.id, f"Removed character from slot {slot_index + 1}.")    
 bot.polling(none_stop=True)
