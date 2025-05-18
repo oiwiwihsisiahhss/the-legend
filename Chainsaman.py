@@ -1144,18 +1144,15 @@ def return_to_stats(call):
 @bot.callback_query_handler(func=lambda call: call.data.startswith("team"))
 def handle_team_selection(call):
     user_id = call.from_user.id
-    team_number = int(call.data[-1])  # Extract team number from "team1" to "team5"
+    team_number = int(call.data[-1])  # team1 to team5 → number
 
     current_main = get_main_team(user_id)
-    selected_team = get_team_character_ids(user_id, team_number)
-    current_team = get_team_character_ids(user_id, current_main)
 
     if team_number == current_main:
-        if selected_team == current_team:
-            bot.answer_callback_query(call.id, "⚠️ You have already set this team as your main team.", show_alert=True)
-            return
+        bot.answer_callback_query(call.id, "⚠️ You have already set this team as your main team.", show_alert=True)
+        return
 
-    # Update the main team
+    # Update the main team in database
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -1165,7 +1162,8 @@ def handle_team_selection(call):
     conn.commit()
     conn.close()
 
-    set_main_team(user_id, team_number)  # Store in-memory or wherever needed
+    set_main_team(user_id, team_number)  # Update in any in-memory dict if needed
+
     bot.answer_callback_query(call.id, f"✅ Team {team_number} is now your main team!", show_alert=True)
 
     team = get_user_team(user_id, team_number)
