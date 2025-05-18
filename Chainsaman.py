@@ -1212,7 +1212,7 @@ def handle_edit_team_callback(call):
         markup = types.InlineKeyboardMarkup(row_width=2)
         markup.add(
             types.InlineKeyboardButton("➕ Add", callback_data=f"edit_add:{selected_team_number}:{prev_page}"),
-            types.InlineKeyboardButton("🚫 Remove", callback_data="edit_remove")
+            types.InlineKeyboardButton("🚫 Remove", callback_data=f"remove_slot:{team_number}:{slot_index}")
         )
         markup.add(
             types.InlineKeyboardButton("🔄 Swap", callback_data="edit_swap"),
