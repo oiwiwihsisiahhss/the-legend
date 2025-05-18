@@ -1565,27 +1565,49 @@ def handle_swap_to(call):
     user_id = call.from_user.id
     _, team_number, to_index = call.data.split(":")
     to_index = int(to_index)
+    team_number = int(team_number)
 
-    swap_data = temp_swaps.get(user_id)
-    if not swap_data or "from_index" not in swap_data:
-        return bot.answer_callback_query(call.id, "Invalid swap state.")
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
 
-    from_index = swap_data["from_index"]
-    team = swap_data["team"]
+    # Get current team from database
+    cursor.execute('SELECT slot1, slot2, slot3 FROM teams WHERE user_id = ? AND team_number = ?', (user_id, team_number))
+    row = cursor.fetchone()
+    if not row:
+        bot.answer_callback_query(call.id, "Team not found.")
+        conn.close()
+        return
 
-    # Swap characters
+    team = list(row)
+    from_index = temp_swaps.get(user_id, {}).get("from_index")
+    if from_index is None:
+        bot.answer_callback_query(call.id, "Invalid swap state.")
+        conn.close()
+        return
+
+    # Perform the swap
     team[from_index], team[to_index] = team[to_index], team[from_index]
-    temp_swaps[user_id]["team"] = team
-    temp_swaps[user_id]["modified"] = True
 
-    # Show updated team
-    preview = f"✨ Your Swapped Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━"
+    # Update database with new team order
+    cursor.execute('''
+        UPDATE teams
+        SET slot1 = ?, slot2 = ?, slot3 = ?
+        WHERE user_id = ? AND team_number = ?
+    ''', (team[0], team[1], team[2], user_id, team_number))
+    conn.commit()
+    conn.close()
+
+    # Clean up temp_swaps
+    del temp_swaps[user_id]
+
+    # Build new team preview message
+    preview = f"✨ Team {team_number} updated successfully! ✨\n━━━━━━━━━━━━━━━"
     for idx, char in enumerate(team, 1):
         preview += f"\n{idx}️⃣ {char}"
     preview += "\n━━━━━━━━━━━━━━━"
 
+    # Provide only option to go back or edit again
     keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton("✅ Confirm Swap", callback_data=f"team_save:{team_number}"))
     keyboard.add(InlineKeyboardButton("🔄 Swap Again", callback_data=f"edit_swap:{team_number}"))
     keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
 
@@ -1595,6 +1617,8 @@ def handle_swap_to(call):
         text=preview,
         reply_markup=keyboard
     )
+
+    bot.answer_callback_query(call.id, "Team updated!")
 @bot.callback_query_handler(func=lambda call: call.data.startswith("team_save:"))
 def handle_team_save(call):
     user_id = call.from_user.id
