@@ -1212,8 +1212,8 @@ def handle_edit_team_callback(call):
         markup = types.InlineKeyboardMarkup(row_width=2)
         markup.add(
             types.InlineKeyboardButton("➕ Add", callback_data=f"edit_add:{selected_team_number}:{prev_page}"),
-            types.InlineKeyboardButton("🚫 Remove", callback_data=f"remove_slot:{team_number}:{slot_index}")
-        )
+            types.InlineKeyboardButton("🚫 Remove", callback_data=f"edit_remove:{selected_team_number}")
+       )
         markup.add(
             types.InlineKeyboardButton("🔄 Swap", callback_data="edit_swap"),
             types.InlineKeyboardButton("↪️ Back", callback_data="edit_back")
@@ -1649,52 +1649,56 @@ def handle_team_save(call):
     )
     bot.answer_callback_query(call.id, "Team saved!")
 @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_remove:"))
-def handle_remove_char(call):
+def handle_remove_menu(call):
+    user_id = call.from_user.id
+    team_number = int(call.data.split(":")[1])
+
+    # Fetch team from DB
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT slot1, slot2, slot3 FROM teams WHERE user_id = ? AND team_number = ?", (user_id, team_number))
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        return bot.answer_callback_query(call.id, "Team not found.")
+
+    # Check if all slots are empty
+    if all(char is None or char.strip() == "" for char in row):
+        return bot.answer_callback_query(call.id, "No character to remove.")
+
+    # Build remove options
+    markup = types.InlineKeyboardMarkup()
+    for idx, char in enumerate(row):
+        if char:
+            markup.add(types.InlineKeyboardButton(f"❌ Remove {char}", callback_data=f"remove_slot:{team_number}:{idx}"))
+    markup.add(types.InlineKeyboardButton("↪️ Back", callback_data="edit_team"))
+
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="Select a character to remove:",
+        reply_markup=markup
+    )
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("remove_slot:"))
+def handle_remove_slot(call):
     user_id = call.from_user.id
     _, team_number, slot_index = call.data.split(":")
     team_number = int(team_number)
     slot_index = int(slot_index)
 
-    slot_names = ['slot1', 'slot2', 'slot3']
-    slot_column = slot_names[slot_index]
-
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
-
-    # Update slot to NULL (or use "Empty" string if preferred)
-    cursor.execute(f'''
-        UPDATE teams
-        SET {slot_column} = NULL
-        WHERE user_id = ? AND team_number = ?
-    ''', (user_id, team_number))
+    slot_field = f"slot{slot_index+1}"
+    cursor.execute(f"UPDATE teams SET {slot_field} = NULL WHERE user_id = ? AND team_number = ?", (user_id, team_number))
     conn.commit()
-
-    # Fetch updated team
-    cursor.execute('SELECT slot1, slot2, slot3 FROM teams WHERE user_id = ? AND team_number = ?', (user_id, team_number))
-    row = cursor.fetchone()
     conn.close()
 
-    team = [char if char else "Empty" for char in row]
-
-    # Build preview message
-    preview = f"✨ Team {team_number} after removal ✨\n━━━━━━━━━━━━━━━"
-    for idx, char in enumerate(team, 1):
-        preview += f"\n{idx}️⃣ {char}"
-    preview += "\n━━━━━━━━━━━━━━━"
-
-    # Add buttons to swap or remove again
-    keyboard = InlineKeyboardMarkup()
-    for idx, _ in enumerate(team):
-        keyboard.add(InlineKeyboardButton(f"❌ Remove Slot {idx + 1}", callback_data=f"remove_char:{team_number}:{idx}"))
-    keyboard.add(InlineKeyboardButton("🔄 Swap", callback_data=f"edit_swap:{team_number}"))
-    keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
-
+    bot.answer_callback_query(call.id, "Character removed.")
     bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        text=preview,
-        reply_markup=keyboard
+        text="✅ Character removed from the team."
     )
-
-    bot.answer_callback_query(call.id, f"Removed character from slot {slot_index + 1}.")    
 bot.polling(none_stop=True)
