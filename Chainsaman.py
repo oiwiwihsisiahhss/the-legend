@@ -1664,10 +1664,9 @@ def handle_remove_menu(call):
         return bot.answer_callback_query(call.id, "Team not found.")
 
     # Check if all slots are empty
-    if all(char is None or char.strip() == "" for char in row):
-        return bot.answer_callback_query(call.id, "No character to remove.")
-
-    # Build remove options
+    # Check if all slots are empty
+    if all(char in (None, '', 'None') for char in row):
+        return bot.answer_callback_query(call.id, "No character to remove.")# Build remove options
     markup = types.InlineKeyboardMarkup()
     for idx, char in enumerate(row):
         if char:
