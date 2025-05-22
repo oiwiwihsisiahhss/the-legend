@@ -1279,7 +1279,6 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Get all owned characters
     cursor.execute('''
         SELECT cbs.name
         FROM user_characters uc
@@ -1288,7 +1287,6 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
     ''', (user_id,))
     all_chars = sorted([row[0] for row in cursor.fetchall()])
 
-    # Get current team composition
     cursor.execute('''
         SELECT slot1, slot2, slot3
         FROM teams
@@ -1296,13 +1294,14 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
     ''', (user_id, team_number))
     team = cursor.fetchone() or ("Empty", "Empty", "Empty")
 
-    # Build selected character set, excluding 'Empty'
-    selected_chars = set(temp_selected if temp_selected else filter(lambda x: x and x != "Empty", team))
+    # FIXED: use up-to-date team if temp_selected is None
+    if temp_selected:
+        selected_chars = set(filter(lambda x: x and x != "Empty", temp_selected))
+    else:
+        selected_chars = set(filter(lambda x: x and x != "Empty", team))
 
-    # Filter out already selected characters from the add list
     available_chars = [name for name in all_chars if name not in selected_chars]
 
-    # Pagination
     per_page = 6
     total_pages = max(1, (len(available_chars) + per_page - 1) // per_page)
     page = max(1, min(page, total_pages))
@@ -1310,7 +1309,6 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
     end = start + per_page
     visible_chars = available_chars[start:end]
 
-    # Build keyboard
     keyboard = InlineKeyboardMarkup(row_width=2)
     buttons = []
     for name in visible_chars:
