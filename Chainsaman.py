@@ -201,6 +201,48 @@ def create_table():
 #import sqlite3
 
 # Establishing database connection
+def generate_team_stats_text(user_id, team_number):
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT slot1, slot2, slot3 FROM teams
+        WHERE user_id = ? AND team_number = ?
+    """, (user_id, team_number))
+    slots = cursor.fetchone() or ("Empty", "Empty", "Empty")
+
+    stats = {"attack": 0, "defense": 0, "speed": 0}
+    count = 3  # Always divide by 3 since "Empty" counts as 0
+
+    for char_name in slots:
+        if char_name and char_name != "Empty":
+            cursor.execute("""
+                SELECT attack, defense, speed FROM character_base_stats
+                WHERE name = ?
+            """, (char_name,))
+            row = cursor.fetchone()
+            if row:
+                stats["attack"] += row[0]
+                stats["defense"] += row[1]
+                stats["speed"] += row[2]
+    
+    conn.close()
+
+    avg_attack = stats["attack"] // count
+    avg_defense = stats["defense"] // count
+    avg_speed = stats["speed"] // count
+
+    def make_bar(value):
+        filled = int(value / 10)
+        empty = 10 - filled
+        return "▓" * filled + "░" * empty
+
+    return (
+        "📊 Team Stats Overview:\n"
+        f"⚔️ Attack: {avg_attack}  {make_bar(avg_attack)}\n"
+        f"🛡 Defense: {avg_defense}  {make_bar(avg_defense)}\n"
+        f"⚡ Speed: {avg_speed}  {make_bar(avg_speed)}"
+    )
 def get_connection():
     return sqlite3.connect('chainsaw.db', check_same_thread=False)
 
@@ -265,20 +307,20 @@ def set_user_team(user_id, team_number, slot1, slot2, slot3):
 def my_team(message):
     user_id = message.from_user.id
 
-    # Get the user's last selected team
     selected_team_number = get_main_team(user_id)
-    
-    # Get the team details based on the selected team number
     team = get_user_team(user_id, team_number=selected_team_number)
 
-    # Generate team display text
+    # Team display text
     team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     for i, char in enumerate(team, start=1):
         team_text += f"<b>{i}\uFE0F\u20E3 {char}</b>\n"
-    team_text += "━━━━━━━━━━━━━━━"
+    team_text += "━━━━━━━━━━━━━━━\n"
 
-    # Inline keyboard for team selection
+    # Add stats overview
+    team_text += generate_team_stats_text(user_id, selected_team_number)
+
+    # Inline keyboard
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
         types.InlineKeyboardButton("Team 1⃣", callback_data="team1"),
@@ -290,15 +332,12 @@ def my_team(message):
     )
     markup.add(types.InlineKeyboardButton("Team 5⃣", callback_data="team5"))
 
-    # If the chat is private, allow editing the team
     if message.chat.type == 'private':
         markup.add(types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team"))
-    
-    # Close button (user-specific callback_data)
+
     close_button = types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}")
     markup.add(close_button)
 
-    # Send the message with the team info and the inline keyboard
     bot.send_message(
         message.chat.id,
         team_text,
