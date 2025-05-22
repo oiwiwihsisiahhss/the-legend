@@ -1682,12 +1682,13 @@ def handle_remove_menu(call):
         return bot.answer_callback_query(call.id, "Team not found.")
 
     # Check if all slots are empty
-    # Check if all slots are empty
-    if all(char in (None, '', 'None') for char in row):
-        return bot.answer_callback_query(call.id, "No character to remove.")# Build remove options
+    if all(char.lower() in ("empty", "", "none") for char in row if char):
+        return bot.answer_callback_query(call.id, "No character to remove.")
+
+    # Build remove options
     markup = types.InlineKeyboardMarkup()
     for idx, char in enumerate(row):
-        if char:
+        if char and char.lower() not in ("empty", "", "none"):
             markup.add(types.InlineKeyboardButton(f"❌ Remove {char}", callback_data=f"remove_slot:{team_number}:{idx}"))
     markup.add(types.InlineKeyboardButton("↪️ Back", callback_data="edit_team"))
 
@@ -1697,6 +1698,7 @@ def handle_remove_menu(call):
         text="Select a character to remove:",
         reply_markup=markup
     )
+
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("remove_slot:"))
 def handle_remove_slot(call):
@@ -1715,24 +1717,27 @@ def handle_remove_slot(call):
         return bot.answer_callback_query(call.id, "Team not found.")
 
     team = list(row)
-    current_char = team[slot_index]
 
-    if current_char.lower() == "empty":
+    # If already empty, skip
+    if team[slot_index].lower() in ("empty", "", "none"):
         conn.close()
         return bot.answer_callback_query(call.id, f"Slot {slot_index + 1} is already empty!")
 
-    # Set to 'empty'
-    team[slot_index] = "empty"
+    # Remove the character and shift remaining characters left
+    new_team = [char for char in team if char.lower() not in ("empty", "", "none")]
+    new_team.pop(slot_index)  # Remove the character at given slot
+    while len(new_team) < 3:
+        new_team.append("Empty")
+
     cursor.execute("""
         UPDATE teams
         SET slot1 = ?, slot2 = ?, slot3 = ?
         WHERE user_id = ? AND team_number = ?
-    """, (team[0], team[1], team[2], user_id, team_number))
+    """, (*new_team, user_id, team_number))
     conn.commit()
     conn.close()
 
     bot.answer_callback_query(call.id, f"Removed character from slot {slot_index + 1}.")
-
     # Optionally refresh the edit view
     # refresh_edit_team_view(user_id, team_number, call.message)  # If you have this
 bot.polling(none_stop=True)
