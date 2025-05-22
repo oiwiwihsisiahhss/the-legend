@@ -1416,11 +1416,11 @@ def update_team_message(user_id, team_number, message_id, chat_id):
 
     try:
         bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=message_id,
-            text=updated_text,
-            reply_markup=keyboard
-        )
+    chat_id=call.message.chat.id,
+    message_id=call.message.message_id,
+    text=team_message,
+    reply_markup=generate_add_team_interface(user_id, team_number, page, temp_selected=team)
+)
     except Exception as e:
         print(f"[Update Team Error] {e}")
 @bot.callback_query_handler(func=lambda call: call.data.startswith("selectchar:"))
