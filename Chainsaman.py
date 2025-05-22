@@ -1682,67 +1682,39 @@ def handle_remove_menu(call):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("remove_slot:"))
 def handle_remove_slot(call):
-    try:
-        _, team_number, slot_index = call.data.split(":")
-        team_number = int(team_number)
-        slot_index = int(slot_index)
-        user_id = call.from_user.id
+    user_id = call.from_user.id
+    _, team_number, slot_index = call.data.split(":")
+    team_number = int(team_number)
+    slot_index = int(slot_index)
 
-        conn = sqlite3.connect("chainsaw.db")
-        cursor = conn.cursor()
-        cursor.execute('SELECT slot1, slot2, slot3 FROM teams WHERE user_id = ? AND team_number = ?', (user_id, team_number))
-        row = cursor.fetchone()
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
 
-        if not row:
-            conn.close()
-            return bot.answer_callback_query(call.id, "Team not found.")
-
-        # Check if the selected slot is empty
-        current_char = row[slot_index]
-        if current_char in (None, '', 'None'):
-            conn.close()
-            return bot.answer_callback_query(call.id, f"Slot {slot_index + 1} is already empty!")
-
-        # Set the selected slot to empty
-        slots = list(row)
-        slots[slot_index] = None
-        cursor.execute('''
-            UPDATE teams
-            SET slot1 = ?, slot2 = ?, slot3 = ?
-            WHERE user_id = ? AND team_number = ?
-        ''', (slots[0], slots[1], slots[2], user_id, team_number))
-        conn.commit()
+    cursor.execute("SELECT slot1, slot2, slot3 FROM teams WHERE user_id = ? AND team_number = ?", (user_id, team_number))
+    row = cursor.fetchone()
+    if not row:
         conn.close()
+        return bot.answer_callback_query(call.id, "Team not found.")
 
-        # Confirm removal
-        bot.answer_callback_query(call.id, f"Removed character from slot {slot_index + 1}.")
+    team = list(row)
+    current_char = team[slot_index]
 
-        # Optionally update the team preview
-        preview = f"✨ Updated Team {team_number} ✨\n━━━━━━━━━━━━━━━"
-        for idx, char in enumerate(slots, 1):
-            preview += f"\n{idx}️⃣ {char if char else 'Empty'}"
-        preview += "\n━━━━━━━━━━━━━━━"
+    if current_char.lower() == "empty":
+        conn.close()
+        return bot.answer_callback_query(call.id, f"Slot {slot_index + 1} is already empty!")
 
-        keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(
-            types.InlineKeyboardButton("➕ Add", callback_data=f"edit_add:{team_number}:0"),
-            types.InlineKeyboardButton("🚫 Remove", callback_data=f"remove_slot:{team_number}:{slot_index}")
-        )
-        keyboard.add(
-            types.InlineKeyboardButton("🔄 Swap", callback_data="edit_swap"),
-            types.InlineKeyboardButton("↪️ Back", callback_data="edit_back")
-        )
-        keyboard.add(
-            types.InlineKeyboardButton("❌ Close", callback_data=f"close_{user_id}")
-        )
+    # Set to 'empty'
+    team[slot_index] = "empty"
+    cursor.execute("""
+        UPDATE teams
+        SET slot1 = ?, slot2 = ?, slot3 = ?
+        WHERE user_id = ? AND team_number = ?
+    """, (team[0], team[1], team[2], user_id, team_number))
+    conn.commit()
+    conn.close()
 
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=preview,
-            reply_markup=keyboard
-        )
+    bot.answer_callback_query(call.id, f"Removed character from slot {slot_index + 1}.")
 
-    except Exception as e:
-        bot.send_message(call.from_user.id, f"[RemoveSlot Error]\nUser: {user_id}\nError: {str(e)}")
+    # Optionally refresh the edit view
+    # refresh_edit_team_view(user_id, team_number, call.message)  # If you have this
 bot.polling(none_stop=True)
