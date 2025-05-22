@@ -1275,17 +1275,21 @@ def handle_edit_back(call):
 
 ADMIN_ID = 6306216999  # Replace with your Telegram ID
 def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None):
+def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
+    # Fetch all character names for this user
     cursor.execute('''
         SELECT cbs.name
         FROM user_characters uc
         JOIN character_base_stats cbs ON uc.character_id = cbs.character_id
         WHERE uc.user_id = ?
     ''', (user_id,))
-    all_chars = sorted([row[0] for row in cursor.fetchall()])
+    all_chars_raw = [row[0] for row in cursor.fetchall()]
+    all_chars = sorted([name.strip() for name in all_chars_raw])  # normalize names
 
+    # Fetch current saved team
     cursor.execute('''
         SELECT slot1, slot2, slot3
         FROM teams
@@ -1293,14 +1297,16 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
     ''', (user_id, team_number))
     team = list(cursor.fetchone() or ["Empty", "Empty", "Empty"])
 
-    # FIXED: use up-to-date team if temp_selected is None
+    # Determine selected characters
     if temp_selected:
-        selected_chars = set(filter(lambda x: x and x != "Empty", temp_selected))
+        selected_chars = set(name.strip().lower() for name in temp_selected if name and name != "Empty")
     else:
-        selected_chars = set(filter(lambda x: x and x != "Empty", team))
+        selected_chars = set(name.strip().lower() for name in team if name and name != "Empty")
 
-    available_chars = [name for name in all_chars if name not in selected_chars]
+    # Filter out already selected characters
+    available_chars = [name for name in all_chars if name.strip().lower() not in selected_chars]
 
+    # Pagination
     per_page = 6
     total_pages = max(1, (len(available_chars) + per_page - 1) // per_page)
     page = max(1, min(page, total_pages))
@@ -1308,10 +1314,11 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
     end = start + per_page
     visible_chars = available_chars[start:end]
 
+    # Build keyboard
     keyboard = InlineKeyboardMarkup(row_width=2)
     buttons = []
     for name in visible_chars:
-        mark = " ☑" if name in selected_chars else ""
+        mark = " ☑" if name.strip().lower() in selected_chars else ""
         safe_name = name.replace(":", "").replace("|", "")[:50]
         callback = f"selectchar:{safe_name}:{team_number}:{page}"
         buttons.append(InlineKeyboardButton(text=name + mark, callback_data=callback[:64]))
@@ -1325,7 +1332,6 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
         InlineKeyboardButton("⏩", callback_data=f"edit_add:{team_number}:{min(total_pages, page + 1)}")
     )
 
-    # Adding Save and Cancel buttons
     keyboard.row(InlineKeyboardButton("💬 Save", callback_data=f"save_team:{team_number}"))
     keyboard.row(InlineKeyboardButton("↪️ Back", callback_data="edit_back"))
     keyboard.row(InlineKeyboardButton("❌ Close", callback_data=f"close_{user_id}"))
