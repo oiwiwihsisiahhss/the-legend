@@ -239,9 +239,9 @@ def generate_team_stats_text(user_id, team_number):
 
     return (
         "📊 Team Stats Overview:\n"
-        f"⚔️ Attack: {avg_attack}  {make_bar(avg_attack)}\n"
-        f"🛡 Defense: {avg_defense}  {make_bar(avg_defense)}\n"
-        f"⚡ Speed: {avg_speed}  {make_bar(avg_speed)}"
+        f"⚔️ Atk: {avg_attack}  {make_bar(avg_attack)}\n"
+        f"🛡 Def: {avg_defense}  {make_bar(avg_defense)}\n"
+        f"⚡ Spd: {avg_speed}  {make_bar(avg_speed)}"
     )
 def get_connection():
     return sqlite3.connect('chainsaw.db', check_same_thread=False)
