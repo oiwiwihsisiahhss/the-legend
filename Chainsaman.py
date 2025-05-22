@@ -1503,8 +1503,6 @@ def handle_save_team(call):
         bot.answer_callback_query(call.id, "Error saving team.")     
 
 
-
-
 @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_swap"))
 def handle_swap_start(call):
     user_id = call.from_user.id
@@ -1516,22 +1514,22 @@ def handle_swap_start(call):
     team = list(cursor.fetchone() or ["Empty", "Empty", "Empty"])
     conn.close()
 
-    temp_swaps[user_id] = {"team_number": team_number, "team": team}
+    temp_swaps[user_id] = {"team_number": team_number, "team": team[:]}  # deep copy
 
     keyboard = InlineKeyboardMarkup()
     for i, char in enumerate(team):
         keyboard.add(InlineKeyboardButton(f"{i+1}️⃣ {char}", callback_data=f"swap_from:{team_number}:{i}"))
-    keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
+    keyboard.add(
+        InlineKeyboardButton("✅ Save", callback_data=f"swap_save:{team_number}"),
+        InlineKeyboardButton("❌ Cancel", callback_data=f"swap_cancel:{team_number}")
+    )
 
-    try:
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text="🔄 Choose the character slot to swap FROM:",
-            reply_markup=keyboard
-        )
-    except Exception as e:
-        print("Error editing message:", e)
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="🔄 Choose the character slot to swap FROM:",
+        reply_markup=keyboard
+    )
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("swap_from:"))
@@ -1550,70 +1548,48 @@ def handle_swap_from(call):
     for i, char in enumerate(team):
         if i != from_index:
             keyboard.add(InlineKeyboardButton(f"{i+1}️⃣ {char}", callback_data=f"swap_to:{team_number}:{i}"))
-    keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
+    keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_swap:" + str(team_number)))
 
-    try:
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text="🔁 Choose the character slot to swap TO:",
-            reply_markup=keyboard
-        )
-    except Exception as e:
-        print("Error editing message:", e)
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="🔁 Choose the character slot to swap TO:",
+        reply_markup=keyboard
+    )
 
 
-#@bot.callback_query_handler(func=lambda call: call.data.startswith("swap_to:"))
 @bot.callback_query_handler(func=lambda call: call.data.startswith("swap_to:"))
 def handle_swap_to(call):
     user_id = call.from_user.id
     _, team_number, to_index = call.data.split(":")
     to_index = int(to_index)
-    team_number = int(team_number)
 
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
+    if user_id not in temp_swaps:
+        return bot.answer_callback_query(call.id, "Swap state not found.")
 
-    # Get current team from database
-    cursor.execute('SELECT slot1, slot2, slot3 FROM teams WHERE user_id = ? AND team_number = ?', (user_id, team_number))
-    row = cursor.fetchone()
-    if not row:
-        bot.answer_callback_query(call.id, "Team not found.")
-        conn.close()
-        return
+    swap_data = temp_swaps[user_id]
+    team = swap_data["team"]
+    from_index = swap_data.get("from_index")
 
-    team = list(row)
-    from_index = temp_swaps.get(user_id, {}).get("from_index")
     if from_index is None:
-        bot.answer_callback_query(call.id, "Invalid swap state.")
-        conn.close()
-        return
+        return bot.answer_callback_query(call.id, "Invalid swap start.")
 
-    # Perform the swap
-    team[from_index], team[to_index] = team[to_index], team[from_index]
+    if team[from_index] == "Empty" and team[to_index] == "Empty":
+        return bot.answer_callback_query(call.id, "Cannot swap two empty slots.")
 
-    # Update database with new team order
-    cursor.execute('''
-        UPDATE teams
-        SET slot1 = ?, slot2 = ?, slot3 = ?
-        WHERE user_id = ? AND team_number = ?
-    ''', (team[0], team[1], team[2], user_id, team_number))
-    conn.commit()
-    conn.close()
+    team[from_index], team[to_index] = team[to_index], team[from_index]  # swap
 
-    # Clean up temp_swaps
-    del temp_swaps[user_id]
-
-    # Build new team preview message
-    preview = f"✨ Team {team_number} updated successfully! ✨\n━━━━━━━━━━━━━━━"
+    # Show preview
+    preview = f"✨ Team {team_number} (Preview After Swap) ✨\n━━━━━━━━━━━━━━━"
     for idx, char in enumerate(team, 1):
         preview += f"\n{idx}️⃣ {char}"
-    preview += "\n━━━━━━━━━━━━━━━"
+    preview += "\n━━━━━━━━━━━━━━━\nClick '✅ Save' to confirm or '❌ Cancel' to discard."
 
-    # Provide only option to go back or edit again
     keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton("🔄 Swap Again", callback_data=f"edit_swap:{team_number}"))
-    keyboard.add(InlineKeyboardButton("Cancel", callback_data="edit_back"))
+    keyboard.add(
+        InlineKeyboardButton("✅ Save", callback_data=f"swap_save:{team_number}"),
+        InlineKeyboardButton("❌ Cancel", callback_data=f"swap_cancel:{team_number}")
+    )
 
     bot.edit_message_text(
         chat_id=call.message.chat.id,
@@ -1622,36 +1598,70 @@ def handle_swap_to(call):
         reply_markup=keyboard
     )
 
-    bot.answer_callback_query(call.id, "Team updated!")
-@bot.callback_query_handler(func=lambda call: call.data.startswith("team_save:"))
-def handle_team_save(call):
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("swap_save:"))
+def handle_swap_save(call):
     user_id = call.from_user.id
     team_number = int(call.data.split(":")[1])
 
-    swap_data = temp_swaps.get(user_id)
-    if not swap_data or "modified" not in swap_data:
-        return bot.answer_callback_query(call.id, "Nothing to save.")
+    if user_id not in temp_swaps:
+        return bot.answer_callback_query(call.id, "No swap in progress.")
 
-    team = swap_data["team"]
+    team = temp_swaps[user_id]["team"]
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE teams
-        SET slot1 = ?, slot2 = ?, slot3 = ?
+    cursor.execute('''
+        UPDATE teams SET slot1 = ?, slot2 = ?, slot3 = ?
         WHERE user_id = ? AND team_number = ?
-    """, (team[0], team[1], team[2], user_id, team_number))
+    ''', (team[0], team[1], team[2], user_id, team_number))
     conn.commit()
     conn.close()
 
     del temp_swaps[user_id]
 
+    preview = f"✅ Team {team_number} saved!\n━━━━━━━━━━━━━━━"
+    for idx, char in enumerate(team, 1):
+        preview += f"\n{idx}️⃣ {char}"
+    preview += "\n━━━━━━━━━━━━━━━"
+
+    keyboard = InlineKeyboardMarkup()
+    keyboard.add(InlineKeyboardButton("Back", callback_data="edit_back"))
+
     bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        text=f"✅ Team {team_number} has been saved successfully!"
+        text=preview,
+        reply_markup=keyboard
     )
-    bot.answer_callback_query(call.id, "Team saved!")
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("swap_cancel:"))
+def handle_swap_cancel(call):
+    user_id = call.from_user.id
+    team_number = int(call.data.split(":")[1])
+    temp_swaps.pop(user_id, None)
+
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT slot1, slot2, slot3 FROM teams WHERE user_id = ? AND team_number = ?", (user_id, team_number))
+    team = list(cursor.fetchone() or ["Empty", "Empty", "Empty"])
+    conn.close()
+
+    preview = f"❌ Changes canceled. Showing original team.\n━━━━━━━━━━━━━━━"
+    for idx, char in enumerate(team, 1):
+        preview += f"\n{idx}️⃣ {char}"
+    preview += "\n━━━━━━━━━━━━━━━"
+
+    keyboard = InlineKeyboardMarkup()
+    keyboard.add(InlineKeyboardButton("Back", callback_data="edit_back"))
+
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=preview,
+        reply_markup=keyboard
+    )
 @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_remove:"))
 def handle_remove_menu(call):
     user_id = call.from_user.id
