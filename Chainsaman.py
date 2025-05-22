@@ -1279,35 +1279,42 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
+    # Get all owned characters
     cursor.execute('''
-    SELECT cbs.name
-    FROM user_characters uc
-    JOIN character_base_stats cbs ON uc.character_id = cbs.character_id
-    WHERE uc.user_id = ?
-''', (user_id,))
+        SELECT cbs.name
+        FROM user_characters uc
+        JOIN character_base_stats cbs ON uc.character_id = cbs.character_id
+        WHERE uc.user_id = ?
+    ''', (user_id,))
     all_chars = sorted([row[0] for row in cursor.fetchall()])
 
+    # Get current team composition
     cursor.execute('''
         SELECT slot1, slot2, slot3
         FROM teams
         WHERE user_id = ? AND team_number = ?
     ''', (user_id, team_number))
     team = cursor.fetchone() or ("Empty", "Empty", "Empty")
+
+    # Build selected character set, excluding 'Empty'
     selected_chars = set(temp_selected if temp_selected else filter(lambda x: x and x != "Empty", team))
 
+    # Filter out already selected characters from the add list
+    available_chars = [name for name in all_chars if name not in selected_chars]
+
+    # Pagination
     per_page = 6
-    total_pages = max(1, (len(all_chars) + per_page - 1) // per_page)
+    total_pages = max(1, (len(available_chars) + per_page - 1) // per_page)
     page = max(1, min(page, total_pages))
     start = (page - 1) * per_page
     end = start + per_page
-    visible_chars = all_chars[start:end]
+    visible_chars = available_chars[start:end]
 
+    # Build keyboard
     keyboard = InlineKeyboardMarkup(row_width=2)
     buttons = []
-
     for name in visible_chars:
         mark = " ☑" if name in selected_chars else ""
-        encoded_name = name.replace(":", "").replace("|", "")[:50]
         safe_name = name.replace(":", "").replace("|", "")[:50]
         callback = f"selectchar:{safe_name}:{team_number}:{page}"
         buttons.append(InlineKeyboardButton(text=name + mark, callback_data=callback[:64]))
@@ -1322,8 +1329,8 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
     )
 
     keyboard.row(InlineKeyboardButton("💬 Save", callback_data=f"save_team:{team_number}"))
-    keyboard.row(InlineKeyboardButton("Back", callback_data="edit_back"))
-    keyboard.row(InlineKeyboardButton("Close", callback_data=f"close_{user_id}"))
+    keyboard.row(InlineKeyboardButton("↪️ Back", callback_data="edit_back"))
+    keyboard.row(InlineKeyboardButton("❌ Close", callback_data=f"close_{user_id}"))
 
     conn.close()
     return keyboard
