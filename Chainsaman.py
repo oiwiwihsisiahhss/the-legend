@@ -1274,7 +1274,6 @@ def handle_edit_back(call):
  # Global variable to keep track of page numbe
 
 ADMIN_ID = 6306216999  # Replace with your Telegram ID
-
 def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
