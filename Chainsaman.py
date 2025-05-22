@@ -1278,17 +1278,16 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Fetch all character names for this user
+    # Fetch all characters owned by the user
     cursor.execute('''
         SELECT cbs.name
         FROM user_characters uc
         JOIN character_base_stats cbs ON uc.character_id = cbs.character_id
         WHERE uc.user_id = ?
     ''', (user_id,))
-    all_chars_raw = [row[0] for row in cursor.fetchall()]
-    all_chars = sorted([name.strip() for name in all_chars_raw])  # normalize names
+    all_chars = sorted([row[0].strip() for row in cursor.fetchall()])
 
-    # Fetch current saved team
+    # Fetch saved team slots
     cursor.execute('''
         SELECT slot1, slot2, slot3
         FROM teams
@@ -1296,31 +1295,33 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
     ''', (user_id, team_number))
     team = list(cursor.fetchone() or ["Empty", "Empty", "Empty"])
 
-    # Determine selected characters
+    conn.close()
+
+    # Decide what characters are currently selected
     if temp_selected:
-        selected_chars = set(name.strip().lower() for name in temp_selected if name and name != "Empty")
+        selected_chars = set(x.strip() for x in temp_selected if x and x != "Empty")
     else:
-        selected_chars = set(name.strip().lower() for name in team if name and name != "Empty")
+        selected_chars = set(x.strip() for x in team if x and x != "Empty")
 
-    # Filter out already selected characters
-    available_chars = [name for name in all_chars if name.strip().lower() not in selected_chars]
+    # Include selected characters in the list too (for tick display)
+    combined_chars = sorted(set(all_chars + list(selected_chars)))  # ensure no one is skipped
 
-    # Pagination
+    # Pagination logic
     per_page = 6
-    total_pages = max(1, (len(available_chars) + per_page - 1) // per_page)
+    total_pages = max(1, (len(combined_chars) + per_page - 1) // per_page)
     page = max(1, min(page, total_pages))
     start = (page - 1) * per_page
     end = start + per_page
-    visible_chars = available_chars[start:end]
+    visible_chars = combined_chars[start:end]
 
     # Build keyboard
     keyboard = InlineKeyboardMarkup(row_width=2)
     buttons = []
     for name in visible_chars:
-        mark = " ☑" if name.strip().lower() in selected_chars else ""
+        display_name = name + " ☑" if name in selected_chars else name
         safe_name = name.replace(":", "").replace("|", "")[:50]
         callback = f"selectchar:{safe_name}:{team_number}:{page}"
-        buttons.append(InlineKeyboardButton(text=name + mark, callback_data=callback[:64]))
+        buttons.append(InlineKeyboardButton(text=display_name, callback_data=callback[:64]))
 
     for i in range(0, len(buttons), 2):
         keyboard.row(*buttons[i:i+2])
@@ -1330,12 +1331,10 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
         InlineKeyboardButton(f"[{page}/{total_pages}]", callback_data="noop"),
         InlineKeyboardButton("⏩", callback_data=f"edit_add:{team_number}:{min(total_pages, page + 1)}")
     )
-
     keyboard.row(InlineKeyboardButton("💬 Save", callback_data=f"save_team:{team_number}"))
     keyboard.row(InlineKeyboardButton("↪️ Back", callback_data="edit_back"))
     keyboard.row(InlineKeyboardButton("❌ Close", callback_data=f"close_{user_id}"))
 
-    conn.close()
     return keyboard
 @bot.callback_query_handler(func=lambda call: call.data and call.data.startswith("edit_add"))
 def handle_edit_add(call):
