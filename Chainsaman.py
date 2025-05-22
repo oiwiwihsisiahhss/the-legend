@@ -1291,7 +1291,7 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
         FROM teams
         WHERE user_id = ? AND team_number = ?
     ''', (user_id, team_number))
-    team = cursor.fetchone() or ("Empty", "Empty", "Empty")
+    team = list(cursor.fetchone() or ["Empty", "Empty", "Empty"])
 
     # FIXED: use up-to-date team if temp_selected is None
     if temp_selected:
@@ -1325,13 +1325,13 @@ def generate_add_team_interface(user_id, team_number, page=1, temp_selected=None
         InlineKeyboardButton("⏩", callback_data=f"edit_add:{team_number}:{min(total_pages, page + 1)}")
     )
 
+    # Adding Save and Cancel buttons
     keyboard.row(InlineKeyboardButton("💬 Save", callback_data=f"save_team:{team_number}"))
     keyboard.row(InlineKeyboardButton("↪️ Back", callback_data="edit_back"))
     keyboard.row(InlineKeyboardButton("❌ Close", callback_data=f"close_{user_id}"))
 
     conn.close()
     return keyboard
-
 @bot.callback_query_handler(func=lambda call: call.data and call.data.startswith("edit_add"))
 def handle_edit_add(call):
     try:
