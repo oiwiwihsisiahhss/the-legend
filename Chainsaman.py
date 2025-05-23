@@ -1512,7 +1512,7 @@ def handle_selectchar(call):
         preview_text = f"✨ Your Current Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━\n"
         for i, name in enumerate(team, start=1):
             preview_text += f"{i}️⃣ {name}\n"
-        preview_text += "━━━━━━━━━━━━━━━\"
+        preview_text += "━━━━━━━━━━━━━━━"
 
         keyboard = generate_add_team_interface(user_id, team_number, page)
         bot.edit_message_text(preview_text, call.message.chat.id, call.message.message_id, reply_markup=keyboard)
