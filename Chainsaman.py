@@ -1843,7 +1843,7 @@ def explore(message):
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
-    
+
     # Check if user started
     cursor.execute("SELECT * FROM user_data WHERE user_id = ?", (user_id,))
     user = cursor.fetchone()
@@ -1853,7 +1853,7 @@ def explore(message):
         return
 
     # Fetch devils
-    cursor.execute("SELECT name, image,  level FROM devils")
+    cursor.execute("SELECT name, image, level FROM devils")
     devils = cursor.fetchall()
     conn.close()
 
@@ -1864,12 +1864,14 @@ def explore(message):
     selected_devil = random.choice(devils)
     name, image, level = selected_devil
 
-    caption = (f"""<b>╔═════════════════╗</b>
+    text = f"""<b>╔═════════════════╗</b>
 <b>⚔️ Devil Encounter ⚔️</b>
 <b>╚═════════════════╝</b>
 
 <b>Name:</b> {name}
 <b>Level:</b> {level}
+
+{image}  <!-- This triggers the preview -->
 
 ━━━━━━━━━━━━━━━
 <b>Prepare for battle, Hunter!</b>
@@ -1877,18 +1879,17 @@ def explore(message):
 
 ━━━━━━━━━━━━━━━
 <b>Choose your action below</b>
-━━━━━━━━━━━━━━━""") 
+━━━━━━━━━━━━━━━"""
 
     markup = types.InlineKeyboardMarkup()
     hunt_button = types.InlineKeyboardButton(text="Hunt 🔫", callback_data="hunt_devil")
     markup.add(hunt_button)
 
-    bot.send_photo(
+    bot.send_message(
         chat_id=message.chat.id,
-        photo=image,
-        caption=caption,
+        text=text,
         parse_mode="HTML",
-        reply_to_message_id=message.message_id, 
-        reply_markup=markup
+        reply_markup=markup,
+        disable_web_page_preview=False  # Make sure preview is shown
     )
 bot.polling(none_stop=True)
