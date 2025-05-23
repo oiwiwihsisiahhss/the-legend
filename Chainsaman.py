@@ -1211,7 +1211,7 @@ def handle_team_selection(call):
     team_text += "━━━━━━━━━━━━━━━\n"
     for i, char in enumerate(team, start=1):
         team_text += f"<b>{i}\uFE0F\u20E3 {char if char else 'Empty'}</b>\n"
-    team_text += "━━━━━━━━━━━━━━━"
+    team_text += "━━━━━━━━━━━━━━━\n"
     team_text += generate_team_stats_text(user_id, selected_team_number)
 
     markup = types.InlineKeyboardMarkup(row_width=2)
@@ -1249,7 +1249,7 @@ def handle_edit_team_callback(call):
     team_text += "━━━━━━━━━━━━━━━\n"
     for i, char in enumerate(team, start=1):
         team_text += f"<b>{i}\uFE0F\u20E3 {char}</b>\n"
-    team_text += "━━━━━━━━━━━━━━━"
+    team_text += "━━━━━━━━━━━━━━━\n"
     
     team_text += generate_team_stats_text(user_id, selected_team_number)
 
@@ -1290,7 +1290,7 @@ def handle_edit_back(call):
     team_text += "━━━━━━━━━━━━━━━\n"
     for i, char in enumerate(team, start=1):
         team_text += f"<b>{i}\uFE0F\u20E3 {char}</b>\n"
-    team_text += "━━━━━━━━━━━━━━━"
+    team_text += "━━━━━━━━━━━━━━━\n"
     
     team_text += generate_team_stats_text(user_id, selected_team_number)
 
@@ -1512,7 +1512,7 @@ def handle_selectchar(call):
         preview_text = f"✨ Your Current Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━\n"
         for i, name in enumerate(team, start=1):
             preview_text += f"{i}️⃣ {name}\n"
-        preview_text += "━━━━━━━━━━━━━━━"
+        preview_text += "━━━━━━━━━━━━━━━\"
 
         keyboard = generate_add_team_interface(user_id, team_number, page)
         bot.edit_message_text(preview_text, call.message.chat.id, call.message.message_id, reply_markup=keyboard)
