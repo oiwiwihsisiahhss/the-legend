@@ -1822,17 +1822,6 @@ def handle_remove_slot(call):
     # refresh_edit_team_view(user_id, team_number, call.message)  # If you have this
 
 
-def get_all_devils():
-    conn = sqlite3.connect("chainsaw.db")
-    c = conn.cursor()
-    c.execute("SELECT name, image FROM devils")
-    results = c.fetchall()
-    conn.close()
-    return results   
-@bot.message_handler(commands=['explore'])
-import sqlite3
-import random
-from telebot import types
 
 def get_all_devils():
     conn = sqlite3.connect("chainsaw.db")
