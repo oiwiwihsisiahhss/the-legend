@@ -1838,7 +1838,7 @@ def explore(message):
     user_id = message.from_user.id
     conn = sqlite3.connect("your_database.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT * FROM user_data WHERE user_id = ?", (user_id,))
     user = cursor.fetchone()
 
     if not user:
