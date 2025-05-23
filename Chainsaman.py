@@ -1724,7 +1724,14 @@ def handle_swap_cancel(call):
 def handle_remove_menu(call):
     user_id = call.from_user.id
     team_number = int(call.data.split(":")[1])
+    selected_team_number = get_main_team(user_id)
+    team = get_user_team(user_id, selected_team_number)  # This line was missing
 
+    team_text = f"✨Your Current Team (Team {selected_team_number}) ✨\n"
+    for i, char in enumerate(team, start=1):
+        team_text += f"<b>{i}\uFE0F\u20E3 {char}</b>\n"
+    team_text += "━━━━━━━━━━━━━━━"
+    team_text += generate_team_stats_text(user_id, selected_team_number)
     # Fetch team from DB
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
@@ -1748,6 +1755,7 @@ def handle_remove_menu(call):
 
     bot.edit_message_text(
         chat_id=call.message.chat.id,
+        team_text, 
         message_id=call.message.message_id,
         text="Select a character to remove:",
         reply_markup=markup
