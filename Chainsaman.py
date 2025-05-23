@@ -1184,7 +1184,7 @@ def return_to_stats(call):
 def handle_team_selection(call):
     user_id = call.from_user.id
     team_number = int(call.data[-1])  # team1 to team5 → number
-
+    selected_team_number = get_main_team(user_id)
     current_main = get_main_team(user_id)
 
     if team_number == current_main:
@@ -1244,6 +1244,7 @@ def handle_team_selection(call):
 @bot.callback_query_handler(func=lambda call: call.data == "edit_team")
 def handle_edit_team_callback(call):
     user_id = call.from_user.id
+    selected_team_number = get_main_team(user_id)
     team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     for i, char in enumerate(team, start=1):
