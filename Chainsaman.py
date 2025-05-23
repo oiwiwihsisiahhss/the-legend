@@ -1871,7 +1871,7 @@ def explore(message):
 <b>Name:</b> {name}
 <b>Level:</b> {level}
 
-{image}  <!-- This triggers the preview -->
+{image}  
 
 ━━━━━━━━━━━━━━━
 <b>Prepare for battle, Hunter!</b>
