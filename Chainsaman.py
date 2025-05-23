@@ -1755,10 +1755,10 @@ def handle_remove_menu(call):
 
     bot.edit_message_text(
         chat_id=call.message.chat.id,
-        team_text, 
         message_id=call.message.message_id,
-        text="Select a character to remove:",
-        reply_markup=markup
+        text="Select a character to remove:\n\n" + team_text,
+        reply_markup=markup,
+        parse_mode="HTML"
     )
 
 
