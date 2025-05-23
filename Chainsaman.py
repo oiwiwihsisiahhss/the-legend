@@ -1862,7 +1862,7 @@ def explore(message):
         return
 
     selected_devil = random.choice(devils)
-    name, image_url = selected_devil
+    name, image, level = selected_devil
 
     caption = (f"""<b>╔═════════════════╗</b>
 <b>⚔️ Devil Encounter ⚔️</b>
