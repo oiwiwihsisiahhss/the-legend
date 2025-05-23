@@ -1875,7 +1875,7 @@ def explore(message):
 
 <b>Name:</b> {name}
 <b>Level:</b> {level}
-
+{hyperlink}
 ━━━━━━━━━━━━━━━
 <b>Prepare for battle, Hunter!</b>
 ━━━━━━━━━━━━━━━
@@ -1890,8 +1890,8 @@ def explore(message):
 
     bot.send_message(
         chat_id=message.chat.id,
-        photo=image,
-        caption=caption,
+        
+        text=caption,
         parse_mode="HTML",
         reply_to_message_id=message.message_id,
         reply_markup=markup
