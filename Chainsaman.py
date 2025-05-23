@@ -1847,6 +1847,8 @@ def explore(message):
         return
 
     # Fetch devils
+    conn = sqlite3.connect("chainsaw.db") 
+    cursor = conn.cursor () 
     cursor.execute("SELECT name, image FROM devils")
     devils = cursor.fetchall()
     conn.close()
