@@ -1847,7 +1847,7 @@ def explore(message):
         return
 
     # Fetch devils
-    cursor.execute("SELECT name, image_url FROM devils")
+    cursor.execute("SELECT name, image FROM devils")
     devils = cursor.fetchall()
     conn.close()
 
