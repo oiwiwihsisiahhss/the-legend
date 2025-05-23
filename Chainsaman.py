@@ -31,18 +31,20 @@ def create_table():
         CREATE TABLE IF NOT EXISTS devils (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
+            level INTEGER DEFAULT 1,
             image TEXT NOT NULL
+            
         )
     ''')
     cursor.executemany("""
         INSERT INTO devils (name, image) VALUES (?, ?)
 """, [
-    ("Sea Cucumber Devil", "https://files.catbox.moe/jss3ms.jpg"),
-    ("Leech Devil", "https://files.catbox.moe/m1cr9k.jpg"),
-    ("Bat Devil", "https://files.catbox.moe/sm9xad.jpg"),
-    ("Tomato Devil", "https://files.catbox.moe/gcg6bg.jpg"),
-    ("Muscle Devil", "https://files.catbox.moe/z1cyi3.jpg"),
-    ("Fish Devil", "https://files.catbox.moe/d7an4c.jpg"),
+    ("SEA CUCUMBER DEVIL", "https://files.catbox.moe/jss3ms.jpg"),
+    ("LEECH DEVIL", "https://files.catbox.moe/z1cyi3.jpg"),
+    ("BAT DEVIL", "https://files.catbox.moe/m1cr9k.jpg"),
+    ("TOMATO DEVIL", "https://files.catbox.moe/gcg6bg.jpg"),
+    ("MUSCLE DEVIL", "https://files.catbox.moe/sm9xad.jpg"),
+    ("FISH DEVIL", "https://files.catbox.moe/d7an4c.jpg"),
 ])
     
     
@@ -1826,7 +1828,7 @@ def handle_remove_slot(call):
 def get_all_devils():
     conn = sqlite3.connect("chainsaw.db")
     c = conn.cursor()
-    c.execute("SELECT name, image FROM devils")
+    c.execute("SELECT name, image, level FROM devils")
     results = c.fetchall()
     conn.close()
     return results
@@ -1851,7 +1853,7 @@ def explore(message):
         return
 
     # Fetch devils
-    cursor.execute("SELECT name, image FROM devils")
+    cursor.execute("SELECT name, image,  level FROM devils")
     devils = cursor.fetchall()
     conn.close()
 
@@ -1862,13 +1864,22 @@ def explore(message):
     selected_devil = random.choice(devils)
     name, image_url = selected_devil
 
-    caption = (f"""<b>⚔️ A Devil Appeared! ⚔️</b>
-━━━━━━━━━━━━━
-<b>Name:</b> {name}
-<b>Prepare for battle, Hunter!</b>
-━━━━━━━━━━━━━""") 
+    caption = (f"""<b>╔═════════════════╗</b>
+<b>⚔️ Devil Encounter ⚔️</b>
+<b>╚═════════════════╝</b>
 
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+<b>Name:</b> {name}
+<b>Level:</b> {level}
+
+━━━━━━━━━━━━━━━
+<b>Prepare for battle, Hunter!</b>
+━━━━━━━━━━━━━━━
+
+━━━━━━━━━━━━━━━
+<b>Choose your action below</b>
+━━━━━━━━━━━━━━━""") 
+
+    markup = types.InlineKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     markup.add(types.KeyboardButton("Hunt 🔫"))
 
     bot.send_photo(
@@ -1876,6 +1887,7 @@ def explore(message):
         photo=image_url,
         caption=caption,
         parse_mode="HTML",
+        reply_to_message_id=message.message_id, 
         reply_markup=markup
     )
 bot.polling(none_stop=True)
