@@ -1888,7 +1888,7 @@ def explore(message):
     hunt_button = types.InlineKeyboardButton(text="Hunt 🔫", callback_data="hunt_devil")
     markup.add(hunt_button)
 
-    bot.send_photo(
+    bot.send_message(
         chat_id=message.chat.id,
         photo=image,
         caption=caption,
