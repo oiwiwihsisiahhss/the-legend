@@ -1836,7 +1836,7 @@ def explore(message):
         bot.reply_to(message, "❌ You can only explore in private chat. Message the bot directly.")
         return
     user_id = message.from_user.id
-    conn = sqlite3.connect("your_database.db")
+    conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM user_data WHERE user_id = ?", (user_id,))
     user = cursor.fetchone()
