@@ -1841,10 +1841,10 @@ def explore(message):
     cursor.execute("SELECT * FROM user_data WHERE user_id = ?", (user_id,))
     user = cursor.fetchone()
 
-    #if not user:
-        #bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
-       # conn.close()
-       # return
+    if not user:
+        bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
+        conn.close()
+        return
 
     # Fetch devils
     conn = sqlite3.connect("chainsaw.db") 
@@ -1853,9 +1853,9 @@ def explore(message):
     devils = cursor.fetchall()
     conn.close()
 
-    if not devils:
-        bot.reply_to(message, "No devils found in the database.")
-        return
+    #if not devils:
+       # bot.reply_to(message, "No devils found in the database.")
+       # return
 
     # Random devil
     selected_devil = random.choice(devils)
