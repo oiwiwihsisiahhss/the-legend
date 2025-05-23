@@ -1885,7 +1885,7 @@ def explore(message):
 
     bot.send_photo(
         chat_id=message.chat.id,
-        photo=image_url,
+        photo=image,
         caption=caption,
         parse_mode="HTML",
         reply_to_message_id=message.message_id, 
