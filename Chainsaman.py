@@ -33,8 +33,7 @@ def create_table():
             image TEXT NOT NULL
         )
     ''')
-    conn.commit()
-    conn.close()
+    
     
     
     
