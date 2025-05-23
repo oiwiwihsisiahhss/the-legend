@@ -1838,6 +1838,9 @@ def get_all_devils():
     return results   
 @bot.message_handler(commands=['explore'])
 def explore(message):
+    if message.chat.type != "private":
+        bot.reply_to(message, "❌ You can only explore in private chat. Message the bot directly.")
+        return
     user_id = message.from_user.id
     conn = sqlite3.connect("your_database.db")
     cursor = conn.cursor()
