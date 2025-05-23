@@ -1843,7 +1843,7 @@ def explore(message):
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
-
+    
     # Check if user started
     cursor.execute("SELECT * FROM user_data WHERE user_id = ?", (user_id,))
     user = cursor.fetchone()
@@ -1864,14 +1864,17 @@ def explore(message):
     selected_devil = random.choice(devils)
     name, image, level = selected_devil
 
-    text = f"""<b>╔═════════════════╗</b>
+    # Use invisible character to embed image URL
+    invisible = "‎"
+    hyperlink = f'<a href="{image}">{invisible}</a>'
+
+    caption = (f"""{hyperlink}
+<b>╔═════════════════╗</b>
 <b>⚔️ Devil Encounter ⚔️</b>
 <b>╚═════════════════╝</b>
 
 <b>Name:</b> {name}
 <b>Level:</b> {level}
-
-{image}  
 
 ━━━━━━━━━━━━━━━
 <b>Prepare for battle, Hunter!</b>
@@ -1879,17 +1882,18 @@ def explore(message):
 
 ━━━━━━━━━━━━━━━
 <b>Choose your action below</b>
-━━━━━━━━━━━━━━━"""
+━━━━━━━━━━━━━━━""") 
 
     markup = types.InlineKeyboardMarkup()
     hunt_button = types.InlineKeyboardButton(text="Hunt 🔫", callback_data="hunt_devil")
     markup.add(hunt_button)
 
-    bot.send_message(
+    bot.send_photo(
         chat_id=message.chat.id,
-        text=text,
+        photo=image,
+        caption=caption,
         parse_mode="HTML",
-        reply_markup=markup,
-        disable_web_page_preview=False  # Make sure preview is shown
+        reply_to_message_id=message.message_id,
+        reply_markup=markup
     )
 bot.polling(none_stop=True)
