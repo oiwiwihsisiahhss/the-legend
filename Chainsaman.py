@@ -1879,8 +1879,9 @@ def explore(message):
 <b>Choose your action below</b>
 ━━━━━━━━━━━━━━━""") 
 
-    markup = types.InlineKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    markup.add(types.KeyboardButton("Hunt 🔫"))
+    markup = types.InlineKeyboardMarkup()
+    hunt_button = types.InlineKeyboardButton(text="Hunt 🔫", callback_data="hunt_devil")
+    markup.add(hunt_button)
 
     bot.send_photo(
         chat_id=message.chat.id,
