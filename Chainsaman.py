@@ -34,6 +34,16 @@ def create_table():
             image TEXT NOT NULL
         )
     ''')
+    cursor.executemany("""
+        INSERT INTO devils (name, image) VALUES (?, ?)
+""", [
+    ("Sea Cucumber Devil", "https://files.catbox.moe/jss3ms.jpg"),
+    ("Leech Devil", "https://files.catbox.moe/m1cr9k.jpg"),
+    ("Bat Devil", "https://files.catbox.moe/sm9xad.jpg"),
+    ("Tomato Devil", "https://files.catbox.moe/gcg6bg.jpg"),
+    ("Muscle Devil", "https://files.catbox.moe/z1cyi3.jpg"),
+    ("Fish Devil", "https://files.catbox.moe/d7an4c.jpg"),
+])
     
     
     
@@ -1810,20 +1820,8 @@ def handle_remove_slot(call):
     bot.answer_callback_query(call.id, f"Removed character from slot {slot_index + 1}.")
     # Optionally refresh the edit view
     # refresh_edit_team_view(user_id, team_number, call.message)  # If you have this
-def insert_devils():
-    devils = [
-        ("Sea Cucumber Devil", "https://files.catbox.moe/jss3ms.jpg"),
-        ("Leech Devil", "https://files.catbox.moe/m1cr9k.jpg"),
-        ("Bat Devil", "https://files.catbox.moe/sm9xad.jpg"),
-        ("Tomato Devil", "https://files.catbox.moe/gcg6bg.jpg"),
-        ("Muscle Devil", "https://files.catbox.moe/z1cyi3.jpg"),
-        ("Fish Devil", "https://files.catbox.moe/d7an4c.jpg"),
-    ]
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
-    cursor.executemany("INSERT INTO devils (name, image) VALUES (?, ?)", devils)
-    conn.commit()
-    conn.close()
+
+
 def get_all_devils():
     conn = sqlite3.connect("chainsaw.db")
     c = conn.cursor()
@@ -1832,41 +1830,54 @@ def get_all_devils():
     conn.close()
     return results   
 @bot.message_handler(commands=['explore'])
+import sqlite3
+import random
+from telebot import types
+
+def get_all_devils():
+    conn = sqlite3.connect("chainsaw.db")
+    c = conn.cursor()
+    c.execute("SELECT name, image FROM devils")
+    results = c.fetchall()
+    conn.close()
+    return results
+
+@bot.message_handler(commands=['explore'])
 def explore(message):
     if message.chat.type != "private":
         bot.reply_to(message, "❌ You can only explore in private chat. Message the bot directly.")
         return
+
     user_id = message.from_user.id
+
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
+    
+    # Check if user started
     cursor.execute("SELECT * FROM user_data WHERE user_id = ?", (user_id,))
     user = cursor.fetchone()
-
     if not user:
         bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
         conn.close()
         return
 
     # Fetch devils
-    conn = sqlite3.connect("chainsaw.db") 
-    cursor = conn.cursor () 
     cursor.execute("SELECT name, image FROM devils")
     devils = cursor.fetchall()
     conn.close()
 
-    #if not devils:
-       # bot.reply_to(message, "No devils found in the database.")
-       # return
+    if not devils:
+        bot.reply_to(message, "No devils found in the database.")
+        return
 
-    # Random devil
     selected_devil = random.choice(devils)
     name, image_url = selected_devil
 
-    caption = f"""<b>⚔️ A Devil Appeared! ⚔️</b>
+    caption = (f"""<b>⚔️ A Devil Appeared! ⚔️</b>
 ━━━━━━━━━━━━━
 <b>Name:</b> {name}
 <b>Prepare for battle, Hunter!</b>
-━━━━━━━━━━━━━"""
+━━━━━━━━━━━━━""") 
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     markup.add(types.KeyboardButton("Hunt 🔫"))
@@ -1877,5 +1888,5 @@ def explore(message):
         caption=caption,
         parse_mode="HTML",
         reply_markup=markup
-    )    
+    )
 bot.polling(none_stop=True)
