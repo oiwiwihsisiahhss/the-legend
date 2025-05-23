@@ -37,18 +37,8 @@ def create_table():
     conn.close()
     
     
-    conn = sqlite3.connect("chainsawman.db")
-    c = conn.cursor()
-    c.executemany("INSERT INTO devils (name, image) VALUES (?, ?)", devils)
-    conn.commit()
-    conn.close()
-    def get_all_devils():
-    conn = sqlite3.connect("chainsawman.db")
-    c = conn.cursor()
-    c.execute("SELECT name, image FROM devils")
-    results = c.fetchall()
-    conn.close()
-    return results
+    
+    
 
     # Create user_team_selection table
     cursor.execute('''
@@ -1829,6 +1819,11 @@ def insert_devils():
         ("Muscle Devil", "https://files.catbox.moe/z1cyi3.jpg"),
         ("Fish Devil", "https://files.catbox.moe/d7an4c.jpg"),
     ]
+    conn = sqlite3.connect("chainsawman.db")
+    cursor = conn.cursor()
+    cursor.executemany("INSERT INTO devils (name, image) VALUES (?, ?)", devils)
+    conn.commit()
+    conn.close()
 def get_all_devils():
     conn = sqlite3.connect("chainsawman.db")
     c = conn.cursor()
