@@ -1212,6 +1212,7 @@ def handle_team_selection(call):
     for i, char in enumerate(team, start=1):
         team_text += f"<b>{i}\uFE0F\u20E3 {char if char else 'Empty'}</b>\n"
     team_text += "━━━━━━━━━━━━━━━"
+    team_text += generate_team_stats_text(user_id, selected_team_number)
 
     markup = types.InlineKeyboardMarkup(row_width=2)
     row1 = [
@@ -1243,6 +1244,13 @@ def handle_team_selection(call):
 @bot.callback_query_handler(func=lambda call: call.data == "edit_team")
 def handle_edit_team_callback(call):
     user_id = call.from_user.id
+    team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"
+    team_text += "━━━━━━━━━━━━━━━\n"
+    for i, char in enumerate(team, start=1):
+        team_text += f"<b>{i}\uFE0F\u20E3 {char}</b>\n"
+    team_text += "━━━━━━━━━━━━━━━"
+    
+    team_text += generate_team_stats_text(user_id, selected_team_number)
 
     try:
         selected_team_number = get_main_team(user_id)
@@ -1282,6 +1290,9 @@ def handle_edit_back(call):
     for i, char in enumerate(team, start=1):
         team_text += f"<b>{i}\uFE0F\u20E3 {char}</b>\n"
     team_text += "━━━━━━━━━━━━━━━"
+    
+    team_text += generate_team_stats_text(user_id, selected_team_number)
+
 
     # Rebuild the team selection buttons
     markup = types.InlineKeyboardMarkup(row_width=2)
