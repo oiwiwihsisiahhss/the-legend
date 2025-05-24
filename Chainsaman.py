@@ -1911,19 +1911,21 @@ def explore(message):
     reward_type, reward_amount = random.choice(rewards)
 
     # Update balance
-    if reward_type == "Yens":
-        cursor.execute("UPDATE user_data SET yens = yens + ? WHERE user_id = ?", (reward_amount, user_id))
-    elif reward_type == "Crystals":
-        cursor.execute("UPDATE user_data SET gems = gems + ? WHERE user_id = ?", (reward_amount, user_id))
-    elif reward_type == "Tickets":
-        try:
-            cursor.execute("ALTER TABLE user_data ADD COLUMN tickets INTEGER DEFAULT 0")
-        except:
-            pass
-        cursor.execute("UPDATE user_data SET tickets = tickets + ? WHERE user_id = ?", (reward_amount, user_id))
+    # Update balance
+   if reward_type == "Yens":
+    cursor.execute("UPDATE user_data SET yens = yens + ? WHERE user_id = ?", (reward_amount, user_id))
+  elif reward_type == "Crystals":
+    cursor.execute("UPDATE user_data SET gems = gems + ? WHERE user_id = ?", (reward_amount, user_id))
+  elif reward_type == "Tickets":
+    try:
+        cursor.execute("ALTER TABLE user_data ADD COLUMN tickets INTEGER DEFAULT 0")
+    except:
+        pass
+    cursor.execute("UPDATE user_data SET tickets = tickets + ? WHERE user_id = ?", (reward_amount, user_id))
 
-    conn.commit()
-    conn.close()
+# Now commit and close after all updates
+conn.commit()
+conn.close()
     reward_caption = (
         f"<b>{chest_name}</b>\n"
         f"Reward: <b>{reward_amount} {reward_type}</b>"
