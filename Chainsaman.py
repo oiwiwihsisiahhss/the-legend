@@ -1869,20 +1869,17 @@ def explore(message):
     hyperlink = f'<a href="{image}">{invisible}</a>'
 
     caption = (f"""{hyperlink}
-<b>╔═════════════════╗</b>
-<b>⚔️ Devil Encounter ⚔️</b>
-<b>╚═════════════════╝</b>
+<b>╔═════════════════════╗</b>
+<b>⚔️ DEVIL ENCOUNTER ⚔️</b>
+<b>╚═════════════════════╝</b>
 
-<b>Name:</b> {name}
-<b>Level:</b> {level}
-{hyperlink}
-━━━━━━━━━━━━━━━
-<b>Prepare for battle, Hunter!</b>
-━━━━━━━━━━━━━━━
+<b>A wild {name.upper()} (Level {level})</b>  
+has appeared from the shadows!
 
-━━━━━━━━━━━━━━━
-<b>Choose your action below</b>
-━━━━━━━━━━━━━━━""") 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Will you rise as a brave Devil Hunter  
+or flee like a trembling crybaby?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━""")
 
     markup = types.InlineKeyboardMarkup()
     hunt_button = types.InlineKeyboardButton(text="Hunt 🔫", callback_data="hunt_devil")
