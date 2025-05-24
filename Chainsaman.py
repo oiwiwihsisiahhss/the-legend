@@ -1875,10 +1875,6 @@ def explore(message):
 
 <b>A wild {name.upper()} (Level {level})</b>  
 has appeared from the shadows!
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Will you rise as a brave Devil Hunter  
-or flee like a trembling crybaby?
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━""")
 
     markup = types.InlineKeyboardMarkup()
