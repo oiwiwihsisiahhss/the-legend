@@ -1868,13 +1868,25 @@ def explore(message):
     invisible = "‎"
     hyperlink = f'<a href="{image}">{invisible}</a>'
 
-    caption = (f"""{hyperlink}
-<b>▰▰▰▰▰▰▰▰▰▰▰▰▰</b>
+    quotes = [
+        "Will you embrace the darkness or be consumed by it?",
+        "Will you fight the devils within, or bow to your fears?",
+        "Will you stand with bloodied fists or run with trembling legs?",
+        "Will you become the hunter or end up the hunted?",
+        "Will you scream in terror or roar in defiance?",
+        "Will you face the devil head-on or beg for mercy in the shadows?",
+        "Will you carve your name into legend or vanish without a trace?",
+        "Will you protect the weak or join the corpses they leave behind?",
+        "Will you rise with steel in your heart or break under pressure?",
+        "Will you walk the path of chaos or cower behind false peace?"
+    ]
+    random_quote = random.choice(quotes)
+
+    caption = (f"""{hyperlink}<b>▰▰▰▰▰▰▰▰▰▰▰▰▰</b>
 <b>A wild {name.title()} (lvl {level}),</b>  
 <b>has challenged you!</b>
 <b>▰▰▰▰▰▰▰▰▰▰▰▰▰</b>
-<b>Will you rise as a brave Devil Hunter</b>  
-<b>or flee like a trembling crybaby?</b>
+<b>{random_quote}</b>
 <b>▰▰▰▰▰▰▰▰▰▰▰▰▰▰</b>""")
 
     markup = types.InlineKeyboardMarkup()
