@@ -1901,4 +1901,38 @@ def explore(message):
         reply_to_message_id=message.message_id,
         reply_markup=markup
     )
+    chests = [
+        ("D rank chest", "https://files.catbox.moe/sdoe76.jpg", [("Yens", 500), ("Yens", 800)]),
+        ("C rank chest", "https://files.catbox.moe/d090y2.jpg", [("Yens", 1000), ("Yens", 1500), ("Crystals", 100), ("Crystals", 300)]),
+        ("B rank chest", "https://files.catbox.moe/ohz2rr.jpg", [("Crystals", 200), ("Crystals", 500), ("Tickets", 20)]),
+        ("A rank chest", "https://files.catbox.moe/su5stl.jpg", [("Crystals", 500), ("Crystals", 600), ("Tickets", 40)])
+    ]
+    chest_name, chest_img, rewards = random.choice(chests)
+    reward_type, reward_amount = random.choice(rewards)
+
+    # Update balance
+    if reward_type == "Yens":
+        cursor.execute("UPDATE user_data SET yens = yens + ? WHERE user_id = ?", (reward_amount, user_id))
+    elif reward_type == "Crystals":
+        cursor.execute("UPDATE user_data SET gems = gems + ? WHERE user_id = ?", (reward_amount, user_id))
+    elif reward_type == "Tickets":
+        try:
+            cursor.execute("ALTER TABLE user_data ADD COLUMN tickets INTEGER DEFAULT 0")
+        except:
+            pass
+        cursor.execute("UPDATE user_data SET tickets = tickets + ? WHERE user_id = ?", (reward_amount, user_id))
+
+    conn.commit()
+    conn.close()
+    reward_caption = (
+        f"<b>{chest_name}</b>\n"
+        f"Reward: <b>{reward_amount} {reward_type}</b>"
+    )
+    bot.send_photo(
+        chat_id=message.chat.id,
+        photo=chest_img,
+        caption=reward_caption,
+        parse_mode="HTML"
+    )
+
 bot.polling(none_stop=True)
