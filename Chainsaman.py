@@ -1956,5 +1956,58 @@ def handle_chest_drop(user_id, chat_id):
             )
             break  # Exit after first chest drop
 
+def handle_chest_drop(user_id, chat_id):
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
 
+    chests = [
+        ("D rank chest", "https://files.catbox.moe/sdoe76.jpg", 90, [("Yens", 500), ("Yens", 800)]),
+        ("C rank chest", "https://files.catbox.moe/d090y2.jpg", 50, [("Yens", 1000), ("Yens", 1500), ("Crystals", 100), ("Crystals", 300)]),
+        ("B rank chest", "https://files.catbox.moe/ohz2rr.jpg", 20, [("Crystals", 200), ("Crystals", 500), ("Tickets", 20)]),
+        ("A rank chest", "https://files.catbox.moe/su5stl.jpg", 5, [("Crystals", 500), ("Crystals", 600), ("Tickets", 40)])
+    ]
+
+    for chest_name, chest_img, drop_rate, rewards in chests:
+        if random.randint(1, 100) <= drop_rate:
+            reward_type, reward_amount = random.choice(rewards)
+
+            # Update balance
+            if reward_type == "Yens":
+                cursor.execute("UPDATE user_data SET yens = yens + ? WHERE user_id = ?", (reward_amount, user_id))
+            elif reward_type == "crystals":
+                cursor.execute("UPDATE user_data SET crystals = crystals + ? WHERE user_id = ?", (reward_amount, user_id))
+            elif reward_type == "Tickets":
+                try:
+                    cursor.execute("ALTER TABLE user_data ADD COLUMN tickets INTEGER DEFAULT 0")
+                except:
+                    pass
+                cursor.execute("UPDATE user_data SET tickets = tickets + ? WHERE user_id = ?", (reward_amount, user_id))
+
+            conn.commit()
+            conn.close()
+
+            reward_caption = (
+                f"<b>{chest_name}</b>\n"
+                f"Reward: <b>{reward_amount} {reward_type}</b>"
+            )
+            bot.send_photo(
+                chat_id=chat_id,
+                photo=chest_img,
+                caption=reward_caption,
+                parse_mode="HTML"
+            )
+            return  # Stop after first chest drop
+
+    conn.close() # No chest dropped
+ @bot.callback_query_handler(func=lambda call: call.data.startswith("hunt_devil_"))
+def hunt_devil(call):
+    user_id = call.from_user.id
+    chat_id = call.message.chat.id
+
+    # (Optional) devil battle logic here...
+
+    # Then handle the chest drop
+    handle_chest_drop(user_id, chat_id)
+
+    bot.answer_callback_query(call.id, "You battled the devil!")   
 bot.polling(none_stop=True)
