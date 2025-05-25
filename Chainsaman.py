@@ -1547,6 +1547,8 @@ def handle_selectchar(call):
     except Exception as e:
         print(f"[Add Character Error]\nUser: {user_id}\nError: {e}")
         bot.answer_callback_query(call.id, "An error occurred.")
+import time
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("save_team:"))
 def handle_save_team(call):
     try:
@@ -1559,7 +1561,21 @@ def handle_save_team(call):
             return
 
         team = temp_team_selection[key]
+        chat_id = call.message.chat.id
+        msg_id = call.message.message_id
 
+        # Animated progress: 1% to 100%
+        for i in range(0, 101, 5):  # Step by 5 for faster animation
+            dots = "." * ((i // 10) % 4)  # Rotating dot effect
+            bot.edit_message_text(
+                f"💾 <b>Saving your team {i}%{dots}</b>",
+                chat_id,
+                msg_id,
+                parse_mode="HTML"
+            )
+            time.sleep(0.10)
+
+        # Save the team to database
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
         cursor.execute('''
@@ -1573,9 +1589,16 @@ def handle_save_team(call):
         conn.commit()
         conn.close()
 
-        del temp_team_selection[key]  # Clear temp after saving
+        del temp_team_selection[key]  # Clear after save
 
-        bot.edit_message_text("✅ Team saved successfully!", call.message.chat.id, call.message.message_id)
+        # Final message
+        bot.edit_message_text(
+            "✅ <b>Team saved successfully!</b>",
+            chat_id,
+            msg_id,
+            parse_mode="HTML"
+        )
+
     except Exception as e:
         print(f"[SaveTeam Error]\nUser: {call.from_user.id}\nError: {e}")
         bot.answer_callback_query(call.id, "Error saving team.")     
