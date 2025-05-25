@@ -1965,50 +1965,55 @@ def handle_chest_drop(user_id, chat_id):
                 parse_mode="HTML"
             )
             break  # Exit after first chest drop
-
 def handle_chest_drop(user_id, chat_id):
+    chests = [
+        ("A rank chest", "https://files.catbox.moe/su5stl.jpg", [("Crystals", 500), ("Crystals", 600), ("Tickets", 40)], 5),
+        ("B rank chest", "https://files.catbox.moe/ohz2rr.jpg", [("Crystals", 200), ("Crystals", 500), ("Tickets", 20)], 20),
+        ("C rank chest", "https://files.catbox.moe/d090y2.jpg", [("Yens", 1000), ("Yens", 1500), ("Crystals", 100), ("Crystals", 300)], 50),
+        ("D rank chest", "https://files.catbox.moe/sdoe76.jpg", [("Yens", 500), ("Yens", 800)], 76),  # Updated from 90% to 76%
+    ]
+
+    drop_roll = random.randint(1, 100)
+
+    eligible_chests = [chest for chest in chests if drop_roll <= chest[3]]
+
+    if not eligible_chests:
+        return  # No chest drop, exit silently
+
+    chest_name, chest_img, rewards, _ = eligible_chests[0]
+    reward_type, reward_amount = random.choice(rewards)
+
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    chests = [
-        ("D rank chest", "https://files.catbox.moe/sdoe76.jpg", 90, [("Yens", 500), ("Yens", 800)]),
-        ("C rank chest", "https://files.catbox.moe/d090y2.jpg", 50, [("Yens", 1000), ("Yens", 1500), ("Crystals", 100), ("Crystals", 300)]),
-        ("B rank chest", "https://files.catbox.moe/ohz2rr.jpg", 20, [("Crystals", 200), ("Crystals", 500), ("Tickets", 20)]),
-        ("A rank chest", "https://files.catbox.moe/su5stl.jpg", 5, [("Crystals", 500), ("Crystals", 600), ("Tickets", 40)])
-    ]
+    if reward_type == "Yens":
+        cursor.execute("UPDATE user_data SET yens = yens + ? WHERE user_id = ?", (reward_amount, user_id))
+    elif reward_type == "Crystals":
+        cursor.execute("UPDATE user_data SET gems = gems + ? WHERE user_id = ?", (reward_amount, user_id))
+    elif reward_type == "Tickets":
+        try:
+            cursor.execute("ALTER TABLE user_data ADD COLUMN tickets INTEGER DEFAULT 0")
+        except:
+            pass
+        cursor.execute("UPDATE user_data SET tickets = tickets + ? WHERE user_id = ?", (reward_amount, user_id))
 
-    for chest_name, chest_img, drop_rate, rewards in chests:
-        if random.randint(1, 100) <= drop_rate:
-            reward_type, reward_amount = random.choice(rewards)
+    conn.commit()
+    conn.close()
 
-            # Update balance
-            if reward_type == "Yens":
-                cursor.execute("UPDATE user_data SET yens = yens + ? WHERE user_id = ?", (reward_amount, user_id))
-            elif reward_type == "crystals":
-                cursor.execute("UPDATE user_data SET crystals = crystals + ? WHERE user_id = ?", (reward_amount, user_id))
-            elif reward_type == "Tickets":
-                try:
-                    cursor.execute("ALTER TABLE user_data ADD COLUMN tickets INTEGER DEFAULT 0")
-                except:
-                    pass
-                cursor.execute("UPDATE user_data SET tickets = tickets + ? WHERE user_id = ?", (reward_amount, user_id))
-
-            conn.commit()
-            conn.close()
-
-            reward_caption = (
-                f"<b>{chest_name}</b>\n"
-                f"Reward: <b>{reward_amount} {reward_type}</b>"
-            )
-            bot.send_photo(
-                chat_id=chat_id,
-                photo=chest_img,
-                caption=reward_caption,
-                parse_mode="HTML"
-            )
-            return  # Stop after first chest drop
-
-    conn.close() # No chest dropped
+    reward_caption = (
+    f"<b>🎁 A {chest_name} Appears!</b>\n"
+    "━━━━━━━━━━━━━\n"
+    "<b>You've obtained:</b>\n"
+    f"<b>{reward_amount} {reward_type}</b>\n"
+    "━━━━━━━━━━━━━\n"
+    "Keep hunting, brave warrior!"
+)
+    bot.send_photo(
+        chat_id=chat_id,
+        photo=chest_img,
+        caption=reward_caption,
+        parse_mode="HTML"
+    )
 @bot.callback_query_handler(func=lambda call: call.data.startswith("hunt_devil_"))
 def hunt_devil(call):
     user_id = call.from_user.id
