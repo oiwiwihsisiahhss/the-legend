@@ -1843,22 +1843,25 @@ def explore(message):
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
-    
+
     # Check if user started
     cursor.execute("SELECT * FROM user_data WHERE user_id = ?", (user_id,))
     user = cursor.fetchone()
+    conn.close()
+
     if not user:
         bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
-        conn.close()
         return
 
     # Fetch devils
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
     cursor.execute("SELECT name, image, level FROM devils")
     devils = cursor.fetchall()
+    conn.close()
 
     if not devils:
         bot.reply_to(message, "No devils found in the database.")
-        conn.close()
         return
 
     selected_devil = random.choice(devils)
@@ -1878,13 +1881,13 @@ def explore(message):
         "Will you carve your name into legend or vanish without a trace?",
         "Will you protect the weak or join the corpses they leave behind?",
         "Will you rise with steel in your heart or break under pressure?",
-        "Will you walk the path of chaos or cower behind false peace?",
-        "Will you charge into the abyss with fire in your heart, or cower in the shadows of fear?",
-        "Will you stand tall with blade in hand, or kneel before the monsters that haunt your soul?",
-        "Will you embrace the darkness and fight, or run until the night swallows you whole?",
-        "Will you forge your fate in blood and fury, or be forgotten like a whisper in the wind?",
-        "Will you become legend, or fade as another nameless coward?",
-        "Will you conquer your demons, or let them rule you?",
+        "Will you walk the path of chaos or cower behind false peace?", 
+        "Will you charge into the abyss with fire in your heart, or cower in the shadows of fear?", 
+        "Will you stand tall with blade in hand, or kneel before the monsters that haunt your soul?"
+        "Will you embrace the darkness and fight, or run until the night swallows you whole?", 
+        "Will you forge your fate in blood and fury, or be forgotten like a whisper in the wind?", 
+        "Will you become legend, or fade as another nameless coward?", 
+        "Will you conquer your demons, or let them rule you?", 
         "Will you rise with vengeance in your veins, or fall with regret in your eyes?"
     ]
     random_quote = random.choice(quotes)
@@ -1897,7 +1900,7 @@ def explore(message):
 <b>▰▰▰▰▰▰▰▰▰▰▰▰▰▰</b>""")
 
     markup = types.InlineKeyboardMarkup()
-    hunt_button = types.InlineKeyboardButton(text="Hunt 🔫", callback_data="hunt_devil")
+    hunt_button = types.InlineKeyboardButton(text="Hunt 🔫", callback_data=f"hunt_devil_{user_id}")
     markup.add(hunt_button)
 
     bot.send_message(
@@ -1908,46 +1911,50 @@ def explore(message):
         reply_markup=markup
     )
 
-    # Random chest reward system
+
+# Chest drop logic as a separate function
+def handle_chest_drop(user_id, chat_id):
     chests = [
-        ("D rank chest", "https://files.catbox.moe/sdoe76.jpg", [("Yens", 500), ("Yens", 800)]),
-        ("C rank chest", "https://files.catbox.moe/d090y2.jpg", [("Yens", 1000), ("Yens", 1500), ("Crystals", 100), ("Crystals", 300)]),
-        ("B rank chest", "https://files.catbox.moe/ohz2rr.jpg", [("Crystals", 200), ("Crystals", 500), ("Tickets", 20)]),
-        ("A rank chest", "https://files.catbox.moe/su5stl.jpg", [("Crystals", 500), ("Crystals", 600), ("Tickets", 40)])
+        ("D rank chest", "https://files.catbox.moe/sdoe76.jpg", [("Yens", 500), ("Yens", 800)], 90),
+        ("C rank chest", "https://files.catbox.moe/d090y2.jpg", [("Yens", 1000), ("Yens", 1500), ("Crystals", 100), ("Crystals", 300)], 50),
+        ("B rank chest", "https://files.catbox.moe/ohz2rr.jpg", [("Crystals", 200), ("Crystals", 500), ("Tickets", 20)], 20),
+        ("A rank chest", "https://files.catbox.moe/su5stl.jpg", [("Crystals", 500), ("Crystals", 600), ("Tickets", 40)], 5)
     ]
 
-    chest_name, chest_img, rewards = random.choice(chests)
-    reward_type, reward_amount = random.choice(rewards)
+    random.shuffle(chests)  # Randomize order
 
-    # Reopen DB to apply rewards
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
+    for chest_name, chest_img, rewards, drop_rate in chests:
+        if random.randint(1, 100) <= drop_rate:
+            reward_type, reward_amount = random.choice(rewards)
 
-    # Update balance
-    if reward_type == "Yens":
-        cursor.execute("UPDATE user_data SET yens = yens + ? WHERE user_id = ?", (reward_amount, user_id))
-    elif reward_type == "Crystals":
-        cursor.execute("UPDATE user_data SET crystals = crystals + ? WHERE user_id = ?", (reward_amount, user_id))
-    elif reward_type == "Tickets":
-        try:
-            cursor.execute("ALTER TABLE user_data ADD COLUMN tickets INTEGER DEFAULT 0")
-        except:
-            pass
-        cursor.execute("UPDATE user_data SET tickets = tickets + ? WHERE user_id = ?", (reward_amount, user_id))
+            conn = sqlite3.connect("chainsaw.db")
+            cursor = conn.cursor()
 
-    conn.commit()
-    conn.close()
+            if reward_type == "Yens":
+                cursor.execute("UPDATE user_data SET yens = yens + ? WHERE user_id = ?", (reward_amount, user_id))
+            elif reward_type == "crystals":
+                cursor.execute("UPDATE user_data SET crystals = crystals + ? WHERE user_id = ?", (reward_amount, user_id))
+            elif reward_type == "Tickets":
+                try:
+                    cursor.execute("ALTER TABLE user_data ADD COLUMN tickets INTEGER DEFAULT 0")
+                except:
+                    pass
+                cursor.execute("UPDATE user_data SET tickets = tickets + ? WHERE user_id = ?", (reward_amount, user_id))
 
-    reward_caption = (
-        f"<b>{chest_name}</b>\n"
-        f"Reward: <b>{reward_amount} {reward_type}</b>"
-    )
+            conn.commit()
+            conn.close()
 
-    bot.send_photo(
-        chat_id=message.chat.id,
-        photo=chest_img,
-        caption=reward_caption,
-        parse_mode="HTML"
-    )
+            reward_caption = (
+                f"<b>{chest_name}</b>\n"
+                f"Reward: <b>{reward_amount} {reward_type}</b>"
+            )
+            bot.send_photo(
+                chat_id=chat_id,
+                photo=chest_img,
+                caption=reward_caption,
+                parse_mode="HTML"
+            )
+            break  # Exit after first chest drop
+
 
 bot.polling(none_stop=True)
