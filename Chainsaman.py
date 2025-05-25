@@ -1856,7 +1856,7 @@ def explore(message):
     # Check if user has a character in slot1
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT slot1 FROM user_team WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT slot1 FROM teams WHERE user_id = ?", (user_id,))
     slot1 = cursor.fetchone()
 
     if not slot1 or slot1[0] is None:
