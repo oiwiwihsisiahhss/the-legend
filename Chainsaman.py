@@ -1852,7 +1852,17 @@ def explore(message):
     if not user:
         bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
         return
+    
+    # Check if user has a character in slot1
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT slot1 FROM user_team WHERE user_id = ?", (user_id,))
+    slot1 = cursor.fetchone()
 
+    if not slot1 or slot1[0] is None:
+        conn.close()
+        bot.reply_to(message, "⚠️ You don't have a character assigned to your team.\nUse /myteam to select one.")
+        return
     # Fetch devils
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
@@ -1999,7 +2009,7 @@ def handle_chest_drop(user_id, chat_id):
             return  # Stop after first chest drop
 
     conn.close() # No chest dropped
- @bot.callback_query_handler(func=lambda call: call.data.startswith("hunt_devil_"))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("hunt_devil_"))
 def hunt_devil(call):
     user_id = call.from_user.id
     chat_id = call.message.chat.id
