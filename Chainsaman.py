@@ -1927,7 +1927,7 @@ def explore(message):
     if reward_type == "Yens":
         cursor.execute("UPDATE user_data SET yens = yens + ? WHERE user_id = ?", (reward_amount, user_id))
     elif reward_type == "Crystals":
-        cursor.execute("UPDATE user_data SET gems = gems + ? WHERE user_id = ?", (reward_amount, user_id))
+        cursor.execute("UPDATE user_data SET crystals = crystals + ? WHERE user_id = ?", (reward_amount, user_id))
     elif reward_type == "Tickets":
         try:
             cursor.execute("ALTER TABLE user_data ADD COLUMN tickets INTEGER DEFAULT 0")
