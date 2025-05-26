@@ -1988,22 +1988,31 @@ def handle_chest_drop(user_id, chat_id):
                 parse_mode="HTML"
             )
             break  # Exit after first chest drop
+import random
+import sqlite3
+
 def handle_chest_drop(user_id, chat_id):
     chests = [
-        ("A rank chest", "https://files.catbox.moe/su5stl.jpg", [("Crystals", 500), ("Crystals", 600), ("Tickets", 40)], 5),
-        ("B rank chest", "https://files.catbox.moe/ohz2rr.jpg", [("Crystals", 200), ("Crystals", 500), ("Tickets", 20)], 20),
-        ("C rank chest", "https://files.catbox.moe/d090y2.jpg", [("Yens", 1000), ("Yens", 1500), ("Crystals", 100), ("Crystals", 300)], 50),
-        ("D rank chest", "https://files.catbox.moe/sdoe76.jpg", [("Yens", 500), ("Yens", 800)], 76),  # Updated from 90% to 76%
+        ("A-Rank Chest", "https://files.catbox.moe/su5stl.jpg", [("Crystals", 500), ("Crystals", 600), ("Tickets", 40)], 0.5),
+        ("B-Rank Chest", "https://files.catbox.moe/ohz2rr.jpg", [("Crystals", 200), ("Crystals", 500), ("Tickets", 20)], 1.0),
+        ("C-Rank Chest", "https://files.catbox.moe/d090y2.jpg", [("Yens", 1000), ("Yens", 1500), ("Crystals", 100), ("Crystals", 300)], 2.0),
+        ("D-Rank Chest", "https://files.catbox.moe/sdoe76.jpg", [("Yens", 500), ("Yens", 800)], 2.5)
     ]
 
-    drop_roll = random.randint(1, 100)
+    roll = random.uniform(0, 100)
+    cumulative = 0
+    selected_chest = None
 
-    eligible_chests = [chest for chest in chests if drop_roll <= chest[3]]
+    for chest in reversed(chests):  # Start from A-rank for rarity check
+        cumulative += chest[3]
+        if roll <= cumulative:
+            selected_chest = chest
+            break
 
-    if not eligible_chests:
-        return  # No chest drop, exit silently
+    if not selected_chest:
+        return  # No chest dropped
 
-    chest_name, chest_img, rewards, _ = eligible_chests[0]
+    chest_name, chest_img, rewards, _ = selected_chest
     reward_type, reward_amount = random.choice(rewards)
 
     conn = sqlite3.connect("chainsaw.db")
@@ -2024,13 +2033,14 @@ def handle_chest_drop(user_id, chat_id):
     conn.close()
 
     reward_caption = (
-    f"<b>🎁 A {chest_name} Appears!</b>\n"
-    "━━━━━━━━━━━━━\n"
-    "<b>You've obtained:</b>\n"
-    f"<b>{reward_amount} {reward_type}</b>\n"
-    "━━━━━━━━━━━━━\n"
-    "Keep hunting, brave warrior!"
-)
+        f"<b>🎁 {chest_name} Appears!</b>\n"
+        f"━━━━━━━━━━━━━\n"
+        f"<b>You've obtained:</b>\n"
+        f"<b>{reward_amount} {reward_type}</b>\n"
+        f"━━━━━━━━━━━━━\n"
+        f"Keep hunting, brave warrior!"
+    )
+
     bot.send_photo(
         chat_id=chat_id,
         photo=chest_img,
