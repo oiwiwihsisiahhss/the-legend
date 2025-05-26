@@ -2060,10 +2060,10 @@ def hunt_devil(call):
     bot.answer_callback_query(call.id, "You battled the devil!")   
 @bot.message_handler(commands=["user_info"])
 def user_info(message):
-    admin_id = 6306216999  # Replace with your actual Telegram ID
-    user_id = message.from_user.id
+    admin_id = 6306216999  # <-- Replace with YOUR actual Telegram user ID
+    requester_id = message.from_user.id
 
-    if user_id != admin_id:
+    if requester_id != admin_id:
         bot.reply_to(message, "You're not authorized to use this command.")
         return
 
@@ -2071,35 +2071,36 @@ def user_info(message):
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
 
-        # Get user's resources
+        # Fetch user info
         cursor.execute('''
-            SELECT yens, crystals, exp, level, COALESCE(tickets, 0)
+            SELECT yens, crystals, exp, level,
+            COALESCE(tickets, 0)
             FROM user_data
             WHERE user_id = ?
-        ''', (user_id,))
+        ''', (requester_id,))
         user_data = cursor.fetchone()
 
         if not user_data:
-            bot.reply_to(message, "You're not registered in the game.")
-            conn.close()
+            bot.reply_to(message, "User data not found.")
             return
 
         yens, crystals, exp, level, tickets = user_data
 
-        # Get character names
+        # Fetch character names
         cursor.execute('''
             SELECT c.character_name
             FROM user_characters uc
             JOIN character_base_stats c ON uc.character_id = c.character_id
             WHERE uc.user_id = ?
-        ''', (user_id,))
+        ''', (requester_id,))
         characters = cursor.fetchall()
+
         conn.close()
 
-        char_list = "\n".join(f"• {name[0]}" for name in characters) if characters else "None"
+        char_list = "\n".join(f"• {row[0]}" for row in characters) if characters else "None"
 
-        msg = (
-            f"<b>👤 Your Game Info</b>\n"
+        response = (
+            f"<b>👤 User Info</b>\n"
             f"━━━━━━━━━━━━━━\n"
             f"<b>Characters:</b>\n{char_list}\n"
             f"━━━━━━━━━━━━━━\n"
@@ -2111,10 +2112,9 @@ def user_info(message):
             f"Level: <b>{level}</b>"
         )
 
-        bot.reply_to(message, msg, parse_mode="HTML")
+        bot.reply_to(message, response, parse_mode="HTML")
 
     except Exception as e:
         print(f"[UserInfo Error] {e}")
-        bot.reply_to(message, "Something went wrong.")
-    
+        bot.reply_to(message, f"Something went wrong: {e}")
 bot.polling(none_stop=True)
