@@ -2088,7 +2088,7 @@ def user_info(message):
 
         # Fetch character names
         cursor.execute('''
-            SELECT c.character_name
+            SELECT c.name
             FROM user_characters uc
             JOIN character_base_stats c ON uc.character_id = c.character_id
             WHERE uc.user_id = ?
