@@ -2058,4 +2058,63 @@ def hunt_devil(call):
     handle_chest_drop(user_id, chat_id)
 
     bot.answer_callback_query(call.id, "You battled the devil!")   
+@bot.message_handler(commands=["user_info"])
+def user_info(message):
+    admin_id = 6306216999  # Replace with your actual Telegram ID
+    user_id = message.from_user.id
+
+    if user_id != admin_id:
+        bot.reply_to(message, "You're not authorized to use this command.")
+        return
+
+    try:
+        conn = sqlite3.connect("chainsaw.db")
+        cursor = conn.cursor()
+
+        # Get user's resources
+        cursor.execute('''
+            SELECT yens, crystals, exp, level, COALESCE(tickets, 0)
+            FROM user_data
+            WHERE user_id = ?
+        ''', (user_id,))
+        user_data = cursor.fetchone()
+
+        if not user_data:
+            bot.reply_to(message, "You're not registered in the game.")
+            conn.close()
+            return
+
+        yens, crystals, exp, level, tickets = user_data
+
+        # Get character names
+        cursor.execute('''
+            SELECT c.character_name
+            FROM user_characters uc
+            JOIN character_base_stats c ON uc.character_id = c.character_id
+            WHERE uc.user_id = ?
+        ''', (user_id,))
+        characters = cursor.fetchall()
+        conn.close()
+
+        char_list = "\n".join(f"• {name[0]}" for name in characters) if characters else "None"
+
+        msg = (
+            f"<b>👤 Your Game Info</b>\n"
+            f"━━━━━━━━━━━━━━\n"
+            f"<b>Characters:</b>\n{char_list}\n"
+            f"━━━━━━━━━━━━━━\n"
+            f"<b>Resources:</b>\n"
+            f"Yens: <b>{yens}</b>\n"
+            f"Crystals: <b>{crystals}</b>\n"
+            f"Tickets: <b>{tickets}</b>\n"
+            f"EXP: <b>{exp}</b>\n"
+            f"Level: <b>{level}</b>"
+        )
+
+        bot.reply_to(message, msg, parse_mode="HTML")
+
+    except Exception as e:
+        print(f"[UserInfo Error] {e}")
+        bot.reply_to(message, "Something went wrong.")
+    
 bot.polling(none_stop=True)
