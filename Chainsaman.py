@@ -2058,63 +2058,68 @@ def hunt_devil(call):
     handle_chest_drop(user_id, chat_id)
 
     bot.answer_callback_query(call.id, "You battled the devil!")   
-@bot.message_handler(commands=["user_info"])
+@bot.message_handler(commands=['user_info'])
 def user_info(message):
-    admin_id = 6306216999  # <-- Replace with YOUR actual Telegram user ID
-    requester_id = message.from_user.id
+    admin_id = 6306216999  # Replace with your Telegram ID
 
-    if requester_id != admin_id:
+    if message.from_user.id != admin_id:
         bot.reply_to(message, "You're not authorized to use this command.")
         return
+
+    # Get the replied user
+    if not message.reply_to_message:
+        bot.reply_to(message, "Reply to a user's message to get their info.")
+        return
+
+    target_user = message.reply_to_message.from_user
+    user_id = target_user.id
+    username = target_user.first_name
 
     try:
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
 
-        # Fetch user info
+        # Fetch characters
         cursor.execute('''
-            SELECT yens, crystals, exp, level,
-            COALESCE(tickets, 0)
-            FROM user_data
-            WHERE user_id = ?
-        ''', (requester_id,))
-        user_data = cursor.fetchone()
+            SELECT cb. name FROM user_characters uc
+            JOIN character_base_stats cb ON uc.character_id = cb.character_id
+            WHERE uc.user_id = ?
+        ''', (user_id,))
+        characters = [row[0] for row in cursor.fetchall()]
+        character_list = "\n• " + "\n• ".join(characters) if characters else "No characters"
 
-        if not user_data:
-            bot.reply_to(message, "User data not found.")
+        # Fetch resources
+        cursor.execute('''
+            SELECT yens, crystals, tickets, exp, level FROM user_data WHERE user_id = ?
+        ''', (user_id,))
+        data = cursor.fetchone()
+
+        if not data:
+            bot.reply_to(message, "User not found in database.")
             return
 
-        yens, crystals, exp, level, tickets = user_data
+        yens, crystals, tickets, exp, level = data
 
-        # Fetch character names
-        cursor.execute('''
-            SELECT c.name
-            FROM user_characters uc
-            JOIN character_base_stats c ON uc.character_id = c.character_id
-            WHERE uc.user_id = ?
-        ''', (requester_id,))
-        characters = cursor.fetchall()
-
-        conn.close()
-
-        char_list = "\n".join(f"• {row[0]}" for row in characters) if characters else "None"
-
-        response = (
+        msg = (
             f"<b>👤 User Info</b>\n"
-            f"━━━━━━━━━━━━━━\n"
-            f"<b>Characters:</b>\n{char_list}\n"
-            f"━━━━━━━━━━━━━━\n"
+            f"<code>User ID:</code> <b>{user_id}</b>\n"
+            f"<code>Name:</code> <b>{username}</b>\n"
+            "━━━━━━━━━━━━━\n"
+            f"<b>Characters:</b>{character_list}\n"
+            "━━━━━━━━━━━━━\n"
             f"<b>Resources:</b>\n"
             f"Yens: <b>{yens}</b>\n"
             f"Crystals: <b>{crystals}</b>\n"
             f"Tickets: <b>{tickets}</b>\n"
             f"EXP: <b>{exp}</b>\n"
-            f"Level: <b>{level}</b>"
+            f"Level: <b>{level}</b>\n"
         )
 
-        bot.reply_to(message, response, parse_mode="HTML")
+        bot.reply_to(message, msg, parse_mode="HTML")
 
     except Exception as e:
-        print(f"[UserInfo Error] {e}")
-        bot.reply_to(message, f"Something went wrong: {e}")
+        print(f"[User Info Error] {e}")
+        bot.reply_to(message, "Something went wrong.")
+    finally:
+        conn.close()
 bot.polling(none_stop=True)
