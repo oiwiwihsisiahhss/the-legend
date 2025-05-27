@@ -2100,6 +2100,15 @@ def start_battle(user_id, character_id, call):
 def hunt_devil(call):
     user_id = call.from_user.id
     chat_id = call.message.chat.id
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT character_id FROM user_characters WHERE user_id = ?", (user_id,))
+    char_result = cursor.fetchone()
+    conn.close()
+    if not char_result:
+        bot.answer_callback_query(call.id, "You haven't selected a character yet.")
+        return
+    character_id = char_result[0]
 
     # (Optional) devil battle logic here...
 
