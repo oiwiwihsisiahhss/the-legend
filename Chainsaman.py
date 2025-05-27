@@ -2047,6 +2047,55 @@ def handle_chest_drop(user_id, chat_id):
         caption=reward_caption,
         parse_mode="HTML"
     )
+def start_battle(user_id, character_id, call):
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+
+    # Get user's character level
+    cursor.execute("SELECT level FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
+    user_data = cursor.fetchone()
+    if not user_data:
+        conn.close()
+        return
+    user_level = user_data[0]
+
+    # Get character moves and unlock levels
+    cursor.execute('''
+        SELECT move_1, move_1_unlock_level,
+               move_2, move_2_unlock_level,
+               move_3, move_3_unlock_level,
+               special_ability, special_ability_unlock_level
+        FROM character_base_stats
+        WHERE character_id = ?
+    ''', (character_id,))
+    moves = cursor.fetchone()
+    conn.close()
+
+    move_1, lvl_1, move_2, lvl_2, move_3, lvl_3, special, special_lvl = moves
+
+    # Inline keyboard
+    from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+    markup = InlineKeyboardMarkup(row_width=2)
+
+    buttons = []
+    if user_level >= lvl_1:
+        buttons.append(InlineKeyboardButton(text=move_1, callback_data=f"move:{move_1}"))
+    if user_level >= lvl_2:
+        buttons.append(InlineKeyboardButton(text=move_2, callback_data=f"move:{move_2}"))
+    if user_level >= lvl_3:
+        buttons.append(InlineKeyboardButton(text=move_3, callback_data=f"move:{move_3}"))
+    if user_level >= special_lvl:
+        buttons.append(InlineKeyboardButton(text=special, callback_data=f"special:{special}"))
+
+    markup.add(*buttons)
+
+    # Edit original message with inline keyboard
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text="⚔️ Choose your move!",
+        reply_markup=markup
+    )    
 @bot.callback_query_handler(func=lambda call: call.data.startswith("hunt_devil_"))
 def hunt_devil(call):
     user_id = call.from_user.id
@@ -2056,7 +2105,7 @@ def hunt_devil(call):
 
     # Then handle the chest drop
     handle_chest_drop(user_id, chat_id)
-
+    start_battle(user_id, character_id, call)
     bot.answer_callback_query(call.id, "You battled the devil!")   
 @bot.message_handler(commands=['user_info'])
 def user_info(message):
