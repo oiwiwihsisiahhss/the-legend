@@ -1770,8 +1770,8 @@ def handle_remove_menu(call):
     team = get_user_team(user_id, selected_team_number)  # This line was missing
 
     team_text = f"✨Your Current Team (Team {selected_team_number}) ✨\n"
-    for i, char in enumerate(team, start=✧):
-        team_text += f"<b>{i} {char}</b>\n"
+    for char in team:
+        preview += f"\n✧ {char}"
     team_text += "━━━━━━━━━━━━━━━"
     team_text += generate_team_stats_text(user_id, selected_team_number)
     # Fetch team from DB
@@ -1843,8 +1843,8 @@ def handle_remove_slot(call):
 
     # Build updated preview text
     preview_text = f"✨ Your Current Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━\n"
-    for idx, name in enumerate(new_team, start=✧):
-        preview_text += f"{idx️} {name}\n"
+    for char in team:
+        preview += f"\n✧ {char}"
     preview_text += "━━━━━━━━━━━━━━━"
 
     # Rebuild and update inline keyboard
