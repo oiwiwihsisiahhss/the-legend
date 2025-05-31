@@ -339,8 +339,8 @@ def my_team(message):
     # Team display text
     team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"
     team_text += "━━━━━━━━━━━━━━━\n"
-    for i, char in enumerate(team, start=1):
-        team_text += f"<b>{i}✧ {char}</b>\n"
+    for char in team:
+        preview += f"\n✧ {char}"
     team_text += "━━━━━━━━━━━━━━━\n"
 
     # Add stats overview
@@ -1229,8 +1229,8 @@ def handle_team_selection(call):
 
     team_text = f"<b>✨ Your Current Team (Team {team_number})</b> ✨\n"
     team_text += "━━━━━━━━━━━━━━━\n"
-    for i, char in enumerate(team, start=1):
-        team_text += f"<b>{i}✧ {char if char else 'Empty'}</b>\n"
+    for char in team:
+        team_text += f"<b>✧ {char if char else 'Empty'}</b>\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     team_text += generate_team_stats_text(user_id, selected_team_number)
 
@@ -1533,8 +1533,8 @@ def handle_selectchar(call):
 
         # Update message
         preview_text = f"✨ Your Current Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━\n"
-        for i, name in enumerate(team, start=1):
-            preview_text += f"️{i}✧ {name}\n"
+        for name in new_team:
+            preview_text += f"✧ {name}\n"
         preview_text += "━━━━━━━━━━━━━━━"
 
         keyboard = generate_add_team_interface(user_id, team_number, page)
@@ -1682,8 +1682,8 @@ def handle_swap_to(call):
 
     # Show preview
     preview = f"✨ Team {team_number} (Preview After Swap) ✨\n━━━━━━━━━━━━━━━"
-    for idx, char in enumerate(team, 1):
-        preview += f"\n{idx}✧️ {char}"
+    for char in team:
+        preview += f"\n✧ {char}"
     preview += "\n━━━━━━━━━━━━━━━\nClick '✅ Save' to confirm or '❌ Cancel' to discard."
 
     keyboard = InlineKeyboardMarkup()
@@ -1722,8 +1722,8 @@ def handle_swap_save(call):
     del temp_swaps[user_id]
 
     preview = f"✅ Team {team_number} saved!\n━━━━━━━━━━━━━━━"
-    for idx, char in enumerate(team, 1):
-        preview += f"\n{idx}✧ {char}"
+    for char in team:
+        preview += f"\n✧ {char}"
     preview += "\n━━━━━━━━━━━━━━━"
 
     keyboard = InlineKeyboardMarkup()
@@ -1750,8 +1750,8 @@ def handle_swap_cancel(call):
     conn.close()
 
     preview = f"❌ Changes canceled. Showing original team.\n━━━━━━━━━━━━━━━"
-    for idx, char in enumerate(team, 1):
-        preview += f"\n{idx}✧ {char}"
+    for char in team:
+        preview += f"\n✧ {char}"
     preview += "\n━━━━━━━━━━━━━━━"
     keyboard = InlineKeyboardMarkup()
     keyboard.add(InlineKeyboardButton("Back", callback_data="edit_back"))
@@ -1770,8 +1770,8 @@ def handle_remove_menu(call):
     team = get_user_team(user_id, selected_team_number)  # This line was missing
 
     team_text = f"✨Your Current Team (Team {selected_team_number}) ✨\n"
-    for i, char in enumerate(team, start=1):
-        team_text += f"<b>{i}✧ {char}</b>\n"
+    for i, char in enumerate(team, start=✧):
+        team_text += f"<b>{i} {char}</b>\n"
     team_text += "━━━━━━━━━━━━━━━"
     team_text += generate_team_stats_text(user_id, selected_team_number)
     # Fetch team from DB
@@ -1804,6 +1804,7 @@ def handle_remove_menu(call):
     )
 
 
+#@bot.callback_query_handler(func=lambda call: call.data.startswith("remove_slot:"))
 @bot.callback_query_handler(func=lambda call: call.data.startswith("remove_slot:"))
 def handle_remove_slot(call):
     user_id = call.from_user.id
@@ -1822,14 +1823,13 @@ def handle_remove_slot(call):
 
     team = list(row)
 
-    # If already empty, skip
     if team[slot_index].lower() in ("empty", "", "none"):
         conn.close()
         return bot.answer_callback_query(call.id, f"Slot {slot_index + 1} is already empty!")
 
-    # Remove the character and shift remaining characters left
+    # Remove character and shift left
     new_team = [char for char in team if char.lower() not in ("empty", "", "none")]
-    new_team.pop(slot_index)  # Remove the character at given slot
+    new_team.pop(slot_index)
     while len(new_team) < 3:
         new_team.append("Empty")
 
@@ -1841,11 +1841,17 @@ def handle_remove_slot(call):
     conn.commit()
     conn.close()
 
+    # Build updated preview text
+    preview_text = f"✨ Your Current Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━\n"
+    for idx, name in enumerate(new_team, start=✧):
+        preview_text += f"{idx️} {name}\n"
+    preview_text += "━━━━━━━━━━━━━━━"
+
+    # Rebuild and update inline keyboard
+    keyboard = generate_add_team_interface(user_id, team_number, page=1)  # default page = 1, or keep track of it if needed
+    bot.edit_message_text(preview_text, call.message.chat.id, call.message.message_id, reply_markup=keyboard)
+
     bot.answer_callback_query(call.id, f"Removed character from slot {slot_index + 1}.")
-    # Optionally refresh the edit view
-    # refresh_edit_team_view(user_id, team_number, call.message)  # If you have this
-
-
 
 def get_all_devils():
     conn = sqlite3.connect("chainsaw.db")
