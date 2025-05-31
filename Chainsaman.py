@@ -340,7 +340,7 @@ def my_team(message):
     team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     for i, char in enumerate(team, start=1):
-        team_text += f"<b>{i}\uFE0F\u20E3 {char}</b>\n"
+        team_text += f"<b>{i}\✧ {char}</b>\n"
     team_text += "━━━━━━━━━━━━━━━\n"
 
     # Add stats overview
@@ -1230,7 +1230,7 @@ def handle_team_selection(call):
     team_text = f"<b>✨ Your Current Team (Team {team_number})</b> ✨\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     for i, char in enumerate(team, start=1):
-        team_text += f"<b>{i}\uFE0F\u20E3 {char if char else 'Empty'}</b>\n"
+        team_text += f"<b>{i}✧ {char if char else 'Empty'}</b>\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     team_text += generate_team_stats_text(user_id, selected_team_number)
 
@@ -1269,7 +1269,7 @@ def handle_edit_team_callback(call):
 
     team_text = f"✨Your Current Team (Team {selected_team_number}) ✨\n"
     for i, char in enumerate(team, start=1):
-        team_text += f"<b>{i}\uFE0F\u20E3 {char}</b>\n"
+        team_text += f"<b>{i}✧ {char}</b>\n"
     team_text += "━━━━━━━━━━━━━━━\n"
 
     # Show buttons, etc...
@@ -1312,7 +1312,7 @@ def handle_edit_back(call):
     team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     for i, char in enumerate(team, start=1):
-        team_text += f"<b>{i}\uFE0F\u20E3 {char}</b>\n"
+        team_text += f"<b>{i}✧ {char}</b>\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     
     team_text += generate_team_stats_text(user_id, selected_team_number)
@@ -1534,7 +1534,7 @@ def handle_selectchar(call):
         # Update message
         preview_text = f"✨ Your Current Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━\n"
         for i, name in enumerate(team, start=1):
-            preview_text += f"{i}️⃣ {name}\n"
+            preview_text += f"️{i}✧ {name}\n"
         preview_text += "━━━━━━━━━━━━━━━"
 
         keyboard = generate_add_team_interface(user_id, team_number, page)
@@ -1683,7 +1683,7 @@ def handle_swap_to(call):
     # Show preview
     preview = f"✨ Team {team_number} (Preview After Swap) ✨\n━━━━━━━━━━━━━━━"
     for idx, char in enumerate(team, 1):
-        preview += f"\n{idx}️⃣ {char}"
+        preview += f"\n{idx}✧️ {char}"
     preview += "\n━━━━━━━━━━━━━━━\nClick '✅ Save' to confirm or '❌ Cancel' to discard."
 
     keyboard = InlineKeyboardMarkup()
@@ -1723,7 +1723,7 @@ def handle_swap_save(call):
 
     preview = f"✅ Team {team_number} saved!\n━━━━━━━━━━━━━━━"
     for idx, char in enumerate(team, 1):
-        preview += f"\n{idx}️⃣ {char}"
+        preview += f"\n{idx}✧ {char}"
     preview += "\n━━━━━━━━━━━━━━━"
 
     keyboard = InlineKeyboardMarkup()
@@ -1751,7 +1751,7 @@ def handle_swap_cancel(call):
 
     preview = f"❌ Changes canceled. Showing original team.\n━━━━━━━━━━━━━━━"
     for idx, char in enumerate(team, 1):
-        preview += f"\n{idx}️⃣ {char}"
+        preview += f"\n{idx️}✧ {char}"
     preview += "\n━━━━━━━━━━━━━━━"
 
     keyboard = InlineKeyboardMarkup()
@@ -1772,7 +1772,7 @@ def handle_remove_menu(call):
 
     team_text = f"✨Your Current Team (Team {selected_team_number}) ✨\n"
     for i, char in enumerate(team, start=1):
-        team_text += f"<b>{i}\uFE0F\u20E3 {char}</b>\n"
+        team_text += f"<b>{i}✧ {char}</b>\n"
     team_text += "━━━━━━━━━━━━━━━"
     team_text += generate_team_stats_text(user_id, selected_team_number)
     # Fetch team from DB
