@@ -340,7 +340,7 @@ def my_team(message):
     team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     for i, char in enumerate(team, start=1):
-        team_text += f"<b>{i}\✧ {char}</b>\n"
+        team_text += f"<b>{i}✧ {char}</b>\n"
     team_text += "━━━━━━━━━━━━━━━\n"
 
     # Add stats overview
@@ -1751,9 +1751,8 @@ def handle_swap_cancel(call):
 
     preview = f"❌ Changes canceled. Showing original team.\n━━━━━━━━━━━━━━━"
     for idx, char in enumerate(team, 1):
-        preview += f"\n{idx️}✧ {char}"
+        preview += f"\n{idx}✧ {char}"
     preview += "\n━━━━━━━━━━━━━━━"
-
     keyboard = InlineKeyboardMarkup()
     keyboard.add(InlineKeyboardButton("Back", callback_data="edit_back"))
 
