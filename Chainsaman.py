@@ -1432,17 +1432,11 @@ def handle_edit_add(call):
         team = cursor.fetchone() or ("Empty", "Empty", "Empty")
         conn.close()
 
-        def format_slot(slot, index):
-            return f"{index}️⃣ {slot if slot and slot != 'Empty' else 'Empty'}"
-
-        team_message = (
-            f"✨ Your Current Team (Team {team_number}) ✨\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"{format_slot(team[0], 1)}\n"
-            f"{format_slot(team[1], 2)}\n"
-            f"{format_slot(team[2], 3)}\n"
-            f"━━━━━━━━━━━━━━━"
-        )
+        # Build the message with ✧ only
+        team_message = f"✨ Your Current Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━"
+        for char in team:
+            team_message += f"\n✧ {char if char else 'Empty'}"
+        team_message += "\n━━━━━━━━━━━━━━━"
 
         bot.edit_message_text(
             chat_id=call.message.chat.id,
@@ -1450,6 +1444,11 @@ def handle_edit_add(call):
             text=team_message,
             reply_markup=generate_add_team_interface(user_id, team_number, page)
         )
+
+    except Exception as e:
+        error_msg = f"[EditAdd Error]\nUser: {call.from_user.id}\nError: {str(e)}"
+        bot.send_message(ADMIN_ID, error_msg)
+        bot.answer_callback_query(call.id, "An error occurred!")
 
     except Exception as e:
         error_msg = f"[EditAdd Error]\nUser: {call.from_user.id}\nError: {str(e)}"
@@ -1531,21 +1530,25 @@ def handle_selectchar(call):
             bot.answer_callback_query(call.id, "All slots are full. Remove one to add.")
             return
 
-        # Update message
-        preview_text = f"✨ Your Current Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━\n"
-        for name in new_team:
-            preview_text += f"✧ {name}\n"
-        preview_text += "━━━━━━━━━━━━━━━"
+        # Build preview text with ✧ only
+        preview_text = f"✨ Your Current Team (Team {team_number}) ✨\n━━━━━━━━━━━━━━━"
+        for name in team:
+            preview_text += f"\n✧ {name if name else 'Empty'}"
+        preview_text += "\n━━━━━━━━━━━━━━━"
 
+        # Generate inline keyboard
         keyboard = generate_add_team_interface(user_id, team_number, page)
-        bot.edit_message_text(preview_text, call.message.chat.id, call.message.message_id, reply_markup=keyboard)
+
+        # Edit the team preview message
+        bot.edit_message_text(
+            preview_text,
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            reply_markup=keyboard
+        )
 
     except Exception as e:
         print(f"[SelectChar Error]\nUser: {call.from_user.id}\nError: {e}")
-        bot.answer_callback_query(call.id, "An error occurred.")
-
-    except Exception as e:
-        print(f"[Add Character Error]\nUser: {user_id}\nError: {e}")
         bot.answer_callback_query(call.id, "An error occurred.")
 import time
 
@@ -1710,6 +1713,7 @@ def handle_swap_save(call):
 
     team = temp_swaps[user_id]["team"]
 
+    # Save updated team to database
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
     cursor.execute('''
@@ -1719,15 +1723,27 @@ def handle_swap_save(call):
     conn.commit()
     conn.close()
 
+    # Cleanup temp data
     del temp_swaps[user_id]
 
-    preview = f"✅ Team {team_number} saved!\n━━━━━━━━━━━━━━━"
+    # Build preview text
+    preview = f"✅ <b>Team {team_number} saved!</b>\n━━━━━━━━━━━━━━━"
     for char in team:
-        preview += f"\n✧ {char}"
+        preview += f"\n✧ {char if char else 'Empty'}"
     preview += "\n━━━━━━━━━━━━━━━"
 
+    # Build keyboard
     keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton("Back", callback_data="edit_back"))
+    keyboard.add(InlineKeyboardButton("🔙 Back", callback_data="edit_back"))
+
+    # Send updated message
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=preview,
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
 
     bot.edit_message_text(
         chat_id=call.message.chat.id,
