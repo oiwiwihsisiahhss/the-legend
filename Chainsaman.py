@@ -332,7 +332,6 @@ def set_user_team(user_id, team_number, slot1, slot2, slot3):
 @bot.message_handler(commands=['myteam'])
 def my_team(message):
     user_id = message.from_user.id
-
     selected_team_number = get_main_team(user_id)
     team = get_user_team(user_id, team_number=selected_team_number)
 
@@ -341,7 +340,7 @@ def my_team(message):
     team_text += "━━━━━━━━━━━━━━━"
     for char in team:
         team_text += f"\n✧ {char if char else 'Empty'}"
-    team_text += "\n━━━━━━━━━━━━━━━"
+    team_text += "\n━━━━━━━━━━━━━━━\n\n"  # <--- this spacing is important
 
     # Add stats overview
     team_text += generate_team_stats_text(user_id, selected_team_number)
@@ -361,8 +360,7 @@ def my_team(message):
     if message.chat.type == 'private':
         markup.add(types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team"))
 
-    close_button = types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}")
-    markup.add(close_button)
+    markup.add(types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}"))
 
     bot.send_message(
         message.chat.id,
