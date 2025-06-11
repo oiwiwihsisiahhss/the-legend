@@ -338,10 +338,10 @@ def my_team(message):
 
     # Team display text
     team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"
-    team_text += "━━━━━━━━━━━━━━━\n"
+    team_text += "━━━━━━━━━━━━━━━"
     for char in team:
-        preview += f"\n✧ {char}"
-    team_text += "━━━━━━━━━━━━━━━\n"
+        team_text += f"\n✧ {char if char else 'Empty'}"
+    team_text += "\n━━━━━━━━━━━━━━━"
 
     # Add stats overview
     team_text += generate_team_stats_text(user_id, selected_team_number)
