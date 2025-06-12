@@ -512,7 +512,7 @@ def start_in_dm(message):
         show_start_screen(message)
     else:
     # Already has character
-        back_message(message))
+        back_message(message)
 
     else:
         # Returning user who has already selected a character
