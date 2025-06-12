@@ -479,64 +479,7 @@ def start_in_group(message):
 
 # PRIVATE START HANDLER
 
-@bot.message_handler(commands=['start'], chat_types=['private'])
-def start_in_dm(message):
-    user_id = message.from_user.id
-    username = message.from_user.username
 
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
-
-    # Fetch user and check character
-    cursor.execute("SELECT choosen_character FROM user_data WHERE user_id = ?", (user_id,))
-    result = cursor.fetchone()
-
-    if result is None:
-        # New user — insert and show start screen
-        cursor.execute("""
-            INSERT INTO user_data (
-                user_id, username, level, exp, required_exp, yens,
-                crystals, tickets, energy, max_energy,
-                last_energy_time, choosen_character
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            user_id, username, 1, 0, 12345, 250,
-            0, 0, 10000, 10000,
-            int(time.time()), None
-        ))
-        conn.commit()
-        show_start_screen(message)  # ✅ This was missing before!
-
-    elif result[0] is None:
-        # User exists but hasn't chosen a character
-        show_start_screen(message)
-
-    else:
-        # User exists and has chosen character
-        show_back_message(message)
-
-    conn.close()
-
-
-def show_start_screen(message):
-    start_message = (
-        "🔥 <b>WELCOME TO THE CHAINSAW MAN GAME</b> 🔥\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "💀 <b>ENTER IF YOU DARE...</b>\n"
-        "You've just crossed into a world where <b>Devils rule the shadows</b>,\n"
-        "and <i>only the strongest Hunters survive.</i>\n\n"
-        "Your soul is the price.\n"
-        "Your blade is your answer.\n"
-        "Your fate? Still unwritten.\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "⚔️ <b>YOUR MISSION:</b>\n"
-        "• 🧍‍♂️ Choose your Hunter\n"
-        "• 👹 Hunt Devils\n"
-        "• 🤝 Make Contracts\n"
-        "• 🪙 Earn Yens, EXP & Gems\n"
-        "• 🩸 Survive – Or die trying.\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🕹️ <b>HOW TO BEGIN:</b>\n"
 @bot.message_handler(commands=['start'], chat_types=['private'])
 def start_in_dm(message):
     user_id = message.from_user.id
