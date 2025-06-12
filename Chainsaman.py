@@ -332,6 +332,16 @@ def set_user_team(user_id, team_number, slot1, slot2, slot3):
 @bot.message_handler(commands=['myteam'])
 def my_team(message):
     user_id = message.from_user.id
+    # Check if user has started the bot
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
+    started = cursor.fetchone()
+    conn.close()
+
+    if not started:
+        return bot.reply_to(message, "❌ You haven't started the game yet! Use /start to begin.")
+
     selected_team_number = get_main_team(user_id)
     team = get_user_team(user_id, team_number=selected_team_number)
 
