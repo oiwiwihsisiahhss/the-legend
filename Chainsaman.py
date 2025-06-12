@@ -575,31 +575,7 @@ def show_start_screen(message):
         parse_mode="HTML"
     )
 
-    else:
-        conn.close()
-        back_message = (
-            "💀 <b>Welcome Back, Hunter!</b> 💀\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            "You've already made your contract with us... and now, your journey continues!\n\n"
-            "You’ve stepped away... but the devils never rest.\n"
-            "Your fate still awaits — will you rise or fall?\n\n"
-            "⚡️ <b>What’s Next?</b>\n"
-            "• 🧍‍♂️ Your Hunter is waiting\n"
-            "• 👹 Devils are still out there\n"
-            "• 🤝 Keep making powerful contracts\n"
-            "• 🩸 Fight, earn, and survive\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            "🤖 GameBot whispers:\n"
-            "<i>“The chainsaw roars again... Are you ready?”</i>\n\n"
-            "➡️ <a href='https://t.me/chainsaw_man_group69'>Join the group and continue your adventure</a>"
-        )
-
-        bot.send_photo(
-            message.chat.id,
-            photo="https://files.catbox.moe/bghkj1.jpg",
-            caption=back_message, 
-            parse_mode = "HTML"
-        )
+    
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "choose_char")
