@@ -491,8 +491,8 @@ def start_in_dm(message):
     cursor.execute("SELECT choosen_character FROM user_data WHERE user_id = ?", (user_id,))
     result = cursor.fetchone()
 
-    if not result:
-        # New user
+    if result is None:
+        # New user — insert and show start screen
         cursor.execute("""
             INSERT INTO user_data (
                 user_id, username, level, exp, required_exp, yens,
@@ -505,14 +505,14 @@ def start_in_dm(message):
             int(time.time()), None
         ))
         conn.commit()
-        #show_start_screen(message)
+        show_start_screen(message)  # ✅ This was missing before!
 
     elif result[0] is None:
         # User exists but hasn't chosen a character
         show_start_screen(message)
 
     else:
-        # User already has character
+        # User exists and has chosen character
         show_back_message(message)
 
     conn.close()
