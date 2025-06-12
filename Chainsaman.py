@@ -478,70 +478,45 @@ def start_in_group(message):
 
 
 # PRIVATE START HANDLER
+
 @bot.message_handler(commands=['start'], chat_types=['private'])
 def start_in_dm(message):
     user_id = message.from_user.id
     username = message.from_user.username
 
-    conn = sqlite3.connect("chainsaw.db")  
-    cursor = conn.cursor()  
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
 
-    cursor.execute("SELECT choosen_character FROM user_data WHERE user_id = ?", (user_id,))  
-    user = cursor.fetchone()  
+    cursor.execute("SELECT choosen_character FROM user_data WHERE user_id = ?", (user_id,))
+    user = cursor.fetchone()
 
     if not user:
-        # New user: insert data and prompt character selection  
-        cursor.execute("""  
-            INSERT OR IGNORE INTO user_data (  
-                user_id, username, level, exp, required_exp, yens,  
-                crystals, tickets, energy, max_energy,  
-                last_energy_time, choosen_character  
-            )  
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)  
-        """, (  
-            user_id, username, 1, 0, 12345, 250,  
-            0, 0, 10000, 10000,  
-            int(time.time()), None  
-        ))  
-        conn.commit()  
+        # New user
+        cursor.execute("""
+            INSERT INTO user_data (
+                user_id, username, level, exp, required_exp, yens,
+                crystals, tickets, energy, max_energy,
+                last_energy_time, choosen_character
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            user_id, username, 1, 0, 12345, 250,
+            0, 0, 10000, 10000,
+            int(time.time()), None
+        ))
+        conn.commit()
+        show_start_screen(message)
 
-        show_start_screen(message)  
-
-    elif not user[0] or str(user[0]).lower() == "none":
-        # Still needs to choose a character  
-        show_start_screen(message)  
-
+    elif user[0] is None or str(user[0]).lower() == "none":
+        # User hasn't chosen character yet
+        show_start_screen(message)
     else:
-        # Returning user who has already selected a character  
+        # User has already chosen a character
         show_back_message(message)
 
     conn.close()
 
-def show_back_message(message):
-    back_message = (
-            "💀 <b>Welcome Back, Hunter!</b> 💀\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            "You've already made your contract with us... and now, your journey continues!\n\n"
-            "You’ve stepped away... but the devils never rest.\n"
-            "Your fate still awaits — will you rise or fall?\n\n"
-            "⚡️ <b>What’s Next?</b>\n"
-            "• 🧍‍♂️ Your Hunter is waiting\n"
-            "• 👹 Devils are still out there\n"
-            "• 🤝 Keep making powerful contracts\n"
-            "• 🩸 Fight, earn, and survive\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            "🤖 GameBot whispers:\n"
-            "<i>“The chainsaw roars again... Are you ready?”</i>\n\n"
-            "➡️ <a href='https://t.me/chainsaw_man_group69'>Join the group and continue your adventure</a>"
-)
-    bot.send_photo(
-        message.chat.id,
-        photo="https://files.catbox.moe/bghkj1.jpg",
-        caption=start_message,
-        #reply_markup=choose_btn,
-        parse_mode="HTML"
-    )
-    
+
 def show_start_screen(message):
     start_message = (
         "🔥 <b>WELCOME TO THE CHAINSAW MAN GAME</b> 🔥\n"
@@ -574,6 +549,32 @@ def show_start_screen(message):
         photo="https://files.catbox.moe/bghkj1.jpg",
         caption=start_message,
         reply_markup=choose_btn,
+        parse_mode="HTML"
+    )
+
+
+def show_back_message(message):
+    back_message = (
+        "💀 <b>Welcome Back, Hunter!</b> 💀\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "You've already made your contract with us... and now, your journey continues!\n\n"
+        "You’ve stepped away... but the devils never rest.\n"
+        "Your fate still awaits — will you rise or fall?\n\n"
+        "⚡️ <b>What’s Next?</b>\n"
+        "• 🧍‍♂️ Your Hunter is waiting\n"
+        "• 👹 Devils are still out there\n"
+        "• 🤝 Keep making powerful contracts\n"
+        "• 🩸 Fight, earn, and survive\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🤖 GameBot whispers:\n"
+        "<i>“The chainsaw roars again... Are you ready?”</i>\n\n"
+        "➡️ <a href='https://t.me/chainsaw_man_group69'>Join the group and continue your adventure</a>"
+    )
+
+    bot.send_photo(
+        message.chat.id,
+        photo="https://files.catbox.moe/bghkj1.jpg",
+        caption=back_message,
         parse_mode="HTML"
     )
 
