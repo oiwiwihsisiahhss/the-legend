@@ -507,9 +507,12 @@ def start_in_dm(message):
 
         show_start_screen(message)
 
-    elif user[0] is None or user[0] == "None":
-        # User exists but hasn't selected a character
+    elif user[0] is None or str(user[0]).lower() == "none":
+    # Still needs to choose a character
         show_start_screen(message)
+    else:
+    # Already has character
+        back_message(message))
 
     else:
         # Returning user who has already selected a character
