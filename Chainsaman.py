@@ -505,7 +505,7 @@ def start_in_dm(message):
             int(time.time()), None
         ))
         conn.commit()
-        show_start_screen(message)
+        #show_start_screen(message)
 
     elif result[0] is None:
         # User exists but hasn't chosen a character
