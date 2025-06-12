@@ -183,6 +183,8 @@ def create_table():
             FOREIGN KEY (user_id) REFERENCES user_data(user_id) ON DELETE CASCADE,
             FOREIGN KEY (character_id) REFERENCES character_base_stats(character_id) ON DELETE CASCADE,
             PRIMARY KEY (user_id, character_id)
+            choosen_character_id INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (choosen_character_id) REFERENCES character_base_stats(character_id)
         )
     ''')
 
@@ -477,54 +479,30 @@ def start_in_group(message):
         print(e)
 
 
-# PRIVATE START HANDLER
+@bot.message_handler(commands=['start'], chat_types=['private'])
+def start_in_dm(message):
+    user_id = message.from_user.id
 
-@bot.callback_query_handler(func=lambda call: call.data == "choose_char")
-def show_character_options(call):
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    keyboard.add(
-        InlineKeyboardButton("Hirokazu Arai", callback_data="select_char_1"),
-        InlineKeyboardButton("Akane Sawatari", callback_data="select_char_2"),
-        InlineKeyboardButton("Kobeni Higashiyama", callback_data="select_char_3")
-    )
-    bot.send_message(
-        chat_id=call.message.chat.id,
-        text="Choose your character:",
-        reply_markup=keyboard
-    )
-@bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
-def handle_character_selection(call):
-    user_id = call.from_user.id
-    character_id = int(call.data.split("_")[-1])
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
 
-    # Check if user has already selected
-    cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ?", (user_id,))
-    if cursor.fetchone():
-        bot.answer_callback_query(call.id, "You have already chosen a character!")
-        return
+    # Ensure user exists in user_characters
+    cursor.execute("SELECT choosen_character_id FROM user_characters WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
 
-    # Insert into DB
-    cursor.execute("INSERT INTO user_characters (user_id, character_id) VALUES (?, ?)", (user_id, character_id))
-    conn.commit()
+    if result is None:
+        # New user — insert into user_characters with no character chosen yet
+        cursor.execute("INSERT INTO user_characters (user_id, choosen_character_id) VALUES (?, ?)", (user_id, 0))
+        conn.commit()
+        show_start_screen(message)
+    elif result[0] == 0:
+        # User exists but has NOT chosen character
+        show_start_screen(message)
+    else:
+        # User exists and has chosen character
+        show_back_message(message)
 
-    # Fetch character stats
-    cursor.execute("SELECT name, attack, defense, speed, special_ability FROM character_base_stats WHERE character_id = ?", (character_id,))
-    char = cursor.fetchone()
-
-    if char:
-        name, atk, df, spd, ability = char
-        # Delete the previous keyboard message (optional)
-        try:
-            bot.delete_message(call.message.chat.id, call.message.message_id)
-        except:
-            pass
-
-        bot.send_message(
-            chat_id=call.message.chat.id,
-            text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
-            parse_mode="Markdown"
-        )   
-
+    conn.close()
 
 def show_start_screen(message):
     start_message = (
@@ -604,27 +582,34 @@ def show_character_options(call):
         reply_markup=keyboard
     )
 @bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
+#@bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
 def handle_character_selection(call):
     user_id = call.from_user.id
     character_id = int(call.data.split("_")[-1])
 
-    # Check if user has already selected
-    cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ?", (user_id,))
-    if cursor.fetchone():
-        bot.answer_callback_query(call.id, "You have already chosen a character!")
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+
+    # Check if already chosen
+    cursor.execute("SELECT choosen_character_id FROM user_characters WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+
+    if row and row[0] != 0:
+        bot.answer_callback_query(call.id, "You’ve already selected a character!")
+        conn.close()
         return
 
-    # Insert into DB
-    cursor.execute("INSERT INTO user_characters (user_id, character_id) VALUES (?, ?)", (user_id, character_id))
+    # Update selected character
+    cursor.execute("UPDATE user_characters SET choosen_character_id = ? WHERE user_id = ?", (character_id, user_id))
     conn.commit()
 
-    # Fetch character stats
+    # Confirm selection
     cursor.execute("SELECT name, attack, defense, speed, special_ability FROM character_base_stats WHERE character_id = ?", (character_id,))
     char = cursor.fetchone()
+    conn.close()
 
     if char:
         name, atk, df, spd, ability = char
-        # Delete the previous keyboard message (optional)
         try:
             bot.delete_message(call.message.chat.id, call.message.message_id)
         except:
@@ -634,7 +619,7 @@ def handle_character_selection(call):
             chat_id=call.message.chat.id,
             text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
             parse_mode="Markdown"
-        )   
+        )
 @bot.message_handler(commands=['myhunters'])        
 def show_user_characters(message):
     conn = sqlite3.connect("chainsaw.db")
