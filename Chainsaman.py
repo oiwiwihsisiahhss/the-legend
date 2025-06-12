@@ -544,6 +544,14 @@ def back_message(message):
             "<i>“The chainsaw roars again... Are you ready?”</i>\n\n"
             "➡️ <a href='https://t.me/chainsaw_man_group69'>Join the group and continue your adventure</a>"
 )
+    bot.send_photo(
+        message.chat.id,
+        photo="https://files.catbox.moe/bghkj1.jpg",
+        caption=start_message,
+        #reply_markup=choose_btn,
+        parse_mode="HTML"
+    )
+    
 def show_start_screen(message):
     start_message = (
         "🔥 <b>WELCOME TO THE CHAINSAW MAN GAME</b> 🔥\n"
