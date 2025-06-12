@@ -483,51 +483,41 @@ def start_in_dm(message):
     user_id = message.from_user.id
     username = message.from_user.username
 
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
+    conn = sqlite3.connect("chainsaw.db")  
+    cursor = conn.cursor()  
 
-    cursor.execute("SELECT choosen_character FROM user_data WHERE user_id = ?", (user_id,))
-    user = cursor.fetchone()
+    cursor.execute("SELECT choosen_character FROM user_data WHERE user_id = ?", (user_id,))  
+    user = cursor.fetchone()  
 
     if not user:
-        # New user: insert data and prompt character selection
-        cursor.execute("""
-            INSERT OR IGNORE INTO user_data (
-                user_id, username, level, exp, required_exp, yens,
-                crystals, tickets, energy, max_energy,
-                last_energy_time, choosen_character
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            user_id, username, 1, 0, 12345, 250,
-            0, 0, 10000, 10000,
-            int(time.time()), None
-        ))
-        conn.commit()
+        # New user: insert data and prompt character selection  
+        cursor.execute("""  
+            INSERT OR IGNORE INTO user_data (  
+                user_id, username, level, exp, required_exp, yens,  
+                crystals, tickets, energy, max_energy,  
+                last_energy_time, choosen_character  
+            )  
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)  
+        """, (  
+            user_id, username, 1, 0, 12345, 250,  
+            0, 0, 10000, 10000,  
+            int(time.time()), None  
+        ))  
+        conn.commit()  
 
-        show_start_screen(message)
+        show_start_screen(message)  
 
-    elif user[0] is None or str(user[0]).lower() == "none":
-    # Still needs to choose a character
-        show_start_screen(message)
+    elif not user[0] or str(user[0]).lower() == "none":
+        # Still needs to choose a character  
+        show_start_screen(message)  
+
     else:
-    # Already has character
-        back_message(message)
-
-    
-        # Returning user who has already selected a character
-        
-
-        bot.send_photo(
-            message.chat.id,
-            photo="https://files.catbox.moe/bghkj1.jpg",
-            caption=back_message,
-            parse_mode="HTML"
-        )
+        # Returning user who has already selected a character  
+        show_back_message(message)
 
     conn.close()
 
-def back_message(message):
+def show_back_message(message):
     back_message = (
             "💀 <b>Welcome Back, Hunter!</b> 💀\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
