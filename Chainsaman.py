@@ -1309,8 +1309,8 @@ def handle_edit_back(call):
 
     team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"
     team_text += "━━━━━━━━━━━━━━━\n"
-    for i, char in enumerate(team, start=1):
-        team_text += f"{i}✧ {char}\n"
+    for char in team:
+        team_text += f"✧ {char}\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     
     team_text += generate_team_stats_text(user_id, selected_team_number)
