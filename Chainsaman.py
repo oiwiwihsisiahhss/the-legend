@@ -478,22 +478,21 @@ def start_in_group(message):
 
 
 # PRIVATE START HANDLER
-
-
 @bot.message_handler(commands=['start'], chat_types=['private'])
 def start_in_dm(message):
+    import time
     user_id = message.from_user.id
     username = message.from_user.username
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Check if user exists and their chosen character
+    # Check if user exists
     cursor.execute("SELECT choosen_character FROM user_data WHERE user_id = ?", (user_id,))
     result = cursor.fetchone()
 
     if result is None:
-        # New user: Insert initial data
+        # 🆕 New user: Insert user and show start screen
         cursor.execute("""
             INSERT INTO user_data (
                 user_id, username, level, exp, required_exp, yens,
@@ -508,12 +507,12 @@ def start_in_dm(message):
         conn.commit()
         show_start_screen(message)
 
-    elif not result[0] or str(result[0]).lower() == "none":
-        # User exists but hasn't selected a character yet
+    elif result[0] is None or str(result[0]).strip().lower() == "none":
+        # 🧍 Existing user but no character chosen
         show_start_screen(message)
 
     else:
-        # Returning user who has already selected a character
+        # 🔁 Returning user with character
         show_back_message(message)
 
     conn.close()
