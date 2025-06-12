@@ -487,18 +487,18 @@ def start_in_dm(message):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
+    # Fetch user and check character
     cursor.execute("SELECT choosen_character FROM user_data WHERE user_id = ?", (user_id,))
-    user = cursor.fetchone()
+    result = cursor.fetchone()
 
-    if not user:
+    if not result:
         # New user
         cursor.execute("""
             INSERT INTO user_data (
                 user_id, username, level, exp, required_exp, yens,
                 crystals, tickets, energy, max_energy,
                 last_energy_time, choosen_character
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             user_id, username, 1, 0, 12345, 250,
             0, 0, 10000, 10000,
@@ -507,11 +507,12 @@ def start_in_dm(message):
         conn.commit()
         show_start_screen(message)
 
-    elif user[0] is None or str(user[0]).lower() == "none":
-        # User hasn't chosen character yet
+    elif result[0] is None:
+        # User exists but hasn't chosen a character
         show_start_screen(message)
+
     else:
-        # User has already chosen a character
+        # User already has character
         show_back_message(message)
 
     conn.close()
