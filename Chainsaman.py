@@ -478,44 +478,52 @@ def start_in_group(message):
 
 
 # PRIVATE START HANDLER
-@bot.message_handler(commands=['start'], chat_types=['private'])
-def start_in_dm(message):
-    import time
-    user_id = message.from_user.id
-    username = message.from_user.username
 
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
+@bot.callback_query_handler(func=lambda call: call.data == "choose_char")
+def show_character_options(call):
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(
+        InlineKeyboardButton("Hirokazu Arai", callback_data="select_char_1"),
+        InlineKeyboardButton("Akane Sawatari", callback_data="select_char_2"),
+        InlineKeyboardButton("Kobeni Higashiyama", callback_data="select_char_3")
+    )
+    bot.send_message(
+        chat_id=call.message.chat.id,
+        text="Choose your character:",
+        reply_markup=keyboard
+    )
+@bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
+def handle_character_selection(call):
+    user_id = call.from_user.id
+    character_id = int(call.data.split("_")[-1])
 
-    # Check if user exists
-    cursor.execute("SELECT choosen_character FROM user_data WHERE user_id = ?", (user_id,))
-    result = cursor.fetchone()
+    # Check if user has already selected
+    cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ?", (user_id,))
+    if cursor.fetchone():
+        bot.answer_callback_query(call.id, "You have already chosen a character!")
+        return
 
-    if result is None:
-        # 🆕 New user: Insert user and show start screen
-        cursor.execute("""
-            INSERT INTO user_data (
-                user_id, username, level, exp, required_exp, yens,
-                crystals, tickets, energy, max_energy,
-                last_energy_time, choosen_character
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            user_id, username, 1, 0, 12345, 250,
-            0, 0, 10000, 10000,
-            int(time.time()), None
-        ))
-        conn.commit()
-        show_start_screen(message)
+    # Insert into DB
+    cursor.execute("INSERT INTO user_characters (user_id, character_id) VALUES (?, ?)", (user_id, character_id))
+    conn.commit()
 
-    elif result[0] is None or str(result[0]).strip().lower() == "none":
-        # 🧍 Existing user but no character chosen
-        show_start_screen(message)
+    # Fetch character stats
+    cursor.execute("SELECT name, attack, defense, speed, special_ability FROM character_base_stats WHERE character_id = ?", (character_id,))
+    char = cursor.fetchone()
 
-    else:
-        # 🔁 Returning user with character
-        show_back_message(message)
+    if char:
+        name, atk, df, spd, ability = char
+        # Delete the previous keyboard message (optional)
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except:
+            pass
 
-    conn.close()
+        bot.send_message(
+            chat_id=call.message.chat.id,
+            text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
+            parse_mode="Markdown"
+        )   
 
 
 def show_start_screen(message):
