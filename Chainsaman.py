@@ -340,7 +340,7 @@ def my_team(message):
     team_text += "━━━━━━━━━━━━━━━"
     for char in team:
         team_text += f"\n✧ {char if char else 'Empty'}"
-    team_text += "\n━━━━━━━━━━━━━━━\n\n"  # <--- this spacing is important
+    team_text += "\n━━━━━━━━━━━━━━━\n"  # <--- this spacing is important
 
     # Add stats overview
     team_text += generate_team_stats_text(user_id, selected_team_number)
@@ -1228,7 +1228,7 @@ def handle_team_selection(call):
     team_text = f"<b>✨ Your Current Team (Team {team_number})</b> ✨\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     for char in team:
-        team_text += f"<b>✧ {char if char else 'Empty'}</b>\n"
+        team_text += f"✧ {char if char else 'Empty'}\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     team_text += generate_team_stats_text(user_id, selected_team_number)
 
@@ -1267,7 +1267,7 @@ def handle_edit_team_callback(call):
 
     team_text = f"✨Your Current Team (Team {selected_team_number}) ✨\n"
     for i, char in enumerate(team, start=1):
-        team_text += f"<b>{i}✧ {char}</b>\n"
+        team_text += f"{i}✧ {char}\n"
     team_text += "━━━━━━━━━━━━━━━\n"
 
     # Show buttons, etc...
@@ -1310,7 +1310,7 @@ def handle_edit_back(call):
     team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     for i, char in enumerate(team, start=1):
-        team_text += f"<b>{i}✧ {char}</b>\n"
+        team_text += f"{i}✧ {char}\n"
     team_text += "━━━━━━━━━━━━━━━\n"
     
     team_text += generate_team_stats_text(user_id, selected_team_number)
@@ -1785,7 +1785,7 @@ def handle_remove_menu(call):
 
     team_text = f"✨Your Current Team (Team {selected_team_number}) ✨\n"
     for char in team:
-        preview += f"\n✧ {char}"
+        team_text += f"\n✧ {char}"
     team_text += "━━━━━━━━━━━━━━━"
     team_text += generate_team_stats_text(user_id, selected_team_number)
     # Fetch team from DB
