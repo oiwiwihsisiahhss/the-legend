@@ -514,9 +514,21 @@ def start_in_dm(message):
     # Already has character
         back_message(message)
 
-    else:
+    
         # Returning user who has already selected a character
-        back_message = (
+        
+
+        bot.send_photo(
+            message.chat.id,
+            photo="https://files.catbox.moe/bghkj1.jpg",
+            caption=back_message,
+            parse_mode="HTML"
+        )
+
+    conn.close()
+
+def back_message(message):
+    back_message = (
             "💀 <b>Welcome Back, Hunter!</b> 💀\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             "You've already made your contract with us... and now, your journey continues!\n\n"
@@ -531,18 +543,7 @@ def start_in_dm(message):
             "🤖 GameBot whispers:\n"
             "<i>“The chainsaw roars again... Are you ready?”</i>\n\n"
             "➡️ <a href='https://t.me/chainsaw_man_group69'>Join the group and continue your adventure</a>"
-        )
-
-        bot.send_photo(
-            message.chat.id,
-            photo="https://files.catbox.moe/bghkj1.jpg",
-            caption=back_message,
-            parse_mode="HTML"
-        )
-
-    conn.close()
-
-
+)
 def show_start_screen(message):
     start_message = (
         "🔥 <b>WELCOME TO THE CHAINSAW MAN GAME</b> 🔥\n"
