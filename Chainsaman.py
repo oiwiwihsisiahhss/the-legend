@@ -1258,58 +1258,67 @@ def return_to_stats(call):
                              reply_markup=markup)
 
 
-@bot.message_handler(commands=['myteam'])  
-def my_team(message):  
-    user_id = message.from_user.id  
-    is_private = message.chat.type == 'private'
+@bot.callback_query_handler(func=lambda call: call.data.startswith("team"))
+def handle_team_selection(call):
+    user_id = call.from_user.id
+    team_number = int(call.data[-1])  # team1 to team5 → number
+    current_main = get_main_team(user_id)
 
-    # Check if user has started the bot  
-    conn = sqlite3.connect("chainsaw.db")  
-    cursor = conn.cursor()  
-    cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))  
-    started = cursor.fetchone()  
-    conn.close()  
-  
-    if not started:  
-        return bot.reply_to(message, "❌ You haven't started the game yet! Use /start to begin.")  
-  
-    selected_team_number = get_main_team(user_id)  
-    team = get_user_team(user_id, team_number=selected_team_number)  
-  
-    # Team display text  
-    team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"  
-    team_text += "━━━━━━━━━━━━━━━"  
-    for char in team:  
-        team_text += f"\n✧ {char if char else 'Empty'}"  
-    team_text += "\n━━━━━━━━━━━━━━━\n"
+    if team_number == current_main:
+        bot.answer_callback_query(call.id, "⚠️ You have already set this team as your main team.", show_alert=True)
+        return
 
-    # Only show team stats in DM  
-    if is_private:
-        team_text += generate_team_stats_text(user_id, selected_team_number)
-  
-    # Inline keyboard  
-    markup = types.InlineKeyboardMarkup(row_width=2)  
-    markup.add(  
-        types.InlineKeyboardButton("Team 1⃣", callback_data="team1"),  
-        types.InlineKeyboardButton("Team 2⃣", callback_data="team2"),  
-    )  
-    markup.add(  
-        types.InlineKeyboardButton("Team 3⃣", callback_data="team3"),  
-        types.InlineKeyboardButton("Team 4⃣", callback_data="team4"),  
-    )  
-    markup.add(types.InlineKeyboardButton("Team 5⃣", callback_data="team5"))  
-  
-    if is_private:  
-        markup.add(types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team"))  
-  
-    markup.add(types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}"))  
-  
-    bot.send_message(  
-        message.chat.id,  
-        team_text.strip(),  
-        reply_markup=markup,  
-        parse_mode="HTML",  
-        reply_to_message_id=message.message_id if not is_private else None  
+    # Update the main team in database
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR REPLACE INTO user_team_selection (user_id, current_team)
+        VALUES (?, ?)
+    ''', (user_id, team_number))
+    conn.commit()
+    conn.close()
+
+    set_main_team(user_id, team_number)
+
+    bot.answer_callback_query(call.id, f"✅ Team {team_number} is now your main team!", show_alert=True)
+
+    team = get_user_team(user_id, team_number)
+
+    # Build team text
+    team_text = f"<b>✨ Your Current Team (Team {team_number})</b> ✨\n"
+    team_text += "━━━━━━━━━━━━━━━\n"
+    for char in team:
+        team_text += f"✧ {char if char else 'Empty'}\n"
+    team_text += "━━━━━━━━━━━━━━━\n"
+
+    # 🟡 Only add stats in private chat
+    if call.message.chat.type == 'private':
+        team_text += generate_team_stats_text(user_id, team_number)
+
+    # Build inline keyboard
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        types.InlineKeyboardButton("Team 1⃣", callback_data="team1"),
+        types.InlineKeyboardButton("Team 2⃣", callback_data="team2"),
+    )
+    markup.add(
+        types.InlineKeyboardButton("Team 3⃣", callback_data="team3"),
+        types.InlineKeyboardButton("Team 4⃣", callback_data="team4"),
+    )
+    markup.add(types.InlineKeyboardButton("Team 5⃣", callback_data="team5"))
+
+    if call.message.chat.type == 'private':
+        markup.add(types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team"))
+
+    markup.add(types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}"))
+
+    # Edit the message with updated info
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=team_text.strip(),
+        reply_markup=markup,
+        parse_mode="HTML"
     )
 #@bot.callback_query_handler(func=lambda call: call.data == "edit_team")
 @bot.callback_query_handler(func=lambda call: call.data == "edit_team")
