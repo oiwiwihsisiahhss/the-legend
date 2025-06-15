@@ -1079,10 +1079,11 @@ def add_character(message):
 def stats(message):
     args = message.text.split(' ', 1)
     if len(args) == 1:
-        return bot.reply_to(message, "❌ Please provide a character name.")
-    
+        return bot.reply_to(message, "❌ Please provide a character name. Example: /stats Himeno")
+
     name_input = args[1].strip().lower()
     user_id = message.from_user.id
+    is_private = message.chat.type == "private"
 
     conn = sqlite3.connect('chainsaw.db')
     cursor = conn.cursor()
@@ -1098,35 +1099,43 @@ def stats(message):
     conn.close()
 
     if not result:
-        return bot.reply_to(message, "❌ No character found with that name.")
+        return bot.reply_to(message, "❌ No Devil Hunter found with that name.")
 
     (char_id, name, desc, atk, defense, spd, prec, inst, img, exp, req_exp, lvl) = result
     progress = int((exp / req_exp) * 10)
     bar = '█' * progress + '░' * (10 - progress)
 
-    caption = f"""<b>🧾 Character Info</b>
-━━━━━━━━━━━━━━
+    caption = f"""<b>📖 Devil Hunter Profile</b>
+━━━━━━━━━━━━━━━━
 <b>📛 Name:</b> {name}
 <b>⭐ Level:</b> {lvl}
 <b>🧾 Description:</b> {desc}
 
-<b>🔥 EXP Progress</b>
-━━━━━━━━━━━━━━
-<b>{exp} / {req_exp}</b>
+<b>✨ EXP Progress:</b>
+<code>{exp} / {req_exp}</code>
 <code>[{bar}]</code>
 
-<b>⚔️ Battle Stats</b>
-━━━━━━━━━━━━━━
-<b>⚔️ Attack:</b> {atk}
-<b>🛡 Defense:</b> {defense}
-<b>⚡ Speed:</b> {spd}
-<b>🎯 Precision:</b> {prec}
-<b>✨ Instinct:</b> {inst}
-━━━━━━━━━━━━━━"""
+<b>⚔️ Battle Stats:</b>
+━━━━━━━━━━━━━━━━
+• ⚔️ Attack: <b>{atk}</b>
+• 🛡 Defense: <b>{defense}</b>
+• ⚡ Speed: <b>{spd}</b>
+• 🎯 Precision: <b>{prec}</b>
+• 🧠 Instinct: <b>{inst}</b>
+━━━━━━━━━━━━━━━━"""
 
+    # Inline button for abilities
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🌀Abilities", callback_data=f"abilities:{char_id}"))
-    bot.send_photo(message.chat.id, img, caption=caption, parse_mode="HTML", reply_to_message_id=message.message_id, reply_markup=markup) 
+    markup.add(types.InlineKeyboardButton("🌀 Abilities", callback_data=f"abilities:{char_id}"))
+
+    bot.send_photo(
+        message.chat.id,
+        img,
+        caption=caption,
+        parse_mode="HTML",
+        reply_to_message_id=message.message_id if not is_private else None,
+        reply_markup=markup
+    )
 @bot.callback_query_handler(func=lambda call: call.data.startswith('abilities:'))
 def show_abilities(call):
     char_id = call.data.split(':')[1]
