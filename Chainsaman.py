@@ -636,6 +636,7 @@ def show_user_characters(message):
     cursor = conn.cursor()
 
     user_id = message.from_user.id
+
     cursor.execute('''
         SELECT cb.name, uc.level
         FROM user_characters uc
@@ -647,13 +648,24 @@ def show_user_characters(message):
     conn.close()
 
     if not characters:
-        bot.send_message(message.chat.id, "❌ You don't have any hunters yet.")
-    else:
-        response = "🧾 *<b>Your Hunters Collection</b>:*\n━━━━━━━━━━━━━━\n"
-        for i, (name, level) in enumerate(characters, start=1):
-            response += f"*{i}. {name}*  —  `Level {level}`\n"
-        response += "━━━━━━━━━━━━━━"
-        bot.send_message(message.chat.id, response, parse_mode="HTML", reply_to_message_id=message.message_id)        
+        bot.send_message(
+            message.chat.id,
+            "❌ <b>You don't own any Devil Hunters yet.</b>\nUse /choose_char to summon your first one!",
+            parse_mode="HTML"
+        )
+        return
+
+    response = "📘 <b>Your Devil Hunters</b>\n━━━━━━━━━━━━━━━━\n"
+    for i, (name, level) in enumerate(characters, start=1):
+        response += f"🔹 <b>{i}. {name}</b> — 🧬 <code>Level {level}</code>\n"
+    response += "━━━━━━━━━━━━━━━━"
+
+    bot.send_message(
+        message.chat.id,
+        response,
+        parse_mode="HTML",
+        reply_to_message_id=message.message_id
+    )        
 @bot.message_handler(commands=['open'])
 def open_menu(message):
     if message.chat.type != 'private':
