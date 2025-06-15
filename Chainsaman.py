@@ -334,55 +334,58 @@ def set_user_team(user_id, team_number, slot1, slot2, slot3):
 
     
  
-@bot.message_handler(commands=['myteam'])
-def my_team(message):
-    user_id = message.from_user.id
-    # Check if user has started the bot
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
-    started = cursor.fetchone()
-    conn.close()
+@bot.message_handler(commands=['myteam'])  
+def my_team(message):  
+    user_id = message.from_user.id  
+    is_private = message.chat.type == 'private'
 
-    if not started:
-        return bot.reply_to(message, "❌ You haven't started the game yet! Use /start to begin.")
+    # Check if user has started the bot  
+    conn = sqlite3.connect("chainsaw.db")  
+    cursor = conn.cursor()  
+    cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))  
+    started = cursor.fetchone()  
+    conn.close()  
+  
+    if not started:  
+        return bot.reply_to(message, "❌ You haven't started the game yet! Use /start to begin.")  
+  
+    selected_team_number = get_main_team(user_id)  
+    team = get_user_team(user_id, team_number=selected_team_number)  
+  
+    # Team display text  
+    team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"  
+    team_text += "━━━━━━━━━━━━━━━"  
+    for char in team:  
+        team_text += f"\n✧ {char if char else 'Empty'}"  
+    team_text += "\n━━━━━━━━━━━━━━━\n"
 
-    selected_team_number = get_main_team(user_id)
-    team = get_user_team(user_id, team_number=selected_team_number)
-
-    # Team display text
-    team_text = f"✨<b>Your Current Team (Team {selected_team_number})</b> ✨\n"
-    team_text += "━━━━━━━━━━━━━━━"
-    for char in team:
-        team_text += f"\n✧ {char if char else 'Empty'}"
-    team_text += "\n━━━━━━━━━━━━━━━\n"  # <--- this spacing is important
-
-    # Add stats overview
-    team_text += generate_team_stats_text(user_id, selected_team_number)
-
-    # Inline keyboard
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    markup.add(
-        types.InlineKeyboardButton("Team 1⃣", callback_data="team1"),
-        types.InlineKeyboardButton("Team 2⃣", callback_data="team2"),
-    )
-    markup.add(
-        types.InlineKeyboardButton("Team 3⃣", callback_data="team3"),
-        types.InlineKeyboardButton("Team 4⃣", callback_data="team4"),
-    )
-    markup.add(types.InlineKeyboardButton("Team 5⃣", callback_data="team5"))
-
-    if message.chat.type == 'private':
-        markup.add(types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team"))
-
-    markup.add(types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}"))
-
-    bot.send_message(
-        message.chat.id,
-        team_text,
-        reply_markup=markup,
-        reply_to_message_id=message.message_id,
-        parse_mode="HTML"
+    # Only show team stats in DM  
+    if is_private:
+        team_text += generate_team_stats_text(user_id, selected_team_number)
+  
+    # Inline keyboard  
+    markup = types.InlineKeyboardMarkup(row_width=2)  
+    markup.add(  
+        types.InlineKeyboardButton("Team 1⃣", callback_data="team1"),  
+        types.InlineKeyboardButton("Team 2⃣", callback_data="team2"),  
+    )  
+    markup.add(  
+        types.InlineKeyboardButton("Team 3⃣", callback_data="team3"),  
+        types.InlineKeyboardButton("Team 4⃣", callback_data="team4"),  
+    )  
+    markup.add(types.InlineKeyboardButton("Team 5⃣", callback_data="team5"))  
+  
+    if is_private:  
+        markup.add(types.InlineKeyboardButton("Edit Team📝", callback_data="edit_team"))  
+  
+    markup.add(types.InlineKeyboardButton("Close ❌", callback_data=f"close_{user_id}"))  
+  
+    bot.send_message(  
+        message.chat.id,  
+        team_text.strip(),  
+        reply_markup=markup,  
+        parse_mode="HTML",  
+        reply_to_message_id=message.message_id if not is_private else None  
     )
 import logging
 
