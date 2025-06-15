@@ -596,24 +596,25 @@ def handle_character_selection(call):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Ensure row exists
+    # Check if character already chosen
     cursor.execute("SELECT choosen_character_id FROM user_characters WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
 
-    if not row:
-        # Insert the row if it doesn't exist
-        cursor.execute("INSERT INTO user_characters (user_id, character_id, choosen_character_id) VALUES (?, ?, ?)", (user_id, character_id, character_id))
-    elif row[0] != 0:
+    if row and row[0] != 0:
         bot.answer_callback_query(call.id, "You’ve already selected a character!")
         conn.close()
         return
-    else:
-        # Update only if not chosen yet
-        cursor.execute("UPDATE user_characters SET choosen_character_id = ? WHERE user_id = ?", (character_id, user_id))
 
+    # Store owned character (if not already owned)
+    cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
+    if not cursor.fetchone():
+        cursor.execute("INSERT INTO user_characters (user_id, character_id, level) VALUES (?, ?, ?)", (user_id, character_id, 1))
+
+    # Update choosen_character_id
+    cursor.execute("UPDATE user_characters SET choosen_character_id = ? WHERE user_id = ?", (character_id, user_id))
     conn.commit()
 
-    # Confirm selection
+    # Fetch and show character info
     cursor.execute("SELECT name, attack, defense, speed, special_ability FROM character_base_stats WHERE character_id = ?", (character_id,))
     char = cursor.fetchone()
     conn.close()
