@@ -823,6 +823,7 @@ def handle_balance(message):
     user_id = message.from_user.id
     user_name = message.from_user.first_name
     chat_id = message.chat.id
+    is_private = message.chat.type == "private"
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
@@ -835,17 +836,15 @@ def handle_balance(message):
     user = cursor.fetchone()
 
     if not user:
-        bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
+        response = "❌ You haven't started the game yet.\nUse /start in the group to begin."
+        bot.send_message(chat_id, response, reply_to_message_id=message.message_id if not is_private else None)
         conn.close()
         return
 
-    # Unpack values from the user tuple
+    # Unpack values
     user_id, username, join_date, level, exp, yens, crystals, tickets, energy, max_energy, last_energy_time, chosen_character = user
-
-    # Calculate required EXP dynamically
     required_exp = int(12345 * (level ** 1.5))
 
-    # Fetch rank based on level
     cursor.execute('''
         SELECT rank FROM hunter_ranks
         WHERE required_level <= ?
@@ -866,7 +865,8 @@ def handle_balance(message):
     conn.close()
 
     balance_message = f"""
-<b>[CHAINSAW CONTRACT PROFILE]</b>\n
+<b>[CHAINSAW CONTRACT PROFILE]</b>
+
 🔗 <b>Name:</b> <a href="tg://user?id={user_id}">{user_name}</a>
 🆔 <b>UID:</b> <code>{user_id}</code>
 🕰️ <b>Joined:</b> {readable_date}
@@ -884,26 +884,36 @@ def handle_balance(message):
 ⚔️ <b>Rank:</b> {rank}
 """
 
-
-    
-
-    # Exit button
     keyboard = types.InlineKeyboardMarkup()
-    exit_btn = types.InlineKeyboardButton("❌ Exit", callback_data=f"exit_{user_id}")
+    exit_btn = types.InlineKeyboardButton("❌ Exit", callback_data=f"exitbal_{user_id}")
     keyboard.add(exit_btn)
 
-    bot.send_message(chat_id, balance_message.strip(), parse_mode="HTML", disable_web_page_preview=True, reply_markup=keyboard)
+    bot.send_message(
+        chat_id,
+        balance_message.strip(),
+        parse_mode="HTML",
+        disable_web_page_preview=True,
+        reply_markup=keyboard,
+        reply_to_message_id=message.message_id if not is_private else None
+    )
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('exit_'))
-def close_balance_table(call):
+@bot.callback_query_handler(func=lambda call: call.data.startswith("exitbal_"))
+def close_balance_message(call):
     user_id = call.from_user.id
-    target_id = int(call.data.split('_')[1])
+    requested_id = int(call.data.split("_")[1])
 
-    if user_id == target_id:
-        bot.delete_message(call.message.chat.id, call.message.message_id)
-        bot.answer_callback_query(call.id, "✅ Closed.")
-    else:
-        bot.answer_callback_query(call.id, "❌ You can't close someone else's profile.")
+    if user_id != requested_id:
+        bot.answer_callback_query(call.id, "❌ You can't close someone else's balance!")
+        return
+
+    try:
+        bot.edit_message_text(
+            "✅ Successfully closed your balance.",
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id
+        )
+    except:
+        bot.answer_callback_query(call.id, "❌ Couldn't update the message.")
 @bot.message_handler(commands=['add'])
 def add_resource(message):
     # Only allow the admin
