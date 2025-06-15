@@ -130,7 +130,8 @@ def create_table():
             energy INTEGER DEFAULT 10000,
             max_energy INTEGER DEFAULT 10000,
             last_energy_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            choosen_character TEXT DEFAULT NULL
+            choosen_character_id INTEGER DEFAULT NULL,
+            FOREIGN KEY (choosen_character_id) REFERENCES character_base_stats(character_id)
         )
     ''')
 
@@ -175,20 +176,17 @@ def create_table():
     ''')
 
     # Create user_characters table
+   # User's unlocked characters
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS user_characters (
-        user_id INTEGER NOT NULL,
-        character_id INTEGER NOT NULL,
-        level INTEGER DEFAULT 1,
-        choosen_character_id INTEGER NOT NULL DEFAULT 0,
-
-        FOREIGN KEY (user_id) REFERENCES user_data(user_id) ON DELETE CASCADE,
-        FOREIGN KEY (character_id) REFERENCES character_base_stats(character_id) ON DELETE CASCADE,
-        FOREIGN KEY (choosen_character_id) REFERENCES character_base_stats(character_id),
-
-        PRIMARY KEY (user_id, character_id)
-    )
-''')
+        CREATE TABLE IF NOT EXISTS user_characters (
+            user_id INTEGER NOT NULL,
+            character_id INTEGER NOT NULL,
+            level INTEGER DEFAULT 1,
+            FOREIGN KEY (user_id) REFERENCES user_data(user_id) ON DELETE CASCADE,
+            FOREIGN KEY (character_id) REFERENCES character_base_stats(character_id) ON DELETE CASCADE,
+            PRIMARY KEY (user_id, character_id)
+        )
+    ''')
 
     # Create teams table
     cursor.execute('''
@@ -484,24 +482,35 @@ def start_in_group(message):
 @bot.message_handler(commands=['start'], chat_types=['private'])
 def start_in_dm(message):
     user_id = message.from_user.id
+    username = message.from_user.username
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Ensure user exists in user_characters
-    cursor.execute("SELECT choosen_character_id FROM user_characters WHERE user_id = ?", (user_id,))
+    # Check if user exists
+    cursor.execute("SELECT choosen_character_id FROM user_data WHERE user_id = ?", (user_id,))
     result = cursor.fetchone()
 
     if result is None:
-        # New user — insert into user_characters with no character chosen yet
-        cursor.execute("INSERT INTO user_characters (user_id, choosen_character_id) VALUES (?, ?)", (user_id, 0))
+        # New user: insert blank record
+        cursor.execute('''
+            INSERT INTO user_data (
+                user_id, username, level, exp, required_exp, yens,
+                crystals, tickets, energy, max_energy, last_energy_time, choosen_character_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            user_id, username, 1, 0, 12345, 250,
+            0, 0, 10000, 10000, int(time.time()), None
+        ))
         conn.commit()
         show_start_screen(message)
-    elif result[0] == 0:
-        # User exists but has NOT chosen character
+
+    elif result[0] is None:
+        # User exists but hasn't chosen a character
         show_start_screen(message)
+
     else:
-        # User exists and has chosen character
+        # User has already selected a character
         show_back_message(message)
 
     conn.close()
