@@ -660,7 +660,7 @@ def show_user_characters(message):
     # Build clean UI (no special styling for selected)
     response = "📘 <b>Your Devil Hunters</b>\n━━━━━━━━━━━━━━━━\n"
     for i, (name, level) in enumerate(characters, start=1):
-        response += f"🔹 <b>{i}. {name}</b> — 🧬 Lvl<code>{level}</code>\n"
+        response += f"🔹 <b>{i}. {name}</b><code>(Lvl{level})</code>\n"
     response += "━━━━━━━━━━━━━━━━"
 
     if message.chat.type != "private":
