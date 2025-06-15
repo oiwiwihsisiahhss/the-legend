@@ -638,14 +638,9 @@ def show_user_characters(message):
 
     user_id = message.from_user.id
 
-    # Get the currently selected character
-    cursor.execute("SELECT choosen_character_id FROM user_characters WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-    equipped_id = row[0] if row else 0
-
-    # Get all characters owned by user
+    # Fetch all characters the user owns (excluding dummy ID 0)
     cursor.execute('''
-        SELECT cb.character_id, cb.name, uc.level
+        SELECT cb.name, uc.level
         FROM user_characters uc
         JOIN character_base_stats cb ON uc.character_id = cb.character_id
         WHERE uc.user_id = ? AND uc.character_id != 0
@@ -655,28 +650,23 @@ def show_user_characters(message):
     conn.close()
 
     if not characters:
-        bot.send_message(
-            message.chat.id,
-            "❌ You don't own any Devil Hunters yet.\nUse /choose_char to summon your first one!",
-            reply_to_message_id=message.message_id
-        )
+        msg = "❌ You don't own any Devil Hunters yet.\nUse /choose_char to summon your first one!"
+        if message.chat.type != "private":
+            bot.send_message(message.chat.id, msg, reply_to_message_id=message.message_id)
+        else:
+            bot.send_message(message.chat.id, msg)
         return
 
-    # Build interface
-    response = "📘 <b>Your Devil Hunters</b>\n━━━━━━━━━━━━━━\n"
-    for i, (char_id, name, level) in enumerate(characters, start=1):
-        if char_id == equipped_id:
-            response += f"🔱 <b>{i}. {name}</b> — <code>Level {level}</code>  <i>(Equipped)</i>\n"
-        else:
-            response += f"🔸 <b>{i}. {name}</b> — <code>Level {level}</code>\n"
-    response += "━━━━━━━━━━━━━━"
+    # Build clean UI (no special styling for selected)
+    response = "📘 <b>Your Devil Hunters</b>\n━━━━━━━━━━━━━━━━\n"
+    for i, (name, level) in enumerate(characters, start=1):
+        response += f"🔹 <b>{i}. {name}</b> — 🧬 Level <code>{level}</code>\n"
+    response += "━━━━━━━━━━━━━━━━"
 
-    bot.send_message(
-        message.chat.id,
-        response,
-        parse_mode="HTML",
-        reply_to_message_id=message.message_id
-    )
+    if message.chat.type != "private":
+        bot.send_message(message.chat.id, response, parse_mode="HTML", reply_to_message_id=message.message_id)
+    else:
+        bot.send_message(message.chat.id, response, parse_mode="HTML")
 @bot.message_handler(commands=['open'])
 def open_menu(message):
     if message.chat.type != 'private':
