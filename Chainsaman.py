@@ -489,30 +489,24 @@ def start_in_dm(message):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Check if user exists
-    cursor.execute("SELECT choosen_character_id FROM user_data WHERE user_id = ?", (user_id,))
-    result = cursor.fetchone()
+    # Ensure user_data exists
+    cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
+    if not cursor.fetchone():
+        cursor.execute("INSERT INTO user_data (user_id, username) VALUES (?, ?)", (user_id, username))
+        conn.commit()
 
-    if result is None:
-        # New user: insert blank record
-        cursor.execute('''
-            INSERT INTO user_data (
-                user_id, username, level, exp, required_exp, yens,
-                crystals, tickets, energy, max_energy, last_energy_time, choosen_character_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            user_id, username, 1, 0, 12345, 250,
-            0, 0, 10000, 10000, int(time.time()), None
-        ))
+    # Check if character is selected
+    cursor.execute("SELECT choosen_character_id FROM user_characters WHERE user_id = ?", (user_id,))
+    char = cursor.fetchone()
+
+    if not char:
+        # Insert a user_characters row with placeholder character
+        cursor.execute("INSERT INTO user_characters (user_id, character_id, choosen_character_id) VALUES (?, ?, ?)", (user_id, 0, 0))
         conn.commit()
         show_start_screen(message)
-
-    elif result[0] is None:
-        # User exists but hasn't chosen a character
+    elif char[0] == 0:
         show_start_screen(message)
-
     else:
-        # User has already selected a character
         show_back_message(message)
 
     conn.close()
@@ -595,7 +589,6 @@ def show_character_options(call):
         reply_markup=keyboard
     )
 @bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
-#@bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
 def handle_character_selection(call):
     user_id = call.from_user.id
     character_id = int(call.data.split("_")[-1])
@@ -603,17 +596,21 @@ def handle_character_selection(call):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Check if already chosen
+    # Ensure row exists
     cursor.execute("SELECT choosen_character_id FROM user_characters WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
 
-    if row and row[0] != 0:
+    if not row:
+        # Insert the row if it doesn't exist
+        cursor.execute("INSERT INTO user_characters (user_id, character_id, choosen_character_id) VALUES (?, ?, ?)", (user_id, character_id, character_id))
+    elif row[0] != 0:
         bot.answer_callback_query(call.id, "You’ve already selected a character!")
         conn.close()
         return
+    else:
+        # Update only if not chosen yet
+        cursor.execute("UPDATE user_characters SET choosen_character_id = ? WHERE user_id = ?", (character_id, user_id))
 
-    # Update selected character
-    cursor.execute("UPDATE user_characters SET choosen_character_id = ? WHERE user_id = ?", (character_id, user_id))
     conn.commit()
 
     # Confirm selection
