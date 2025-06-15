@@ -177,6 +177,7 @@ def create_table():
 
     # Create user_characters table
    # User's unlocked characters
+    # User's unlocked characters
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_characters (
             user_id INTEGER NOT NULL,
@@ -477,7 +478,6 @@ def start_in_group(message):
             )
     except Exception as e:
         print(e)
-
 
 @bot.message_handler(commands=['start'], chat_types=['private'])
 def start_in_dm(message):
