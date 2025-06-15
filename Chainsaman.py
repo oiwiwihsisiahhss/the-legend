@@ -630,42 +630,44 @@ def handle_character_selection(call):
             text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
             parse_mode="Markdown"
         )
-@bot.message_handler(commands=['myhunters'])        
+@bot.message_handler(commands=['myhunters'])
 def show_user_characters(message):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
     user_id = message.from_user.id
 
+    # Fetch chosen and owned characters for the user
     cursor.execute('''
         SELECT cb.name, uc.level
         FROM user_characters uc
         JOIN character_base_stats cb ON uc.character_id = cb.character_id
-        WHERE uc.user_id = ?
+        WHERE uc.user_id = ? AND uc.character_id != 0
     ''', (user_id,))
-    
+
     characters = cursor.fetchall()
     conn.close()
 
     if not characters:
         bot.send_message(
             message.chat.id,
-            "❌ <b>You don't own any Devil Hunters yet.</b>\nUse /choose_char to summon your first one!",
-            parse_mode="HTML"
+            "❌ You don't own any Devil Hunters yet.\nUse /choose_char to summon your first one!",
+            reply_to_message_id=message.message_id
         )
         return
 
-    response = "📘 <b>Your Devil Hunters</b>\n━━━━━━━━━━━━━━━━\n"
+    # Stylish message
+    response = "🧾 <b>Your Devil Hunters Collection</b>\n━━━━━━━━━━━━━━\n"
     for i, (name, level) in enumerate(characters, start=1):
-        response += f"🔹 <b>{i}. {name}</b> — 🧬 <code>Level {level}</code>\n"
-    response += "━━━━━━━━━━━━━━━━"
+        response += f"🔹 <b>{i}. {name}</b> — <code>Level {level}</code>\n"
+    response += "━━━━━━━━━━━━━━"
 
     bot.send_message(
         message.chat.id,
         response,
         parse_mode="HTML",
         reply_to_message_id=message.message_id
-    )        
+    )
 @bot.message_handler(commands=['open'])
 def open_menu(message):
     if message.chat.type != 'private':
