@@ -179,15 +179,17 @@ def create_table():
    # User's unlocked characters
     # User's unlocked characters
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_characters (
-            user_id INTEGER NOT NULL,
-            character_id INTEGER NOT NULL,
-            level INTEGER DEFAULT 1,
-            FOREIGN KEY (user_id) REFERENCES user_data(user_id) ON DELETE CASCADE,
-            FOREIGN KEY (character_id) REFERENCES character_base_stats(character_id) ON DELETE CASCADE,
-            PRIMARY KEY (user_id, character_id)
-        )
-    ''')
+    CREATE TABLE IF NOT EXISTS user_characters (
+        user_id INTEGER NOT NULL,
+        character_id INTEGER NOT NULL,
+        choosen_character_id INTEGER DEFAULT NULL,
+        level INTEGER DEFAULT 1,
+        PRIMARY KEY (user_id, character_id),
+        FOREIGN KEY (user_id) REFERENCES user_data(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (character_id) REFERENCES character_base_stats(character_id) ON DELETE CASCADE,
+        FOREIGN KEY (choosen_character_id) REFERENCES character_base_stats(character_id)
+    )
+''')
 
     # Create teams table
     cursor.execute('''
