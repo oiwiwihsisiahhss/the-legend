@@ -630,21 +630,26 @@ def handle_character_selection(call):
             text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
             parse_mode="Markdown"
         )
-@bot.message_handler(commands=['myhunters'])
+@bot.message_handler(commands=['myhunters'])        
 def show_user_characters(message):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
     user_id = message.from_user.id
 
-    # Fetch chosen and owned characters for the user
+    # Get the currently selected character
+    cursor.execute("SELECT choosen_character_id FROM user_characters WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    equipped_id = row[0] if row else 0
+
+    # Get all characters owned by user
     cursor.execute('''
-        SELECT cb.name, uc.level
+        SELECT cb.character_id, cb.name, uc.level
         FROM user_characters uc
         JOIN character_base_stats cb ON uc.character_id = cb.character_id
         WHERE uc.user_id = ? AND uc.character_id != 0
     ''', (user_id,))
-
+    
     characters = cursor.fetchall()
     conn.close()
 
@@ -656,10 +661,13 @@ def show_user_characters(message):
         )
         return
 
-    # Stylish message
-    response = "🧾 <b>Your Devil Hunters Collection</b>\n━━━━━━━━━━━━━━\n"
-    for i, (name, level) in enumerate(characters, start=1):
-        response += f"🔹 <b>{i}. {name}</b> — <code>Level {level}</code>\n"
+    # Build interface
+    response = "📘 <b>Your Devil Hunters</b>\n━━━━━━━━━━━━━━\n"
+    for i, (char_id, name, level) in enumerate(characters, start=1):
+        if char_id == equipped_id:
+            response += f"🔱 <b>{i}. {name}</b> — <code>Level {level}</code>  <i>(Equipped)</i>\n"
+        else:
+            response += f"🔸 <b>{i}. {name}</b> — <code>Level {level}</code>\n"
     response += "━━━━━━━━━━━━━━"
 
     bot.send_message(
