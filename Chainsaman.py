@@ -28,6 +28,30 @@ def create_connection():
 def create_table():
     conn = create_connection()
     cursor = conn.cursor()
+    cursor.execute('''
+CREATE TABLE IF NOT EXISTS explore_character_base_stats (
+    character_id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    base_hp INTEGER NOT NULL,
+    move_1 TEXT NOT NULL,
+    move_1_damage INTEGER NOT NULL,
+    move_2 TEXT NOT NULL,
+    move_2_damage INTEGER NOT NULL,
+    move_3 TEXT NOT NULL,
+    move_3_damage INTEGER NOT NULL,
+    hp_growth INTEGER DEFAULT 3,
+    damage_growth INTEGER DEFAULT 1
+)
+''')
+    cursor.executemany('''
+INSERT OR IGNORE INTO explore_character_base_stats
+(character_id, name, base_hp, move_1, move_1_damage, move_2, move_2_damage, move_3, move_3_damage)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+''', [
+    (1, "Hirokazu Arai", 470, "Quick Slash", 60, "Defensive Stance", 75, "Fox's Fury", 90),
+    (2, "Kobeni Higashiyama", 520, "Agile Dash", 70, "Evasive Maneuver", 85, "Instinctive Strike", 95),
+    (3, "Akane Sawatari", 490, "Snake Strike", 80, "Venomous Coil", 95, "Serpent's Wrath", 100)
+])
     #cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS devils (
@@ -222,17 +246,102 @@ def create_table():
     conn.commit()
     conn.close()
 
-# Sample data function for testing (only if no data)
-#def initialize_sample_team(user_id):
-    #for i in range(1, 6):
-       # cursor.execute('''
-          #  INSERT OR IGNORE INTO teams (user_id, team_number, slot1, slot2, slot3)
-      #      VALUES (?, ?, ?, ?, ?)
-    #    ''', (user_id, i, 'Character A', 'Character B', 'Character C'))
-#    conn.commit()
+    conn.commit()
 
-#import sqlite3
+def check_and_level_up_character(character_id, cursor, conn):
+    
+    cursor.execute("""
+        SELECT level, exp, attack, defense, speed, precision, instinct 
+        FROM character_base_stats 
+        WHERE character_id = ?
+    """, (character_id,))
+    data = cursor.fetchone()
 
+    if not data:
+        return None
+
+    level, exp, atk, df, spd, prc, ins = data
+    leveled_up = False
+    messages = []
+
+    while True:
+        required_exp = int(15000 * (level ** 1.4))
+        if exp >= required_exp:
+            # Backup old stats
+            old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
+
+            # Level up base stats
+            level += 1
+            exp -= required_exp
+            atk += 1
+            df += 1
+            spd += 1
+            prc += 1
+            ins += 1
+            leveled_up = True
+
+            # Update base stats
+            cursor.execute("""
+                UPDATE character_base_stats
+                SET level = ?, exp = ?, attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
+                WHERE character_id = ?
+            """, (level, exp, atk, df, spd, prc, ins, character_id))
+
+            # === Update EXPLORE STATS ===
+            cursor.execute("""
+                SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth 
+                FROM explore_character_base_stats 
+                WHERE character_id = ?
+            """, (character_id,))
+            explore = cursor.fetchone()
+            if explore:
+                base_hp, dmg1, dmg2, dmg3, hp_growth, dmg_growth = explore
+                old_hp = base_hp
+                old_dmg1 = dmg1
+                old_dmg2 = dmg2
+                old_dmg3 = dmg3
+
+                # Recalculate new stats based on level
+                new_hp =  base_hp + (level - 1) * hp_growth
+                new_dmg1 = dmg1 + (level - 1) * dmg_growth
+                new_dmg2 = dmg2 + (level - 1) * dmg_growth
+                new_dmg3 = dmg3 + (level - 1) * dmg_growth
+
+                cursor.execute("""
+                    UPDATE explore_character_base_stats
+                    SET base_hp = ?, move_1_damage = ?, move_2_damage = ?, move_3_damage = ?
+                    WHERE character_id = ?
+                """, (new_hp, new_dmg1, new_dmg2, new_dmg3, character_id))
+            else:
+                # Defaults if no explore row
+                old_hp = old_dmg1 = old_dmg2 = old_dmg3 = new_hp = new_dmg1 = new_dmg2 = new_dmg3 = "N/A"
+
+            # Fetch character name
+            cursor.execute("SELECT name FROM characters WHERE character_id = ?", (character_id,))
+            name_row = cursor.fetchone()
+            name = name_row[0] if name_row else "Unknown"
+
+            # Final stylish message
+            msg = f"""
+🎉 {name} Leveled Up to Level {level}!
+
+⚔️ ATK: {old_atk} ➤ {atk}
+🛡️ DEF: {old_df} ➤ {df}
+⚡ SPD: {old_spd} ➤ {spd}
+🎯 PRC: {old_prc} ➤ {prc}
+🧠 INS: {old_ins} ➤ {ins}
+
+
+""".strip()
+
+            messages.append(msg)
+        else:
+            break
+
+    if leveled_up:
+        conn.commit()
+
+    return messages if messages else None
 # Establishing database connection
 def generate_team_stats_text(user_id, team_number):
     conn = sqlite3.connect("chainsaw.db")
@@ -1029,6 +1138,50 @@ def handle_give(message):
     conn.close()
 
     bot.reply_to(message, f"✅ Successfully transferred {amount} {amount_type} to {message.reply_to_message.from_user.first_name}.")
+def apply_level_boosts(character_id, target_level, cursor, conn):
+    cursor.execute("SELECT level, attack, defense, speed, precision, instinct FROM character_base_stats WHERE character_id = ?", (character_id,))
+    base = cursor.fetchone()
+    if not base:
+        return
+
+    current_level, atk, df, spd, prc, ins = base
+    levels_gained = target_level - current_level
+    if levels_gained <= 0:
+        return
+
+    # Stat boosts
+    atk += levels_gained
+    df += levels_gained
+    spd += levels_gained
+    prc += levels_gained
+    ins += levels_gained
+
+    # Calculate total EXP up to target level
+    total_exp = 0
+    for lvl in range(1, target_level):
+        total_exp += int(15000 * (lvl ** 1.4))
+
+    cursor.execute("""
+        UPDATE character_base_stats
+        SET level = ?, exp = ?, attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
+        WHERE character_id = ?
+    """, (target_level, total_exp, atk, df, spd, prc, ins, character_id))
+
+    # Update explore stats if present
+    cursor.execute("SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth FROM explore_character_base_stats WHERE character_id = ?", (character_id,))
+    explore = cursor.fetchone()
+    if explore:
+        _, _, _, _, hp_growth, dmg_growth = explore
+        new_hp = 100 + (target_level - 1) * hp_growth
+        new_dmg = 10 + (target_level - 1) * dmg_growth
+
+        cursor.execute("""
+            UPDATE explore_character_base_stats
+            SET base_hp = ?, move_1_damage = ?, move_2_damage = ?, move_3_damage = ?
+            WHERE character_id = ?
+        """, (new_hp, new_dmg, new_dmg, new_dmg, character_id))
+
+    conn.commit()    
 @bot.message_handler(commands=['c_add'])
 def add_character(message):
     if message.from_user.id != 6306216999:
@@ -1036,16 +1189,18 @@ def add_character(message):
         return
 
     if not message.reply_to_message:
-        bot.reply_to(message, "⚠️ Please reply to the user you want to add the character to.\nUsage: `/c_add <character_name>`", parse_mode="Markdown")
+        bot.reply_to(message, "⚠️ Please reply to the user you want to add the character to.\nUsage: `/c_add <character_name> [level]`", parse_mode="Markdown")
         return
 
     try:
-        args = message.text.split(maxsplit=1)
+        args = message.text.split(maxsplit=2)
         if len(args) < 2:
-            bot.reply_to(message, "⚠️ Usage: /c_add <character_name>")
+            bot.reply_to(message, "⚠️ Usage: /c_add <character_name> [level]")
             return
 
         character_name = args[1].strip().lower()
+        level_input = int(args[2]) if len(args) == 3 and args[2].isdigit() else 1
+
         user = message.reply_to_message.from_user
         user_id = user.id
         user_name = user.first_name
@@ -1059,27 +1214,41 @@ def add_character(message):
         character = cursor.fetchone()
 
         if not character:
-            bot.reply_to(message, "❌ Character not found. Please check the name and try again.")
+            bot.reply_to(message, "❌ Character not found. Please check the name.")
             conn.close()
             return
 
         character_id, char_name = character
 
-        # Insert character into user's collection
+        # Check if character already owned
+        cursor.execute("SELECT * FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
+        already_owned = cursor.fetchone()
+        if already_owned:
+            bot.reply_to(message, f"⚠️ {char_name} already exists in {user_name}'s hunter list.")
+            conn.close()
+            return
+
+        # Add character at level 1 (base)
         cursor.execute('''
-            INSERT OR IGNORE INTO user_characters (user_id, character_id, level)
-            VALUES (?, ?, 1)
-        ''', (user_id, character_id))
+            INSERT INTO user_characters (user_id, character_id, level)
+            VALUES (?, ?, ?)
+        ''', (user_id, character_id, 1))
+
+        # Apply level boosts if level > 1
+        if level_input > 1:
+            apply_level_boosts(character_id, level_input, cursor, conn)
+
         conn.commit()
         conn.close()
 
         bot.send_message(
             message.chat.id,
-            f"✅ <b>{char_name}</b> has been added to {user_link}'s hunter list.",
+            f"✅ <b>{char_name}</b> has been added to {user_link}'s hunter list at level {level_input}.",
             parse_mode="HTML"
         )
+
     except Exception as e:
-        bot.reply_to(message, f"❌ Error: {str(e)}") 
+        bot.reply_to(message, f"❌ Error: {str(e)}")
 @bot.message_handler(commands=['stats'])
 def stats(message):
     args = message.text.split(' ', 1)
@@ -2273,4 +2442,5 @@ def user_info(message):
         bot.reply_to(message, "Something went wrong.")
     finally:
         conn.close()
+        
 bot.polling(none_stop=True)
