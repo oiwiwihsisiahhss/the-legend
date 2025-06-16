@@ -1638,7 +1638,7 @@ def handle_save_team(call):
                 msg_id,
                 parse_mode="HTML"
             )
-            time.sleep(0.10)
+            time.sleep(0.5)
 
         # Save the team to database
         conn = sqlite3.connect("chainsaw.db")
@@ -1951,7 +1951,7 @@ def explore(message):
     # Anti-spam: 15 second cooldown
     if user_id in last_explore_time:
         diff = (now - last_explore_time[user_id]).total_seconds()
-        if diff < 0.2:
+        if diff < 0.5:
             bot.send_message(message, "🛑 Hey kid, stop spamming! Try again in a few seconds.")
             return
 
