@@ -246,36 +246,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     conn.commit()
     conn.close()
 
-   # conn.commit()
 
-
-def check_and_level_up_character(character_id, cursor, conn):
-    # Fetch base stats
-    cursor.execute("""
-        SELECT level, exp, attack, defense, speed, precision, instinct, name 
-        FROM character_base_stats 
-        WHERE character_id = ?
-    """, (character_id,))
-    data = cursor.fetchone()
-
-    if not data:
-        return None
-
-    level, exp, atk, df, spd, prc, ins, name = data
-    leveled_up = False
-    messages = []
-
-    # Get explore stats if available
-    cursor.execute("""
-        SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth 
-        FROM explore_character_base_stats 
-        WHERE character_id = ?
-    """, (character_id,))
-    explore = cursor.fetchone()
-
-    if explore:
-        base_hp, dmg1, dmg2, dmg3, hp_growth, dmg_growth = explore
-    else:
 def check_and_level_up_character(user_id, character_id, cursor, conn):
     # Get current level/exp for this user-character
     cursor.execute("""
