@@ -1180,7 +1180,7 @@ def apply_level_boosts(character_id, target_level, cursor, conn):
 
     conn.commit()    
 @bot.message_handler(commands=['c_add'])
-@bot.message_handler(commands=['c_add'])
+#@bot.message_handler(commands=['c_add'])
 def add_character(message):
     if message.from_user.id != 6306216999:
         bot.reply_to(message, "❌ You are not authorized to use this command.")
@@ -1244,7 +1244,7 @@ def add_character(message):
         """, (total_exp, character_id))
 
         # Run level-up logic
-        messages = check_and_level_up_character(character_id, cursor, conn)
+        messages = check_and_level_up_character(user_id, character_id, cursor, conn)
 
         conn.commit()
         conn.close()
