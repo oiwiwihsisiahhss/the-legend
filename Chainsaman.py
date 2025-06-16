@@ -246,7 +246,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     conn.commit()
     conn.close()
 
-    conn.commit()
+   # conn.commit()
 
 def check_and_level_up_character(character_id, cursor, conn):
     
