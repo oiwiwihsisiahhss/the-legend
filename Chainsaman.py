@@ -247,61 +247,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     conn.close()
 
 
-def check_and_level_up_character(user_id, character_id, cursor, conn):
-    # Get current level/exp for this user-character
-    cursor.execute("""
-    SELECT cbs.level, cbs.exp, cbs.attack, cbs.defense, cbs.speed, cbs.precision, cbs.instinct 
-    FROM character_base_stats cbs
-    JOIN user_characters uc ON uc.character_id = cbs.character_id
-    WHERE uc.user_id = ? AND uc.character_id = ?
-""", (user_id, character_id))
-    
-    data = cursor.fetchone()
-    if not data:
-        return None
 
-    level, exp, atk, df, spd, prc, ins, name = data
-    leveled_up = False
-    messages = []
-
-    # Get explore data
-    cursor.execute("""
-        SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth
-        FROM explore_character_base_stats
-        WHERE character_id = ?
-    """, (character_id,))
-    explore = cursor.fetchone()
-    if explore:
-        base_hp, dmg1, dmg2, dmg3, hp_growth, dmg_growth = explore
-    else:
-        base_hp = dmg1 = dmg2 = dmg3 = hp_growth = dmg_growth = None
-
-    while True:
-        required_exp = int(15000 * (level ** 1.4))
-        if exp >= required_exp:
-            old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
-            old_hp = base_hp if base_hp else "N/A"
-            old_dmg1 = dmg1 if dmg1 else "N/A"
-            old_dmg2 = dmg2 if dmg2 else "N/A"
-            old_dmg3 = dmg3 if dmg3 else "N/A"
-
-            # Update level & exp
-            level += 1
-            exp -= required_exp
-
-            # Stat growth
-            atk += 1
-            df += 1
-            spd += 1
-            prc += 1
-            ins += 1
-            leveled_up = True
-
-            # Update user level/exp
-            cursor.execute("""
-                UPDATE user_characters
-                SET level = ?, exp = ?
-                WHERE user_id = ? AND character_id = ?
 def check_and_level_up_character(character_id, cursor, conn):
     # Fetch base stats
     cursor.execute("""
