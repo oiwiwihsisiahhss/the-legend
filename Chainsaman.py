@@ -1951,8 +1951,8 @@ def explore(message):
     # Anti-spam: 15 second cooldown
     if user_id in last_explore_time:
         diff = (now - last_explore_time[user_id]).total_seconds()
-        if diff < 15:
-            bot.reply_to(message, "🛑 Hey kid, stop spamming! Try again in a few seconds.")
+        if diff < 0.2:
+            bot.send_message(message, "🛑 Hey kid, stop spamming! Try again in a few seconds.")
             return
 
     last_explore_time[user_id] = now  # Update last explore time
