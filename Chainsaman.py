@@ -1952,7 +1952,7 @@ def explore(message):
     if user_id in last_explore_time:
         diff = (now - last_explore_time[user_id]).total_seconds()
         if diff < 5:
-            bot.send_message(message, "🛑 Hey kid, stop spamming! Try again in a few seconds.")
+            bot.send_message(message.chat.id, "🛑 Hey kid, stop spamming! Try again in a few seconds.")
             return
 
     last_explore_time[user_id] = now  # Update last explore time
