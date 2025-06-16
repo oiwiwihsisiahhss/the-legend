@@ -1233,7 +1233,7 @@ def add_character(message):
         cursor.execute("UPDATE character_base_stats SET level = ? WHERE character_id = ?", (level_to_set, character_id))
 
         # Trigger recalculation and level-based upgrade
-        from character_levelup import check_and_level_up_character
+   #     from character_levelup import check_and_level_up_character
         messages = check_and_level_up_character(character_id, cursor, conn)
 
         conn.commit()
