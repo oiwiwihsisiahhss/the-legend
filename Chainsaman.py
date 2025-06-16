@@ -1247,7 +1247,7 @@ def add_character(message):
         conn.commit()
 
         # Now trigger level-up logic to recalculate stats
-        from character_levelup import check_and_level_up_character  # update to your actual module name if needed
+        # Call directly if the function is in same file
         messages = check_and_level_up_character(character_id, cursor, conn)
         conn.close()
 
