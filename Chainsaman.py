@@ -1198,7 +1198,7 @@ def add_character(message):
             bot.reply_to(message, "⚠️ Usage: /c_add <character_name> <level (optional)>")
             return
 
-        # Extract possible level at the end
+        # Parse character name and optional level
         raw = args[1].strip()
         parts = raw.rsplit(" ", 1)
 
@@ -1217,7 +1217,7 @@ def add_character(message):
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
 
-        # Fetch character_id from full lowercase name match
+        # Fetch character_id and proper case name
         cursor.execute("SELECT character_id, name FROM character_base_stats WHERE LOWER(name) = ?", (character_name,))
         character = cursor.fetchone()
 
@@ -1228,12 +1228,25 @@ def add_character(message):
 
         character_id, char_name = character
 
-        # Add to user's characters
-        cursor.execute("INSERT OR IGNORE INTO user_characters (user_id, character_id, level) VALUES (?, ?, ?)", (user_id, character_id, level_to_set))
-        cursor.execute("UPDATE character_base_stats SET level = ? WHERE character_id = ?", (level_to_set, character_id))
+        # Insert into user_characters table
+        cursor.execute("""
+            INSERT OR IGNORE INTO user_characters (user_id, character_id, level)
+            VALUES (?, ?, ?)
+        """, (user_id, character_id, level_to_set))
 
-        # Trigger recalculation and level-based upgrade
-   #     from character_levelup import check_and_level_up_character
+        # Calculate EXP needed for this level
+        total_exp = 0
+        for lv in range(1, level_to_set):
+            total_exp += int(15000 * (lv ** 1.4))
+
+        # Update character_base_stats with level and EXP
+        cursor.execute("""
+            UPDATE character_base_stats
+            SET level = ?, exp = ?
+            WHERE character_id = ?
+        """, (level_to_set, total_exp, character_id))
+
+        # ⏫ Trigger stat and damage growth update
         messages = check_and_level_up_character(character_id, cursor, conn)
 
         conn.commit()
