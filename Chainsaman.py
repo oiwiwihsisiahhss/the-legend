@@ -1630,15 +1630,15 @@ def handle_save_team(call):
         msg_id = call.message.message_id
 
         # Animated progress: 1% to 100%
-        for i in range(0, 101, 5):  # Step by 5 for faster animation
-            dots = "." * ((i // 10) % 4)  # Rotating dot effect
+        for i in range(0, 101, 10):
+            dots = "." * ((i // 10) % 4)
             bot.edit_message_text(
-                f"💾 <b>Saving your team {i}%{dots}</b>",
-                chat_id,
-                msg_id,
-                parse_mode="HTML"
-            )
-            time.sleep(0.5)
+        f"💾 <b>Saving your team {i}%{dots}</b>",
+        chat_id,
+        msg_id,
+        parse_mode="HTML"
+    )
+           time.sleep(0.45)
 
         # Save the team to database
         conn = sqlite3.connect("chainsaw.db")
