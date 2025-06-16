@@ -1189,24 +1189,17 @@ def add_character(message):
         return
 
     if not message.reply_to_message:
-        bot.reply_to(message, "⚠️ Please reply to the user you want to add the character to.\nUsage: `/c_add <character_name> [level]`", parse_mode="Markdown")
+        bot.reply_to(message, "⚠️ Reply to the user to whom you want to add the character.\nUsage: `/c_add <character_name> <level (optional)>`", parse_mode="Markdown")
         return
 
     try:
-        args = message.text.split(maxsplit=1)
+        args = message.text.split(maxsplit=2)
         if len(args) < 2:
-            bot.reply_to(message, "⚠️ Usage: /c_add <character_name> [level]")
+            bot.reply_to(message, "⚠️ Usage: /c_add <character_name> <level (optional)>")
             return
 
-        text_parts = args[1].strip().split()
-        level = 1
-
-        # Check if last part is a digit (optional level)
-        if text_parts[-1].isdigit():
-            level = int(text_parts[-1])
-            character_name = ' '.join(text_parts[:-1]).strip().lower()
-        else:
-            character_name = ' '.join(text_parts).strip().lower()
+        character_name = args[1].strip().lower()
+        level_to_set = int(args[2]) if len(args) > 2 else 1
 
         user = message.reply_to_message.from_user
         user_id = user.id
@@ -1216,43 +1209,36 @@ def add_character(message):
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
 
-        # Fetch all characters for better matching
-        cursor.execute("SELECT character_id, name FROM character_base_stats")
-        characters = cursor.fetchall()
+        # Get character_id and exact name
+        cursor.execute("SELECT character_id, name FROM character_base_stats WHERE LOWER(name) = ?", (character_name,))
+        character = cursor.fetchone()
 
-        character_id = None
-        char_name = None
-        for cid, name in characters:
-            if name.strip().lower() == character_name:
-                character_id = cid
-                char_name = name
-                break
-
-        if not character_id:
-            bot.reply_to(message, "❌ Character not found. Please check the name and try again.")
+        if not character:
+            bot.reply_to(message, "❌ Character not found. Please check the name.")
             conn.close()
             return
 
-        # Check if user already owns the character
-        cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
-        owned = cursor.fetchone()
+        character_id, char_name = character
 
-        if not owned:
-            # First-time add
-            cursor.execute("INSERT INTO user_characters (user_id, character_id, level) VALUES (?, ?, ?)", (user_id, character_id, level))
-        else:
-            # Update existing character's level
-            cursor.execute("UPDATE user_characters SET level = ? WHERE user_id = ? AND character_id = ?", (level, user_id, character_id))
+        # Add to user_characters
+        cursor.execute("INSERT OR IGNORE INTO user_characters (user_id, character_id, level) VALUES (?, ?, ?)", (user_id, character_id, level_to_set))
+
+        # Force level (for testing or manual assignment)
+        cursor.execute("UPDATE character_base_stats SET level = ? WHERE character_id = ?", (level_to_set, character_id))
+
+        # Trigger full level-up recalculation
+        from character_levelup import check_and_level_up_character  # adjust if needed
+        messages = check_and_level_up_character(character_id, cursor, conn)
 
         conn.commit()
-
-        # Now trigger level-up logic to recalculate stats
-        # Call directly if the function is in same file
-        messages = check_and_level_up_character(character_id, cursor, conn)
         conn.close()
 
-        # Confirmation + optional level-up message
-        bot.send_message(message.chat.id, f"✅ <b>{char_name}</b> has been added to {user_link}'s hunter list at Level {level}.", parse_mode="HTML")
+        bot.send_message(
+            message.chat.id,
+            f"✅ <b>{char_name}</b> has been added to {user_link}'s hunter list at Level {level_to_set}.",
+            parse_mode="HTML"
+        )
+
         if messages:
             for msg in messages:
                 bot.send_message(message.chat.id, msg, parse_mode="HTML")
