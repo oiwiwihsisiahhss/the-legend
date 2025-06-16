@@ -1183,6 +1183,7 @@ def apply_level_boosts(character_id, target_level, cursor, conn):
 
     conn.commit()    
 @bot.message_handler(commands=['c_add'])
+@bot.message_handler(commands=['c_add'])
 def add_character(message):
     if message.from_user.id != 6306216999:
         bot.reply_to(message, "❌ You are not authorized to use this command.")
@@ -1198,7 +1199,6 @@ def add_character(message):
             bot.reply_to(message, "⚠️ Usage: /c_add <character_name> <level (optional)>")
             return
 
-        # Parse character name and optional level
         raw = args[1].strip()
         parts = raw.rsplit(" ", 1)
 
@@ -1217,7 +1217,7 @@ def add_character(message):
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
 
-        # Fetch character_id and proper case name
+        # Fetch character_id and real name
         cursor.execute("SELECT character_id, name FROM character_base_stats WHERE LOWER(name) = ?", (character_name,))
         character = cursor.fetchone()
 
@@ -1228,25 +1228,25 @@ def add_character(message):
 
         character_id, char_name = character
 
-        # Insert into user_characters table
+        # Insert at level 1
         cursor.execute("""
             INSERT OR IGNORE INTO user_characters (user_id, character_id, level)
-            VALUES (?, ?, ?)
-        """, (user_id, character_id, level_to_set))
+            VALUES (?, ?, 1)
+        """, (user_id, character_id))
 
-        # Calculate EXP needed for this level
+        # Calculate total EXP required to reach that level
         total_exp = 0
-        for lv in range(1, level_to_set):
-            total_exp += int(15000 * (lv ** 1.4))
+        for i in range(1, level_to_set):
+            total_exp += int(15000 * (i ** 1.4))
 
-        # Update character_base_stats with level and EXP
+        # Set level to 1 and assign EXP to trigger level-up
         cursor.execute("""
             UPDATE character_base_stats
-            SET level = ?, exp = ?
+            SET level = 1, exp = ?
             WHERE character_id = ?
-        """, (level_to_set, total_exp, character_id))
+        """, (total_exp, character_id))
 
-        # ⏫ Trigger stat and damage growth update
+        # Run level-up logic
         messages = check_and_level_up_character(character_id, cursor, conn)
 
         conn.commit()
@@ -1257,6 +1257,13 @@ def add_character(message):
             f"✅ <b>{char_name}</b> has been added to {user_link}'s hunter list at Level {level_to_set}.",
             parse_mode="HTML"
         )
+
+        if messages:
+            for msg in messages:
+                bot.send_message(message.chat.id, msg, parse_mode="HTML")
+
+    except Exception as e:
+        bot.reply_to(message, f"❌ Error: {str(e)}")
 
         if messages:
             for msg in messages:
