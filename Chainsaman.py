@@ -317,7 +317,7 @@ def check_and_level_up_character(character_id, cursor, conn):
                 old_hp = old_dmg1 = old_dmg2 = old_dmg3 = new_hp = new_dmg1 = new_dmg2 = new_dmg3 = "N/A"
 
             # Fetch character name
-            cursor.execute("SELECT name FROM characters WHERE character_id = ?", (character_id,))
+            cursor.execute("SELECT name FROM character_base_stats WHERE character_id = ?", (character_id,))
             name_row = cursor.fetchone()
             name = name_row[0] if name_row else "Unknown"
 
