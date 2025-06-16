@@ -370,7 +370,7 @@ def check_and_level_up_character(character_id, cursor, conn):
 
             # Append level-up message
             msg = f"""
-🎉 <b>{name}</b> leveled up to <b>Level {level}</b>!
+🎉 {name} leveled up to Level {level}!
 
 ⚔️ ATK: {old_atk} ➤ {atk}
 🛡️ DEF: {old_df} ➤ {df}
