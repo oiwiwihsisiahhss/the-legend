@@ -12,7 +12,9 @@ import html
 # Temporary in-memory sel pgection before saving
 temp_team_selection = {}
 swap_selection = {}
-temp_swaps = {}  # {user_id: {"team_number": 1, "first_slot": 0}}
+temp_swaps = {} 
+last_explore_time{}
+# {user_id: {"team_number": 1, "first_slot": 0}}
 # Initialize bot with your API key
 API_KEY = '7215821191:AAEzFPwyx8FjlXMr2mpVTbYzpHoMbPsaCDc'
 bot = telebot.TeleBot(API_KEY)
@@ -1944,6 +1946,16 @@ def explore(message):
         return
 
     user_id = message.from_user.id
+    now = datetime.utcnow()
+
+    # Anti-spam: 15 second cooldown
+    if user_id in last_explore_time:
+        diff = (now - last_explore_time[user_id]).total_seconds()
+        if diff < 15:
+            bot.reply_to(message, "🛑 Hey kid, stop spamming! Try again in a few seconds.")
+            return
+
+    last_explore_time[user_id] = now  # Update last explore time
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
@@ -1956,17 +1968,18 @@ def explore(message):
     if not user:
         bot.reply_to(message, "❌ You haven't started the game yet.\nUse /start in the group to begin.")
         return
-    
+
     # Check if user has a character in slot1
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
     cursor.execute("SELECT slot1 FROM teams WHERE user_id = ?", (user_id,))
     slot1 = cursor.fetchone()
+    conn.close()
 
     if not slot1 or slot1[0] is None:
-        conn.close()
         bot.reply_to(message, "⚠️ You don't have a character assigned to your team.\nUse /myteam to select one.")
         return
+
     # Fetch devils
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
@@ -1981,7 +1994,6 @@ def explore(message):
     selected_devil = random.choice(devils)
     name, image, level = selected_devil
 
-    # Use invisible character to embed image URL
     invisible = "‎"
     hyperlink = f'<a href="{image}">{invisible}</a>'
 
@@ -1997,7 +2009,7 @@ def explore(message):
         "Will you rise with steel in your heart or break under pressure?",
         "Will you walk the path of chaos or cower behind false peace?", 
         "Will you charge into the abyss with fire in your heart, or cower in the shadows of fear?", 
-        "Will you stand tall with blade in hand, or kneel before the monsters that haunt your soul?"
+        "Will you stand tall with blade in hand, or kneel before the monsters that haunt your soul?",
         "Will you embrace the darkness and fight, or run until the night swallows you whole?", 
         "Will you forge your fate in blood and fury, or be forgotten like a whisper in the wind?", 
         "Will you become legend, or fade as another nameless coward?", 
@@ -2021,7 +2033,7 @@ def explore(message):
         chat_id=message.chat.id,
         text=caption,
         parse_mode="HTML",
-        reply_to_message_id=message.message_id,
+        
         reply_markup=markup
     )
 
