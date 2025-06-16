@@ -302,16 +302,56 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
                 UPDATE user_characters
                 SET level = ?, exp = ?
                 WHERE user_id = ? AND character_id = ?
-            """, (level, exp, user_id, character_id))
+def check_and_level_up_character(character_id, cursor, conn):
+    # Fetch base stats
+    cursor.execute("""
+        SELECT level, exp, attack, defense, speed, precision, instinct 
+        FROM character_base_stats 
+        WHERE character_id = ?
+    """, (character_id,))
+    data = cursor.fetchone()
 
-            # Optional: update base stats if needed (only if you reflect them in-game)
+    if not data:
+        return None
+
+    level, exp, atk, df, spd, prc, ins = data
+    leveled_up = False
+    messages = []
+
+    while True:
+        required_exp = int(15000 * (level ** 1.4))
+        if exp >= required_exp:
+            # Backup old stats for message
+            old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
+
+            # Level up
+            level += 1
+            exp -= required_exp
+            atk += 1
+            df += 1
+            spd += 1
+            prc += 1
+            ins += 1
+            leveled_up = True
+
+            # Update character base stats
             cursor.execute("""
                 UPDATE character_base_stats
-                SET attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
+                SET level = ?, exp = ?, attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
                 WHERE character_id = ?
-            """, (atk, df, spd, prc, ins, character_id))
+            """, (level, exp, atk, df, spd, prc, ins, character_id))
+
+            # Update explore stats
+            cursor.execute("""
+                SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth 
+                FROM explore_character_base_stats 
+                WHERE character_id = ?
+            """, (character_id,))
+            explore = cursor.fetchone()
 
             if explore:
+                base_hp, dmg1, dmg2, dmg3, hp_growth, dmg_growth = explore
+
                 new_hp = base_hp + (level - 1) * hp_growth
                 new_dmg1 = dmg1 + (level - 1) * dmg_growth
                 new_dmg2 = dmg2 + (level - 1) * dmg_growth
@@ -323,21 +363,29 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
                     WHERE character_id = ?
                 """, (new_hp, new_dmg1, new_dmg2, new_dmg3, character_id))
 
-            # Build message
-            msg = f"""
-🎉 <b>{name}</b> Leveled Up to <b>Level {level}</b>!
+            # Fetch character name
+            cursor.execute("SELECT name FROM character_base_stats WHERE character_id = ?", (character_id,))
+            name_row = cursor.fetchone()
+            name = name_row[0] if name_row else "Unknown"
 
-⚔️ ATK: <code>{old_atk}</code> ➤ <b>{atk}</b>
-🛡️ DEF: <code>{old_df}</code> ➤ <b>{df}</b>
-⚡ SPD: <code>{old_spd}</code> ➤ <b>{spd}</b>
-🎯 PRC: <code>{old_prc}</code> ➤ <b>{prc}</b>
-🧠 INS: <code>{old_ins}</code> ➤ <b>{ins}</b>
+            # Append level-up message
+            msg = f"""
+🎉 <b>{name}</b> leveled up to <b>Level {level}</b>!
+
+⚔️ ATK: {old_atk} ➤ {atk}
+🛡️ DEF: {old_df} ➤ {df}
+⚡ SPD: {old_spd} ➤ {spd}
+🎯 PRC: {old_prc} ➤ {prc}
+🧠 INS: {old_ins} ➤ {ins}
 """.strip()
+
             messages.append(msg)
         else:
             break
 
-    conn.commit()
+    if leveled_up:
+        conn.commit()
+
     return messages if messages else None
 # Establishing database connection
 def generate_team_stats_text(user_id, team_number):
