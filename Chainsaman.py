@@ -369,13 +369,7 @@ def check_and_level_up_character(character_id, cursor, conn):
             name = name_row[0] if name_row else "Unknown"
 
             # Append level-up messag
-            msg = f"""(🎉 {name} leveled up to Level {level}!
-                      ⚔️ ATK: {old_atk} ➤ {atk}
-                      🛡️ DEF: {old_df} ➤ {df}
-                      ⚡ SPD: {old_spd} ➤ {spd}
-                      🎯 PRC: {old_prc} ➤ {prc}
-                      🧠 INS: {old_ins} ➤ {ins}
-                      """).strip()
+            msg = f"🎉 {name} leveled up to Level {level}!\n\n⚔️ ATK: {old_atk} ➤ {atk}\n🛡️ DEF: {old_df} ➤ {df}\n⚡ SPD: {old_spd} ➤ {spd}\n🎯 PRC: {old_prc} ➤ {prc}\n🧠 INS: {old_ins} ➤ {ins}"
 
 
 
