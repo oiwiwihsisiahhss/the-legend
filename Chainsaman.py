@@ -1189,17 +1189,25 @@ def add_character(message):
         return
 
     if not message.reply_to_message:
-        bot.reply_to(message, "⚠️ Reply to the user to whom you want to add the character.\nUsage: `/c_add <character_name> <level (optional)>`", parse_mode="Markdown")
+        bot.reply_to(message, "⚠️ Reply to the user you want to give the character to.\nUsage: `/c_add <character_name> <level (optional)>`", parse_mode="Markdown")
         return
 
     try:
-        args = message.text.split(maxsplit=2)
+        args = message.text.split(maxsplit=1)
         if len(args) < 2:
             bot.reply_to(message, "⚠️ Usage: /c_add <character_name> <level (optional)>")
             return
 
-        character_name = args[1].strip().lower()
-        level_to_set = int(args[2]) if len(args) > 2 else 1
+        # Extract possible level at the end
+        raw = args[1].strip()
+        parts = raw.rsplit(" ", 1)
+
+        if len(parts) == 2 and parts[1].isdigit():
+            character_name = parts[0].strip().lower()
+            level_to_set = int(parts[1])
+        else:
+            character_name = raw.lower()
+            level_to_set = 1
 
         user = message.reply_to_message.from_user
         user_id = user.id
@@ -1209,7 +1217,7 @@ def add_character(message):
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
 
-        # Get character_id and exact name
+        # Fetch character_id from full lowercase name match
         cursor.execute("SELECT character_id, name FROM character_base_stats WHERE LOWER(name) = ?", (character_name,))
         character = cursor.fetchone()
 
@@ -1220,14 +1228,12 @@ def add_character(message):
 
         character_id, char_name = character
 
-        # Add to user_characters
+        # Add to user's characters
         cursor.execute("INSERT OR IGNORE INTO user_characters (user_id, character_id, level) VALUES (?, ?, ?)", (user_id, character_id, level_to_set))
-
-        # Force level (for testing or manual assignment)
         cursor.execute("UPDATE character_base_stats SET level = ? WHERE character_id = ?", (level_to_set, character_id))
 
-        # Trigger full level-up recalculation
-        from character_levelup import check_and_level_up_character  # adjust if needed
+        # Trigger recalculation and level-based upgrade
+        from character_levelup import check_and_level_up_character
         messages = check_and_level_up_character(character_id, cursor, conn)
 
         conn.commit()
