@@ -250,11 +250,11 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 def check_and_level_up_character(user_id, character_id, cursor, conn):
     # Get current level/exp for this user-character
     cursor.execute("""
-        SELECT uc.level, uc.exp, cb.attack, cb.defense, cb.speed, cb.precision, cb.instinct, cb.name
-        FROM user_characters uc
-        JOIN character_base_stats cb ON cb.character_id = uc.character_id
-        WHERE uc.character_id = ? AND uc.user_id = ?
-    """, (character_id, user_id))
+    SELECT cbs.level, cbs.exp, cbs.attack, cbs.defense, cbs.speed, cbs.precision, cbs.instinct 
+    FROM character_base_stats cbs
+    JOIN user_characters uc ON uc.character_id = cbs.character_id
+    WHERE uc.user_id = ? AND uc.character_id = ?
+""", (user_id, character_id))
     
     data = cursor.fetchone()
     if not data:
