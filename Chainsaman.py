@@ -1193,13 +1193,20 @@ def add_character(message):
         return
 
     try:
-        args = message.text.split(maxsplit=2)
+        args = message.text.split(maxsplit=1)
         if len(args) < 2:
             bot.reply_to(message, "⚠️ Usage: /c_add <character_name> [level]")
             return
 
-        character_name = args[1].strip().lower()
-        level_input = int(args[2]) if len(args) == 3 and args[2].isdigit() else 1
+        text_parts = args[1].strip().split()
+        level = 1
+
+        # Check if last part is a digit (optional level)
+        if text_parts[-1].isdigit():
+            level = int(text_parts[-1])
+            character_name = ' '.join(text_parts[:-1]).strip().lower()
+        else:
+            character_name = ' '.join(text_parts).strip().lower()
 
         user = message.reply_to_message.from_user
         user_id = user.id
@@ -1209,43 +1216,46 @@ def add_character(message):
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
 
-        # Get character_id from name
-        cursor.execute("SELECT character_id, name FROM character_base_stats WHERE LOWER(name) = ?", (character_name,))
-        character = cursor.fetchone()
+        # Fetch all characters for better matching
+        cursor.execute("SELECT character_id, name FROM character_base_stats")
+        characters = cursor.fetchall()
 
-        if not character:
-            bot.reply_to(message, "❌ Character not found. Please check the name.")
+        character_id = None
+        char_name = None
+        for cid, name in characters:
+            if name.strip().lower() == character_name:
+                character_id = cid
+                char_name = name
+                break
+
+        if not character_id:
+            bot.reply_to(message, "❌ Character not found. Please check the name and try again.")
             conn.close()
             return
 
-        character_id, char_name = character
+        # Check if user already owns the character
+        cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
+        owned = cursor.fetchone()
 
-        # Check if character already owned
-        cursor.execute("SELECT * FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
-        already_owned = cursor.fetchone()
-        if already_owned:
-            bot.reply_to(message, f"⚠️ {char_name} already exists in {user_name}'s hunter list.")
-            conn.close()
-            return
-
-        # Add character at level 1 (base)
-        cursor.execute('''
-            INSERT INTO user_characters (user_id, character_id, level)
-            VALUES (?, ?, ?)
-        ''', (user_id, character_id, 1))
-
-        # Apply level boosts if level > 1
-        if level_input > 1:
-            apply_level_boosts(character_id, level_input, cursor, conn)
+        if not owned:
+            # First-time add
+            cursor.execute("INSERT INTO user_characters (user_id, character_id, level) VALUES (?, ?, ?)", (user_id, character_id, level))
+        else:
+            # Update existing character's level
+            cursor.execute("UPDATE user_characters SET level = ? WHERE user_id = ? AND character_id = ?", (level, user_id, character_id))
 
         conn.commit()
+
+        # Now trigger level-up logic to recalculate stats
+        from character_levelup import check_and_level_up_character  # update to your actual module name if needed
+        messages = check_and_level_up_character(character_id, cursor, conn)
         conn.close()
 
-        bot.send_message(
-            message.chat.id,
-            f"✅ <b>{char_name}</b> has been added to {user_link}'s hunter list at level {level_input}.",
-            parse_mode="HTML"
-        )
+        # Confirmation + optional level-up message
+        bot.send_message(message.chat.id, f"✅ <b>{char_name}</b> has been added to {user_link}'s hunter list at Level {level}.", parse_mode="HTML")
+        if messages:
+            for msg in messages:
+                bot.send_message(message.chat.id, msg, parse_mode="HTML")
 
     except Exception as e:
         bot.reply_to(message, f"❌ Error: {str(e)}")
