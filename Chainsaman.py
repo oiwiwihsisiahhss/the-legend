@@ -1380,7 +1380,7 @@ def handle_edit_back(call):
     team_text += generate_team_stats_text(user_id, selected_team_number)
 
 
-    # Rebuild the team selection buttons
+    # Rebuild the team sele upction buttons
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
         types.InlineKeyboardButton("Team 1⃣", callback_data="team1"),
@@ -1638,7 +1638,7 @@ def handle_save_team(call):
         msg_id,
         parse_mode="HTML"
     )
-           time.sleep(0.45)
+            time.sleep(0.45)
 
         # Save the team to database
         conn = sqlite3.connect("chainsaw.db")
