@@ -13,7 +13,7 @@ import html
 temp_team_selection = {}
 swap_selection = {}
 temp_swaps = {} 
-last_explore_time{}
+last_explore_time = {}
 # {user_id: {"team_number": 1, "first_slot": 0}}
 # Initialize bot with your API key
 API_KEY = '7215821191:AAEzFPwyx8FjlXMr2mpVTbYzpHoMbPsaCDc'
