@@ -1324,7 +1324,7 @@ def stats(message):
     bar = '█' * progress + '░' * (10 - progress)
 
     # Build caption
-    caption = f"""<b>📖 Devil Hunter Profile</b>
+caption = f"""<b>📖 Devil Hunter Profile</b>
 ━━━━━━━━━━━━━━━━  
 <b>📛 Name:</b> {name}  
 <b>⭐ Level:</b> {lvl}  
