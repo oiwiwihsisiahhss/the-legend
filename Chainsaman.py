@@ -1288,20 +1288,62 @@ def stats(message):
 <b>⭐ Level:</b> {lvl}
 <b>🧾 Description:</b> {desc}
 
-<b>✨ EXP Progress:</b>
-<code>{exp} / {req_exp}</code>
-<code>[{bar}]</code>
+@bot.message_handler(commands=['stats'])
+def stats(message):
+    args = message.text.split(' ', 1)
+    if len(args) == 1:
+        return bot.reply_to(message, "❌ Please provide a character name. Example: /stats Himeno")
 
-<b>⚔️ Battle Stats:</b>
-━━━━━━━━━━━━━━━━
-• ⚔️ Attack: <b>{atk}</b>
-• 🛡 Defense: <b>{defense}</b>
-• ⚡ Speed: <b>{spd}</b>
-• 🎯 Precision: <b>{prec}</b>
-• 🧠 Instinct: <b>{inst}</b>
+    name_input = args[1].strip().lower()
+    user_id = message.from_user.id
+    is_private = message.chat.type == "private"
+
+    conn = sqlite3.connect('chainsaw.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT cb.character_id, cb.name, cb.description, cb.attack, cb.defense, cb.speed, cb.precision,
+               cb.instinct, cb.image_link, cb.exp, cb.level
+        FROM user_characters uc
+        JOIN character_base_stats cb ON uc.character_id = cb.character_id
+        WHERE uc.user_id = ? AND LOWER(cb.name) LIKE ?
+    ''', (user_id, f"{name_input}%"))
+    result = cursor.fetchone()
+    conn.close()
+
+    if not result:
+        return bot.reply_to(message, "❌ No Devil Hunter found with that name.")
+
+    # Unpack
+    (char_id, name, desc, atk, defense, spd, prec, inst, img, exp, lvl) = result
+
+    # Calculate required EXP
+    required_exp = int(15000 * (lvl ** 1.4)) if lvl > 0 else 25000
+    progress = int((exp / required_exp) * 10)
+    progress = min(progress, 10)  # Avoid overflow
+    bar = '█' * progress + '░' * (10 - progress)
+
+    # Build caption
+    caption = f"""<b>📖 Devil Hunter Profile</b>
+━━━━━━━━━━━━━━━━  
+<b>📛 Name:</b> {name}  
+<b>⭐ Level:</b> {lvl}  
+<b>🧾 Description:</b> {desc}  
+
+<b>✨ EXP Progress:</b>  
+<code>{exp} / {required_exp}</code>  
+<code>[{bar}]</code>  
+
+<b>⚔️ Battle Stats:</b>  
+━━━━━━━━━━━━━━━━  
+• ⚔️ Attack: <b>{atk}</b>  
+• 🛡 Defense: <b>{defense}</b>  
+• ⚡ Speed: <b>{spd}</b>  
+• 🎯 Precision: <b>{prec}</b>  
+• 🧠 Instinct: <b>{inst}</b>  
 ━━━━━━━━━━━━━━━━"""
 
-    # Inline button for abilities
+    # Inline button
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("🌀 Abilities", callback_data=f"abilities:{char_id}"))
 
@@ -1422,7 +1464,7 @@ def return_to_stats(call):
 
     # Adding the "Abilities" button back into the keyboard
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("Abilities", callback_data=f"abilities:{char_id}"))
+    markup.add(types.InlineKeyboardButton("🌀Abilities", callback_data=f"abilities:{char_id}"))
 
     # Editing the existing message with the stats information and adding the "Abilities" button
     bot.edit_message_caption(chat_id=call.message.chat.id,
