@@ -1170,62 +1170,7 @@ def apply_level_boosts(character_id, target_level, cursor, conn):
         """, (new_hp, new_dmg, new_dmg, new_dmg, character_id))
 
     conn.commit()    
-@bot.message_handler(commands=['c_add'])
-#@bot.message_handler(commands=['c_add'])
-def add_character(message):
-    if message.from_user.id != 6306216999:
-        bot.reply_to(message, "❌ You are not authorized to use this command.")
-        return
 
-    if not message.reply_to_message:
-        bot.reply_to(message, "⚠️ Reply to the user you want to give the character to.\nUsage: `/c_add <character_name> <level (optional)>`", parse_mode="Markdown")
-        return
-
-    try:
-        args = message.text.split(maxsplit=1)
-        if len(args) < 2:
-            bot.reply_to(message, "⚠️ Usage: /c_add <character_name> <level (optional)>")
-            return
-
-        raw = args[1].strip()
-        parts = raw.rsplit(" ", 1)
-
-        if len(parts) == 2 and parts[1].isdigit():
-            character_name = parts[0].strip().lower()
-            level_to_set = int(parts[1])
-        else:
-            character_name = raw.lower()
-            level_to_set = 1
-
-        user = message.reply_to_message.from_user
-        user_id = user.id
-        user_name = user.first_name
-        user_link = f'<a href="tg://user?id={user_id}">{user_name}</a>'
-
-        conn = sqlite3.connect("chainsaw.db")
-        cursor = conn.cursor()
-
-        # Fetch character_id and real name
-        cursor.execute("SELECT character_id, name FROM character_base_stats WHERE LOWER(name) = ?", (character_name,))
-        character = cursor.fetchone()
-
-        if not character:
-            bot.reply_to(message, "❌ Character not found. Please check the name.")
-            conn.close()
-            return
-
-        character_id, char_name = character
-
-        # Insert at level 1
-        cursor.execute("""
-            INSERT OR IGNORE INTO user_characters (user_id, character_id, level)
-            VALUES (?, ?, 1)
-        """, (user_id, character_id))
-
-        # Calculate total EXP required to reach that level
-        total_exp = 0
-        for i in range(1, level_to_set):
-            total_exp += int(15000 * (i ** 1.4))
 @bot.message_handler(commands=['c_add'])
 def add_character(message):
     if message.from_user.id != 6306216999:
