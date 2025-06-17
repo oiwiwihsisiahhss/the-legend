@@ -247,9 +247,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     conn.close()
 
 
-
 def check_and_level_up_character(character_id, cursor, conn):
-    # Fetch base stats
     cursor.execute("""
         SELECT level, exp, attack, defense, speed, precision, instinct 
         FROM character_base_stats 
@@ -267,10 +265,10 @@ def check_and_level_up_character(character_id, cursor, conn):
     while True:
         required_exp = int(15000 * (level ** 1.4))
         if exp >= required_exp:
-            # Backup old stats for message
+            # Backup old stats
             old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
 
-            # Level up
+            # Level up stats
             level += 1
             exp -= required_exp
             atk += 1
@@ -280,21 +278,20 @@ def check_and_level_up_character(character_id, cursor, conn):
             ins += 1
             leveled_up = True
 
-            # Update character base stats
+            # Update character_base_stats
             cursor.execute("""
                 UPDATE character_base_stats
                 SET level = ?, exp = ?, attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
                 WHERE character_id = ?
             """, (level, exp, atk, df, spd, prc, ins, character_id))
 
-            # Update explore stats
+            # === Update explore stats if exists ===
             cursor.execute("""
                 SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth 
                 FROM explore_character_base_stats 
                 WHERE character_id = ?
             """, (character_id,))
             explore = cursor.fetchone()
-
             if explore:
                 base_hp, dmg1, dmg2, dmg3, hp_growth, dmg_growth = explore
 
@@ -309,16 +306,21 @@ def check_and_level_up_character(character_id, cursor, conn):
                     WHERE character_id = ?
                 """, (new_hp, new_dmg1, new_dmg2, new_dmg3, character_id))
 
-            # Fetch character name
+            # Get character name
             cursor.execute("SELECT name FROM character_base_stats WHERE character_id = ?", (character_id,))
             name_row = cursor.fetchone()
             name = name_row[0] if name_row else "Unknown"
 
-            # Append level-up messag
-            msg = f"🎉 {name} leveled up to Level {level}!\n\n⚔️ ATK: {old_atk} ➤ {atk}\n🛡️ DEF: {old_df} ➤ {df}\n⚡ SPD: {old_spd} ➤ {spd}\n🎯 PRC: {old_prc} ➤ {prc}\n🧠 INS: {old_ins} ➤ {ins}"
-
-
-
+            msg = f"""
+🎉 <b>{name}</b> leveled up to <b>Level {level}</b>!
+━━━━━━━━━━━━━
+⚔️ ATK: <code>{old_atk}</code> ➤ <code>{atk}</code>
+🛡️ DEF: <code>{old_df}</code> ➤ <code>{df}</code>
+⚡ SPD: <code>{old_spd}</code> ➤ <code>{spd}</code>
+🎯 PRC: <code>{old_prc}</code> ➤ <code>{prc}</code>
+🧠 INS: <code>{old_ins}</code> ➤ <code>{ins}</code>
+━━━━━━━━━━━━━
+""".strip()
 
             messages.append(msg)
         else:
