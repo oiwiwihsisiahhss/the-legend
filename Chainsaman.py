@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import telebot
 import random
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
