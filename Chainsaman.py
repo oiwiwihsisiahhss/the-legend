@@ -1255,6 +1255,7 @@ def add_character(message):
         bot.reply_to(message, f"❌ Error: {str(e)}")
 
 
+# -*- coding: utf-8 -*-
 @bot.message_handler(commands=['stats'])
 def stats(message):
     args = message.text.split(' ', 1)
@@ -1281,34 +1282,34 @@ def stats(message):
     if not result:
         return bot.reply_to(message, "❌ No Devil Hunter found with that name.")
 
-    # Unpack
-    (char_id, name, desc, atk, defense, spd, prec, inst, img, exp, lvl) = result
+    # Unpack values
+    char_id, name, desc, atk, defense, spd, prec, inst, img, exp, lvl = result
 
-    # Calculate required EXP
+    # Calculate EXP bar
     required_exp = int(15000 * (lvl ** 1.4)) if lvl > 0 else 25000
     progress = int((exp / required_exp) * 10)
-    progress = min(progress, 10)  # Avoid overflow
+    progress = min(progress, 10)  # cap at 10 blocks
     bar = '█' * progress + '░' * (10 - progress)
 
-    # Build caption
-caption = f"""<b>📖 Devil Hunter Profile</b>
-━━━━━━━━━━━━━━━━  
-<b>📛 Name:</b> {name}  
-<b>⭐ Level:</b> {lvl}  
-<b>🧾 Description:</b> {desc}  
-
-<b>✨ EXP Progress:</b>  
-<code>{exp} / {required_exp}</code>  
-<code>[{bar}]</code>  
-
-<b>⚔️ Battle Stats:</b>  
-━━━━━━━━━━━━━━━━  
-• ⚔️ Attack: <b>{atk}</b>  
-• 🛡 Defense: <b>{defense}</b>  
-• ⚡ Speed: <b>{spd}</b>  
-• 🎯 Precision: <b>{prec}</b>  
-• 🧠 Instinct: <b>{inst}</b>  
-━━━━━━━━━━━━━━━━"""
+    # Caption with emojis
+    caption = (
+        f"<b>📖 Devil Hunter Profile</b>\n"
+        f"━━━━━━━━━━━━━━━━\n"
+        f"<b>📛 Name:</b> {name}\n"
+        f"<b>⭐ Level:</b> {lvl}\n"
+        f"<b>🧾 Description:</b> {desc}\n\n"
+        f"<b>✨ EXP Progress:</b>\n"
+        f"<code>{exp} / {required_exp}</code>\n"
+        f"<code>[{bar}]</code>\n\n"
+        f"<b>⚔️ Battle Stats:</b>\n"
+        f"━━━━━━━━━━━━━━━━\n"
+        f"• ⚔️ Attack: <b>{atk}</b>\n"
+        f"• 🛡 Defense: <b>{defense}</b>\n"
+        f"• ⚡ Speed: <b>{spd}</b>\n"
+        f"• 🎯 Precision: <b>{prec}</b>\n"
+        f"• 🧠 Instinct: <b>{inst}</b>\n"
+        f"━━━━━━━━━━━━━━━━"
+    )
 
     # Inline button
     markup = types.InlineKeyboardMarkup()
