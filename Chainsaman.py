@@ -1253,41 +1253,7 @@ def add_character(message):
 
     except Exception as e:
         bot.reply_to(message, f"❌ Error: {str(e)}")
-@bot.message_handler(commands=['stats'])
-def stats(message):
-    args = message.text.split(' ', 1)
-    if len(args) == 1:
-        return bot.reply_to(message, "❌ Please provide a character name. Example: /stats Himeno")
 
-    name_input = args[1].strip().lower()
-    user_id = message.from_user.id
-    is_private = message.chat.type == "private"
-
-    conn = sqlite3.connect('chainsaw.db')
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT cb.character_id, cb.name, cb.description, cb.attack, cb.defense, cb.speed, cb.precision,
-               cb.instinct, cb.image_link, cb.exp, cb.required_exp, uc.level
-        FROM user_characters uc
-        JOIN character_base_stats cb ON uc.character_id = cb.character_id
-        WHERE uc.user_id = ? AND LOWER(cb.name) LIKE ?
-    ''', (user_id, f"{name_input}%"))
-    result = cursor.fetchone()
-    conn.close()
-
-    if not result:
-        return bot.reply_to(message, "❌ No Devil Hunter found with that name.")
-
-    (char_id, name, desc, atk, defense, spd, prec, inst, img, exp, req_exp, lvl) = result
-    progress = int((exp / req_exp) * 10)
-    bar = '█' * progress + '░' * (10 - progress)
-
-    caption = f"""<b>📖 Devil Hunter Profile</b>
-━━━━━━━━━━━━━━━━
-<b>📛 Name:</b> {name}
-<b>⭐ Level:</b> {lvl}
-<b>🧾 Description:</b> {desc}
 
 @bot.message_handler(commands=['stats'])
 def stats(message):
