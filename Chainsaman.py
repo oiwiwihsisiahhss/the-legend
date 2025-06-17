@@ -1246,19 +1246,13 @@ def add_character(message):
             parse_mode="HTML"
         )
 
-        if messages:
-            for msg in messages:
-                bot.send_message(message.chat.id, msg, parse_mode="HTML")
+        levelup_messages = check_and_level_up_character(character_id, cursor, conn)
 
-    except Exception as e:
-        bot.reply_to(message, f"❌ Error: {str(e)}")
-
-        if messages:
-            for msg in messages:
-                bot.send_message(message.chat.id, msg, parse_mode="HTML")
-
-    except Exception as e:
-        bot.reply_to(message, f"❌ Error: {str(e)}")
+    if levelup_messages:
+        for msg in levelup_messages:
+            bot.send_message(message.chat.id, msg, parse_mode="HTML")
+        except Exception as e:
+            bot.reply_to(message, f"❌ Error: {str(e)}")
 @bot.message_handler(commands=['stats'])
 def stats(message):
     args = message.text.split(' ', 1)
