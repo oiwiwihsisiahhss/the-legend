@@ -231,8 +231,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''')
 
     # Final commit and close
-   # conn.commit()
-   # conn.close()
+    conn.commit()
+    conn.close()
         
 
     # Already created earlier but added again — optional:
