@@ -247,8 +247,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     conn.commit()
     conn.close()
 
-
 def check_and_level_up_character(character_id, cursor, conn):
+    # Fetch character base stats
     cursor.execute("""
         SELECT level, exp, attack, defense, speed, precision, instinct 
         FROM character_base_stats 
@@ -265,67 +265,67 @@ def check_and_level_up_character(character_id, cursor, conn):
 
     while True:
         required_exp = int(15000 * (level ** 1.4))
-        if exp >= required_exp:
-            # Backup old stats
-            old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
+        if exp < required_exp:
+            break
 
-            # Level up stats
-            level += 1
-            exp -= required_exp
-            atk += 1
-            df += 1
-            spd += 1
-            prc += 1
-            ins += 1
-            leveled_up = True
+        # Backup old stats for display
+        old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
 
-            # Update character_base_stats
+        # Apply level-up effects
+        level += 1
+        exp -= required_exp
+        atk += 1
+        df += 1
+        spd += 1
+        prc += 1
+        ins += 1
+        leveled_up = True
+
+        # Update base character stats
+        cursor.execute("""
+            UPDATE character_base_stats
+            SET level = ?, exp = ?, attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
+            WHERE character_id = ?
+        """, (level, exp, atk, df, spd, prc, ins, character_id))
+
+        # Update explore stats if available
+        cursor.execute("""
+            SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth 
+            FROM explore_character_base_stats 
+            WHERE character_id = ?
+        """, (character_id,))
+        explore = cursor.fetchone()
+
+        if explore:
+            base_hp, dmg1, dmg2, dmg3, hp_growth, dmg_growth = explore
+
+            # Recalculate new stats based on current level
+            new_hp = base_hp + (level - 1) * hp_growth
+            new_dmg1 = dmg1 + (level - 1) * dmg_growth
+            new_dmg2 = dmg2 + (level - 1) * dmg_growth
+            new_dmg3 = dmg3 + (level - 1) * dmg_growth
+
             cursor.execute("""
-                UPDATE character_base_stats
-                SET level = ?, exp = ?, attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
+                UPDATE explore_character_base_stats
+                SET base_hp = ?, move_1_damage = ?, move_2_damage = ?, move_3_damage = ?
                 WHERE character_id = ?
-            """, (level, exp, atk, df, spd, prc, ins, character_id))
+            """, (new_hp, new_dmg1, new_dmg2, new_dmg3, character_id))
 
-            # === Update explore stats if exists ===
-            cursor.execute("""
-                SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth 
-                FROM explore_character_base_stats 
-                WHERE character_id = ?
-            """, (character_id,))
-            explore = cursor.fetchone()
-            if explore:
-                base_hp, dmg1, dmg2, dmg3, hp_growth, dmg_growth = explore
+        # Fetch character name for level-up message
+        cursor.execute("SELECT name FROM character_base_stats WHERE character_id = ?", (character_id,))
+        name_row = cursor.fetchone()
+        name = name_row[0] if name_row else "Unknown"
 
-                new_hp = base_hp + (level - 1) * hp_growth
-                new_dmg1 = dmg1 + (level - 1) * dmg_growth
-                new_dmg2 = dmg2 + (level - 1) * dmg_growth
-                new_dmg3 = dmg3 + (level - 1) * dmg_growth
-
-                cursor.execute("""
-                    UPDATE explore_character_base_stats
-                    SET base_hp = ?, move_1_damage = ?, move_2_damage = ?, move_3_damage = ?
-                    WHERE character_id = ?
-                """, (new_hp, new_dmg1, new_dmg2, new_dmg3, character_id))
-
-            # Get character name
-            cursor.execute("SELECT name FROM character_base_stats WHERE character_id = ?", (character_id,))
-            name_row = cursor.fetchone()
-            name = name_row[0] if name_row else "Unknown"
-
-            msg = f"""
-🎉 <b>{name}</b> leveled up to <b>Level {level}</b>!
+        # Append level-up message
+        msg = f"""🎉 <b>{name}</b> leveled up to <b>Level {level}</b>!
 ━━━━━━━━━━━━━
 ⚔️ ATK: <code>{old_atk}</code> ➤ <code>{atk}</code>
 🛡️ DEF: <code>{old_df}</code> ➤ <code>{df}</code>
 ⚡ SPD: <code>{old_spd}</code> ➤ <code>{spd}</code>
 🎯 PRC: <code>{old_prc}</code> ➤ <code>{prc}</code>
 🧠 INS: <code>{old_ins}</code> ➤ <code>{ins}</code>
-━━━━━━━━━━━━━
-""".strip()
-
-            messages.append(msg)
-        else:
-            break
+━━━━━━━━━━━━━"""
+        messages.append(msg)
 
     if leveled_up:
         conn.commit()
@@ -741,7 +741,6 @@ def show_user_characters(message):
 
     user_id = message.from_user.id
 
-    # Fetch all characters the user owns (excluding dummy ID 0)
     cursor.execute('''
         SELECT cb.name, uc.level
         FROM user_characters uc
@@ -754,22 +753,14 @@ def show_user_characters(message):
 
     if not characters:
         msg = "❌ You don't own any Devil Hunters yet.\nUse /choose_char to summon your first one!"
-        if message.chat.type != "private":
-            bot.send_message(message.chat.id, msg, reply_to_message_id=message.message_id)
-        else:
-            bot.send_message(message.chat.id, msg)
-        return
+        return bot.send_message(message.chat.id, msg, reply_to_message_id=message.message_id if message.chat.type != "private" else None)
 
-    # Build clean UI (no special styling for selected)
     response = "📘 <b>Your Devil Hunters</b>\n━━━━━━━━━━━━━━━━\n"
     for i, (name, level) in enumerate(characters, start=1):
-        response += f"🔹 <b>{i}. {name}</b><code>(Lvl{level})</code>\n"
+        response += f"🔹 <b>{i}. {name}</b> <code>(Lvl {level})</code>\n"
     response += "━━━━━━━━━━━━━━━━"
 
-    if message.chat.type != "private":
-        bot.send_message(message.chat.id, response, parse_mode="HTML", reply_to_message_id=message.message_id)
-    else:
-        bot.send_message(message.chat.id, response, parse_mode="HTML")
+    bot.send_message(message.chat.id, response, parse_mode="HTML", reply_to_message_id=message.message_id if message.chat.type != "private" else None)
 @bot.message_handler(commands=['open'])
 def open_menu(message):
     if message.chat.type != 'private':
@@ -1175,18 +1166,15 @@ def apply_level_boosts(character_id, target_level, cursor, conn):
 @bot.message_handler(commands=['c_add'])
 def add_character(message):
     if message.from_user.id != 6306216999:
-        bot.reply_to(message, "❌ You are not authorized to use this command.")
-        return
+        return bot.reply_to(message, "❌ You are not authorized.")
 
     if not message.reply_to_message:
-        bot.reply_to(message, "⚠️ Reply to the user you want to give the character to.\nUsage: `/c_add <character_name> <level (optional)>`", parse_mode="Markdown")
-        return
+        return bot.reply_to(message, "⚠️ Reply to the user.\nUsage: `/c_add <character_name> <level (optional)>`", parse_mode="Markdown")
 
     try:
         args = message.text.split(maxsplit=1)
         if len(args) < 2:
-            bot.reply_to(message, "⚠️ Usage: /c_add <character_name> <level (optional)>")
-            return
+            return bot.reply_to(message, "⚠️ Usage: /c_add <character_name> <level (optional)>")
 
         raw = args[1].strip()
         parts = raw.rsplit(" ", 1)
@@ -1206,53 +1194,32 @@ def add_character(message):
         conn = sqlite3.connect("chainsaw.db")
         cursor = conn.cursor()
 
-        # Fetch character_id and real name
         cursor.execute("SELECT character_id, name FROM character_base_stats WHERE LOWER(name) = ?", (character_name,))
         character = cursor.fetchone()
 
         if not character:
-            bot.reply_to(message, "❌ Character not found. Please check the name.")
             conn.close()
-            return
+            return bot.reply_to(message, "❌ Character not found.")
 
         character_id, char_name = character
 
-        # Insert at level 1
-        cursor.execute("""
-            INSERT OR IGNORE INTO user_characters (user_id, character_id, level)
-            VALUES (?, ?, 1)
-        """, (user_id, character_id))
+        cursor.execute("INSERT OR IGNORE INTO user_characters (user_id, character_id, level, exp) VALUES (?, ?, 1, 0)", (user_id, character_id))
 
-        # Calculate total EXP required to reach that level
-        total_exp = 0
-        for i in range(1, level_to_set):
-            total_exp += int(15000 * (i ** 1.4))
+        total_exp = sum(int(15000 * (i ** 1.4)) for i in range(1, level_to_set))
+        cursor.execute("UPDATE user_characters SET level = 1, exp = ? WHERE user_id = ? AND character_id = ?", (total_exp, user_id, character_id))
 
-        # Set level = 1 and assign EXP to trigger leveling logic
-        cursor.execute("""
-            UPDATE character_base_stats
-            SET level = 1, exp = ?
-            WHERE character_id = ?
-        """, (total_exp, character_id))
-
-        # Trigger level-up system
-        levelup_messages = check_and_level_up_character(character_id, cursor, conn)
+        levelup_messages = check_and_level_up_character(user_id, character_id, cursor, conn)
 
         conn.commit()
         conn.close()
 
-        bot.send_message(
-            message.chat.id,
-            f"✅ <b>{char_name}</b> has been added to {user_link}'s hunter list at Level {level_to_set}.",
-            parse_mode="HTML"
-        )
+        bot.send_message(message.chat.id, f"✅ <b>{char_name}</b> has been added to {user_link}'s hunter list at Level {level_to_set}.", parse_mode="HTML")
 
-        if levelup_messages:
-            for msg in levelup_messages:
-                bot.send_message(message.chat.id, msg, parse_mode="HTML")
+        for msg in levelup_messages:
+            bot.send_message(message.chat.id, msg, parse_mode="HTML")
 
     except Exception as e:
-        bot.reply_to(message, f"❌ Error: {str(e)}")
+        bot.reply_to(message, f"❌ Error: {e}")
 
 
 # -*- coding: utf-8 -*-
@@ -1271,7 +1238,7 @@ def stats(message):
 
     cursor.execute('''
         SELECT cb.character_id, cb.name, cb.description, cb.attack, cb.defense, cb.speed, cb.precision,
-               cb.instinct, cb.image_link, cb.exp, cb.level
+               cb.instinct, cb.image_link, uc.exp, uc.level
         FROM user_characters uc
         JOIN character_base_stats cb ON uc.character_id = cb.character_id
         WHERE uc.user_id = ? AND LOWER(cb.name) LIKE ?
@@ -1282,36 +1249,30 @@ def stats(message):
     if not result:
         return bot.reply_to(message, "❌ No Devil Hunter found with that name.")
 
-    # Unpack values
-    char_id, name, desc, atk, defense, spd, prec, inst, img, exp, lvl = result
-
-    # Calculate EXP bar
+    (char_id, name, desc, atk, defense, spd, prec, inst, img, exp, lvl) = result
     required_exp = int(15000 * (lvl ** 1.4)) if lvl > 0 else 25000
     progress = int((exp / required_exp) * 10)
-    progress = min(progress, 10)  # cap at 10 blocks
-    bar = '█' * progress + '░' * (10 - progress)
+    bar = '█' * min(progress, 10) + '░' * (10 - min(progress, 10))
 
-    # Caption with emojis
-    caption = (
-        f"<b>📖 Devil Hunter Profile</b>\n"
-        f"━━━━━━━━━━━━━━━━\n"
-        f"<b>📛 Name:</b> {name}\n"
-        f"<b>⭐ Level:</b> {lvl}\n"
-        f"<b>🧾 Description:</b> {desc}\n\n"
-        f"<b>✨ EXP Progress:</b>\n"
-        f"<code>{exp} / {required_exp}</code>\n"
-        f"<code>[{bar}]</code>\n\n"
-        f"<b>⚔️ Battle Stats:</b>\n"
-        f"━━━━━━━━━━━━━━━━\n"
-        f"• ⚔️ Attack: <b>{atk}</b>\n"
-        f"• 🛡 Defense: <b>{defense}</b>\n"
-        f"• ⚡ Speed: <b>{spd}</b>\n"
-        f"• 🎯 Precision: <b>{prec}</b>\n"
-        f"• 🧠 Instinct: <b>{inst}</b>\n"
-        f"━━━━━━━━━━━━━━━━"
-    )
+    caption = f"""<b>📖 Devil Hunter Profile</b>
+━━━━━━━━━━━━━━━━  
+<b>📛 Name:</b> {name}  
+<b>⭐ Level:</b> {lvl}  
+<b>🧾 Description:</b> {desc}  
 
-    # Inline button
+<b>✨ EXP Progress:</b>  
+<code>{exp} / {required_exp}</code>  
+<code>[{bar}]</code>  
+
+<b>⚔️ Battle Stats:</b>  
+━━━━━━━━━━━━━━━━  
+• ⚔️ Attack: <b>{atk}</b>  
+• 🛡 Defense: <b>{defense}</b>  
+• ⚡ Speed: <b>{spd}</b>  
+• 🎯 Precision: <b>{prec}</b>  
+• 🧠 Instinct: <b>{inst}</b>  
+━━━━━━━━━━━━━━━━"""
+
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("🌀 Abilities", callback_data=f"abilities:{char_id}"))
 
