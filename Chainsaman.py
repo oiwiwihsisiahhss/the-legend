@@ -246,6 +246,18 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     # Commit and close
     conn.commit()
     conn.close()
+    try:
+        cursor.execute("ALTER TABLE user_characters ADD COLUMN exp INTEGER DEFAULT 0")
+    except:
+        pass  # Column already exists
+
+    try:
+        cursor.execute("ALTER TABLE user_characters ADD COLUMN level INTEGER DEFAULT 1")
+    except:
+        pass  # Column already exists
+
+    conn.commit()
+    conn.close()
 
 def check_and_level_up_character(user_id, character_id, cursor, conn):
     # Fetch user-specific level and EXP from user_characters
