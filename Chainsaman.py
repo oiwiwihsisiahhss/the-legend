@@ -217,6 +217,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         FOREIGN KEY (choosen_character_id) REFERENCES character_base_stats(character_id)
     )
 ''')
+    
 
     # Create teams table
     cursor.execute('''
@@ -231,8 +232,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''')
 
     # Final commit and close
-    conn.commit()
-    conn.close()
+    
         
 
     # Already created earlier but added again — optional:
@@ -244,8 +244,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''')
 
     # Commit and close
-    conn.commit()
-    conn.close()
+    
     try:
         cursor.execute("ALTER TABLE user_characters ADD COLUMN exp INTEGER DEFAULT 0")
     except:
