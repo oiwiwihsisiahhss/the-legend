@@ -258,10 +258,11 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     conn.commit()
     conn.close()
 
+
 def check_and_level_up_character(user_id, character_id, cursor, conn):
     MAX_LEVEL = 100
 
-    # Fetch from both tables
+    # Get user character data
     cursor.execute("""
         SELECT uc.level, uc.exp, cb.attack, cb.defense, cb.speed, cb.precision, cb.instinct
         FROM user_characters uc
@@ -277,14 +278,20 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
     leveled_up = False
     messages = []
 
-    while level < MAX_LEVEL:
+    if level >= MAX_LEVEL:
+        # Prevent EXP gain and level up
+        cursor.execute("UPDATE user_characters SET exp = 0 WHERE user_id = ? AND character_id = ?", (user_id, character_id))
+        conn.commit()
+        return [f"🚫 <b>This character has already reached the max level ({MAX_LEVEL}).</b>"]
+
+    while True:
         required_exp = int(15000 * (level ** 1.4)) if level > 0 else 25000
 
-        if exp >= required_exp:
+        if exp >= required_exp and level < MAX_LEVEL:
             # Backup old stats
             old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
 
-            # Apply level up
+            # Level up
             level += 1
             exp -= required_exp
             atk += 1
@@ -301,20 +308,14 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
                 WHERE character_id = ? AND user_id = ?
             """, (level, exp, character_id, user_id))
 
-            # Update base stats
+            # Update explore stats if they exist
             cursor.execute("""
-                UPDATE character_base_stats
-                SET attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
-                WHERE character_id = ?
-            """, (atk, df, spd, prc, ins, character_id))
-
-            # Update explore stats if exists
-            cursor.execute("""
-                SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth 
-                FROM explore_character_base_stats 
+                SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth
+                FROM explore_character_base_stats
                 WHERE character_id = ?
             """, (character_id,))
             explore = cursor.fetchone()
+
             if explore:
                 base_hp, dmg1, dmg2, dmg3, hp_growth, dmg_growth = explore
                 new_hp = base_hp + (level - 1) * hp_growth
@@ -328,9 +329,9 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
                     WHERE character_id = ?
                 """, (new_hp, new_dmg1, new_dmg2, new_dmg3, character_id))
 
-            # Get character name
+            # Fetch name
             cursor.execute("SELECT name FROM character_base_stats WHERE character_id = ?", (character_id,))
-            name = cursor.fetchone()[0] or "Unknown"
+            name = cursor.fetchone()[0]
 
             msg = f"""
 🎉 <b>{name}</b> leveled up to <b>Level {level}</b>!
@@ -345,11 +346,6 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
             messages.append(msg)
         else:
             break
-
-    if level >= MAX_LEVEL:
-        cursor.execute("SELECT name FROM character_base_stats WHERE character_id = ?", (character_id,))
-        name = cursor.fetchone()[0] or "Unknown"
-        messages.append(f"🚫 <b>{name}</b> has already reached the <b>Max Level ({MAX_LEVEL})</b>!")
 
     if leveled_up:
         conn.commit()
@@ -1378,10 +1374,11 @@ def return_to_stats(call):
     name, desc, atk, defense, spd, prec, inst, img, exp, lvl = result
 
     # EXP bar (static logic, no level-up calc)
-    max_exp = int(15000 * (lvl ** 1.4)) if lvl < 100 else 1  # dummy to avoid 0-division
-    progress = 10 if lvl >= 100 else min(int((exp / max_exp) * 10), 10)
+    # Calculate EXP progress bar and values
+    max_exp = int(15000 * (lvl ** 1.4)) if lvl < 100 else int(15000 * (99 ** 1.4))
+    progress = min(int((exp / max_exp) * 10), 10)
     bar = '█' * progress + '░' * (10 - progress)
-    exp_display = "MAX" if lvl >= 100 else f"{exp} / {max_exp}"
+    exp_display = f"{exp} / {max_exp}"
 
     # Caption
     caption = f"""<b>🧾 Character Info</b>
