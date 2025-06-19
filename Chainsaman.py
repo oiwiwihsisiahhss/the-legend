@@ -1367,7 +1367,7 @@ def return_to_stats(call):
         FROM user_characters uc
         JOIN character_base_stats cb ON uc.character_id = cb.character_id
         WHERE uc.user_id = ? AND uc.character_id = ?
-    ''', (user_id, character_id))
+    ''', (user_id, char_id))
     result = cursor.fetchone()
     conn.close()
 
