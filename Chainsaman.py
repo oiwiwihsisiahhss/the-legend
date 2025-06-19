@@ -1397,62 +1397,65 @@ def return_to_stats(call):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('statsback:'))
 def return_to_stats(call):
-    char_id = call.data.split(':')[1]
-    user_id = call.from_user.id
+    try:
+        char_id = int(call.data.split(':')[1])
+        user_id = call.from_user.id
 
-    conn = sqlite3.connect('chainsaw.db')
-    cursor = conn.cursor()
+        conn = sqlite3.connect('chainsaw.db')
+        cursor = conn.cursor()
 
-    cursor.execute('''
-        SELECT cb.name, cb.description, cb.image_link,
-               uc.level, uc.exp, uc.atk, uc.def, uc.spd, uc.prc, uc.ins
-        FROM user_characters uc
-        JOIN character_base_stats cb ON uc.character_id = cb.character_id
-        WHERE uc.user_id = ? AND uc.character_id = ?
-    ''', (user_id, char_id))
-    result = cursor.fetchone()
-    conn.close()
+        cursor.execute('''
+            SELECT cb.character_id, cb.name, cb.description, cb.attack, cb.defense, cb.speed, cb.precision,
+                   cb.instinct, cb.image_link, uc.exp, uc.level
+            FROM user_characters uc
+            JOIN character_base_stats cb ON uc.character_id = cb.character_id
+            WHERE uc.user_id = ? AND uc.character_id = ?
+        ''', (user_id, char_id))
+        result = cursor.fetchone()
+        conn.close()
 
-    if not result:
-        return bot.answer_callback_query(call.id, "❌ Character not found.")
+        if not result:
+            return bot.answer_callback_query(call.id, "❌ Character not found.")
 
-    (name, desc, img, lvl, exp, atk, defense, spd, prec, inst) = result
+        (char_id, name, desc, atk, defense, spd, prec, inst, img, exp, lvl) = result
 
-    # EXP calculation
-    required_exp = int(15000 * (lvl ** 1.4))
-    progress = int((exp / required_exp) * 10)
-    bar = '█' * progress + '░' * (10 - progress)
+        required_exp = int(15000 * (lvl ** 1.4)) if lvl > 0 else 25000
+        progress = int((exp / required_exp) * 10)
+        bar = '█' * progress + '░' * (10 - progress)
 
-    # Caption for stats
-    caption = f"""<b>🧾 Character Info</b>
-━━━━━━━━━━━━━━
+        caption = f"""<b>📖 Devil Hunter Profile</b>
+━━━━━━━━━━━━━━━━
 <b>📛 Name:</b> {name}
 <b>⭐ Level:</b> {lvl}
 <b>🧾 Description:</b> {desc}
 
-<b>🔥 EXP Progress</b>
-━━━━━━━━━━━━━━
-<b>{exp} / {required_exp}</b>
+<b>✨ EXP Progress:</b>
+<code>{exp} / {required_exp}</code>
 <code>[{bar}]</code>
 
-<b>⚔️ Battle Stats</b>
-━━━━━━━━━━━━━━
-<b>⚔️ Attack:</b> {atk}
-<b>🛡 Defense:</b> {defense}
-<b>⚡ Speed:</b> {spd}
-<b>🎯 Precision:</b> {prec}
-<b>✨ Instinct:</b> {inst}
-━━━━━━━━━━━━━━"""
+<b>⚔️ Battle Stats:</b>
+━━━━━━━━━━━━━━━━
+• ⚔️ Attack: <b>{atk}</b>
+• 🛡 Defense: <b>{defense}</b>
+• ⚡ Speed: <b>{spd}</b>
+• 🎯 Precision: <b>{prec}</b>
+• 🧠 Instinct: <b>{inst}</b>
+━━━━━━━━━━━━━━━━"""
 
-    # Add the button back to go to abilities
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🌀Abilities", callback_data=f"abilities:{char_id}"))
+        # Abilities button
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🌀 Abilities", callback_data=f"abilities:{char_id}"))
 
-    bot.edit_message_caption(chat_id=call.message.chat.id,
-                             message_id=call.message.message_id,
-                             caption=caption,
-                             parse_mode="HTML",
-                             reply_markup=markup)
+        bot.edit_message_caption(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            caption=caption,
+            parse_mode="HTML",
+            reply_markup=markup
+        )
+
+    except Exception as e:
+        bot.answer_callback_query(call.id, f"⚠️ Error: {e}")
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("team"))
 def handle_team_selection(call):
