@@ -1380,6 +1380,35 @@ def return_to_stats(call):
     progress = int((exp / req_exp) * 10)
     bar = '█' * progress + '░' * (10 - progress)
 
+@bot.callback_query_handler(func=lambda call: call.data.startswith('statsback:'))
+def return_to_stats(call):
+    char_id = call.data.split(':')[1]
+    user_id = call.from_user.id
+
+    conn = sqlite3.connect('chainsaw.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT cb.name, cb.description, cb.image_link,
+               uc.level, uc.exp, uc.atk, uc.def, uc.spd, uc.prc, uc.ins
+        FROM user_characters uc
+        JOIN character_base_stats cb ON uc.character_id = cb.character_id
+        WHERE uc.user_id = ? AND uc.character_id = ?
+    ''', (user_id, char_id))
+    result = cursor.fetchone()
+    conn.close()
+
+    if not result:
+        return bot.answer_callback_query(call.id, "❌ Character not found.")
+
+    (name, desc, img, lvl, exp, atk, defense, spd, prec, inst) = result
+
+    # EXP calculation
+    required_exp = int(15000 * (lvl ** 1.4))
+    progress = int((exp / required_exp) * 10)
+    bar = '█' * progress + '░' * (10 - progress)
+
+    # Caption for stats
     caption = f"""<b>🧾 Character Info</b>
 ━━━━━━━━━━━━━━
 <b>📛 Name:</b> {name}
@@ -1388,7 +1417,7 @@ def return_to_stats(call):
 
 <b>🔥 EXP Progress</b>
 ━━━━━━━━━━━━━━
-<b>{exp} / {req_exp}</b>
+<b>{exp} / {required_exp}</b>
 <code>[{bar}]</code>
 
 <b>⚔️ Battle Stats</b>
@@ -1400,17 +1429,15 @@ def return_to_stats(call):
 <b>✨ Instinct:</b> {inst}
 ━━━━━━━━━━━━━━"""
 
-    # Adding the "Abilities" button back into the keyboard
+    # Add the button back to go to abilities
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("🌀Abilities", callback_data=f"abilities:{char_id}"))
 
-    # Editing the existing message with the stats information and adding the "Abilities" button
     bot.edit_message_caption(chat_id=call.message.chat.id,
                              message_id=call.message.message_id,
                              caption=caption,
                              parse_mode="HTML",
                              reply_markup=markup)
-
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("team"))
 def handle_team_selection(call):
