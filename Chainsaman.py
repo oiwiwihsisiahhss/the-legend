@@ -259,6 +259,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     conn.close()
 
 def check_and_level_up_character(user_id, character_id, cursor, conn):
+    MAX_LEVEL = 100  # Level cap
+
     # Fetch user-specific level and EXP from user_characters
     cursor.execute("""
         SELECT uc.level, uc.exp, cb.attack, cb.defense, cb.speed, cb.precision, cb.instinct
@@ -276,7 +278,12 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
     messages = []
 
     while True:
+        if level >= MAX_LEVEL:
+            messages.append(f"⚠️ <b>Level {MAX_LEVEL}</b> is the maximum. <b>No further leveling is possible.</b>")
+            break
+
         required_exp = int(15000 * (level ** 1.4)) if level > 0 else 25000
+
         if exp >= required_exp:
             # Backup old stats
             old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
