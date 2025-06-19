@@ -259,9 +259,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     conn.close()
 
 def check_and_level_up_character(user_id, character_id, cursor, conn):
-    MAX_LEVEL = 100  # Level cap
+    MAX_LEVEL = 100
 
-    # Fetch user-specific level and EXP from user_characters
+    # Fetch from both tables
     cursor.execute("""
         SELECT uc.level, uc.exp, cb.attack, cb.defense, cb.speed, cb.precision, cb.instinct
         FROM user_characters uc
@@ -277,18 +277,14 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
     leveled_up = False
     messages = []
 
-    while True:
-        if level >= MAX_LEVEL:
-            messages.append(f"⚠️ <b>Level {MAX_LEVEL}</b> is the maximum. <b>No further leveling is possible.</b>")
-            break
-
+    while level < MAX_LEVEL:
         required_exp = int(15000 * (level ** 1.4)) if level > 0 else 25000
 
         if exp >= required_exp:
             # Backup old stats
             old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
 
-            # Increase stats
+            # Apply level up
             level += 1
             exp -= required_exp
             atk += 1
@@ -298,14 +294,21 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
             ins += 1
             leveled_up = True
 
-            # Update user_characters with new level and EXP
+            # Update user_characters
             cursor.execute("""
                 UPDATE user_characters
                 SET level = ?, exp = ?
                 WHERE character_id = ? AND user_id = ?
             """, (level, exp, character_id, user_id))
 
-            # Update explore stats (if exists)
+            # Update base stats
+            cursor.execute("""
+                UPDATE character_base_stats
+                SET attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
+                WHERE character_id = ?
+            """, (atk, df, spd, prc, ins, character_id))
+
+            # Update explore stats if exists
             cursor.execute("""
                 SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth 
                 FROM explore_character_base_stats 
@@ -325,9 +328,9 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
                     WHERE character_id = ?
                 """, (new_hp, new_dmg1, new_dmg2, new_dmg3, character_id))
 
-            # Get name
+            # Get character name
             cursor.execute("SELECT name FROM character_base_stats WHERE character_id = ?", (character_id,))
-            name = cursor.fetchone()[0]
+            name = cursor.fetchone()[0] or "Unknown"
 
             msg = f"""
 🎉 <b>{name}</b> leveled up to <b>Level {level}</b>!
@@ -342,6 +345,11 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
             messages.append(msg)
         else:
             break
+
+    if level >= MAX_LEVEL:
+        cursor.execute("SELECT name FROM character_base_stats WHERE character_id = ?", (character_id,))
+        name = cursor.fetchone()[0] or "Unknown"
+        messages.append(f"🚫 <b>{name}</b> has already reached the <b>Max Level ({MAX_LEVEL})</b>!")
 
     if leveled_up:
         conn.commit()
