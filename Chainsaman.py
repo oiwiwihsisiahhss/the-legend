@@ -1403,27 +1403,37 @@ def return_to_stats(call):
 
         conn = sqlite3.connect('chainsaw.db')
         cursor = conn.cursor()
+@bot.callback_query_handler(func=lambda call: call.data.startswith('statsback:'))
+def return_to_stats(call):
+    char_id = int(call.data.split(':')[1])
+    user_id = call.from_user.id
 
-        cursor.execute('''
-            SELECT cb.character_id, cb.name, cb.description, cb.attack, cb.defense, cb.speed, cb.precision,
-                   cb.instinct, cb.image_link, uc.exp, uc.level
-            FROM user_characters uc
-            JOIN character_base_stats cb ON uc.character_id = cb.character_id
-            WHERE uc.user_id = ? AND uc.character_id = ?
-        ''', (user_id, char_id))
-        result = cursor.fetchone()
-        conn.close()
+    conn = sqlite3.connect('chainsaw.db')
+    cursor = conn.cursor()
 
-        if not result:
-            return bot.answer_callback_query(call.id, "❌ Character not found.")
+    cursor.execute('''
+        SELECT cb.name, cb.description, cb.attack, cb.defense, cb.speed, cb.precision,
+               cb.instinct, cb.image_link, uc.exp, uc.level
+        FROM user_characters uc
+        JOIN character_base_stats cb ON uc.character_id = cb.character_id
+        WHERE uc.user_id = ? AND uc.character_id = ?
+    ''', (user_id, char_id))
+    result = cursor.fetchone()
+    conn.close()
 
-        (char_id, name, desc, atk, defense, spd, prec, inst, img, exp, lvl) = result
+    if not result:
+        return bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="❌ Character not found."
+        )
 
-        required_exp = int(15000 * (lvl ** 1.4)) if lvl > 0 else 25000
-        progress = int((exp / required_exp) * 10)
-        bar = '█' * progress + '░' * (10 - progress)
+    name, desc, atk, defense, spd, prec, inst, img, exp, lvl = result
+    required_exp = int(15000 * (lvl ** 1.4)) if lvl > 0 else 25000
+    progress = int((exp / required_exp) * 10)
+    bar = '█' * progress + '░' * (10 - progress)
 
-        caption = f"""<b>📖 Devil Hunter Profile</b>
+    caption = f"""<b>📖 Devil Hunter Profile</b>
 ━━━━━━━━━━━━━━━━
 <b>📛 Name:</b> {name}
 <b>⭐ Level:</b> {lvl}
@@ -1442,17 +1452,16 @@ def return_to_stats(call):
 • 🧠 Instinct: <b>{inst}</b>
 ━━━━━━━━━━━━━━━━"""
 
-        # Abilities button
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🌀 Abilities", callback_data=f"abilities:{char_id}"))
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🌀 Abilities", callback_data=f"abilities:{char_id}"))
 
-        bot.edit_message_caption(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            caption=caption,
-            parse_mode="HTML",
-            reply_markup=markup
-        )
+    bot.edit_message_caption(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        caption=caption,
+        parse_mode="HTML",
+        reply_markup=markup
+    )
 
     except Exception as e:
         bot.answer_callback_query(call.id, f"⚠️ Error: {e}")
