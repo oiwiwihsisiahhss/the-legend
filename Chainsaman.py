@@ -1412,8 +1412,8 @@ def return_to_stats(call):
         reply_markup=markup
     )
 
-    except Exception as e:
-        bot.answer_callback_query(call.id, f"⚠️ Error: {e}")
+   # except Exception as e:
+     #   bot.answer_callback_query(call.id, f"⚠️ Error: {e}")
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("team"))
 def handle_team_selection(call):
