@@ -1405,7 +1405,7 @@ def return_to_stats(call):
 
     # Add button to go back to abilities
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🌀 Abilities", callback_data=f"abilities:{character_id}"))
+    markup.add(types.InlineKeyboardButton("🌀 Abilities", callback_data=f"abilities:{char_id}"))
 
     # Edit the original message
     bot.edit_message_caption(chat_id=call.message.chat.id,
