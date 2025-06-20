@@ -206,16 +206,16 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
    # User's unlocked characters
     # User's unlocked characters
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS user_characters (
-        user_id INTEGER NOT NULL,
-        character_id INTEGER NOT NULL,
-        choosen_character_id INTEGER DEFAULT NULL,
-        level INTEGER DEFAULT 1,
-        PRIMARY KEY (user_id, character_id),
-        FOREIGN KEY (user_id) REFERENCES user_data(user_id) ON DELETE CASCADE,
-        FOREIGN KEY (character_id) REFERENCES character_base_stats(character_id) ON DELETE CASCADE,
-        FOREIGN KEY (choosen_character_id) REFERENCES character_base_stats(character_id)
-    )
+UPDATE user_characters
+SET 
+    attack = (SELECT attack FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
+    defense = (SELECT defense FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
+    speed = (SELECT speed FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
+    precision = (SELECT precision FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
+    instinct = (SELECT instinct FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
+    level = 1,
+    exp = 0
+WHERE attack IS NULL
 ''')
     
 
@@ -246,14 +246,39 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     # Commit and close
     
     try:
-        cursor.execute("ALTER TABLE user_characters ADD COLUMN exp INTEGER DEFAULT 0")
+        cursor.execute("ALTER TABLE user_characters ADD COLUMN exp INTEGER")
     except:
-        pass  # Column already exists
+        pass  # Already exists
 
     try:
-        cursor.execute("ALTER TABLE user_characters ADD COLUMN level INTEGER DEFAULT 1")
+        cursor.execute("ALTER TABLE user_characters ADD COLUMN level INTEGER")
     except:
-        pass  # Column already exists
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE user_characters ADD COLUMN attack INTEGER")
+    except:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE user_characters ADD COLUMN defense INTEGER")
+    except:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE user_characters ADD COLUMN speed INTEGER")
+    except:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE user_characters ADD COLUMN precision INTEGER")
+    except:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE user_characters ADD COLUMN instinct INTEGER")
+    except:  
+        pass
 
     conn.commit()
     conn.close()
