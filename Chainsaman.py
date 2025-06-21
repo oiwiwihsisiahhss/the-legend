@@ -1330,20 +1330,20 @@ def stats(message):
     cursor.execute("""
     SELECT exp_multiplier FROM character_base_stats WHERE character_id = ?
     """, (char_id,))
-   result = cursor.fetchone()
-   multiplier = result[0] if result else 15000  # Default fallback
+    result = cursor.fetchone()
+    multiplier = result[0] if result else 15000  # Default fallback
 
 # Calculate required EXP (frozen at level 99 formula when level = 100)
-   required_exp = int(multiplier * (lvl ** 1.4)) if lvl < 100 else int(multiplier * (99 ** 1.4))
+    required_exp = int(multiplier * (lvl ** 1.4)) if lvl < 100 else int(multiplier * (99 ** 1.4))
 
 # Prepare EXP display and progress bar
-   if lvl >= 100:
-       exp_display = f"{required_exp} / {required_exp}"
-       bar = "[██████████]"
-   else:
-       progress = min(int((exp / required_exp) * 10), 10)
-       bar = '█' * progress + '░' * (10 - progress)
-       exp_display = f"{exp} / {required_exp}"
+    if lvl >= 100:
+        exp_display = f"{required_exp} / {required_exp}"
+        bar = "[██████████]"
+    else:
+        progress = min(int((exp / required_exp) * 10), 10)
+        bar = '█' * progress + '░' * (10 - progress)
+        exp_display = f"{exp} / {required_exp}"
 
     caption = f"""<b>📖 Devil Hunter Profile</b>
 ━━━━━━━━━━━━━━━━  
