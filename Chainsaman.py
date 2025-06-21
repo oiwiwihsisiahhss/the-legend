@@ -211,16 +211,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     character_id INTEGER NOT NULL,
     level INTEGER DEFAULT 1,
     exp INTEGER DEFAULT 0,
-    PRIMARY KEY (user_id, character_id), 
-    choosen_character_id INTEGER NOT NULL
-
-
-
-
-
-
+    choosen_character_id INTEGER DEFAULT NULL,
+    PRIMARY KEY (user_id, character_id)
 )
-  ''' ) 
     
 
     # Create teams table
