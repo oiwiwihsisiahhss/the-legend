@@ -225,7 +225,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         instinct = (SELECT instinct FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id)
     WHERE attack IS NULL
 """)
-conn.commit()
+#conn.commit()
     
 
     # Create teams table
