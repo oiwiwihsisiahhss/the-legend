@@ -336,11 +336,25 @@ def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
         conn.commit()
         return [f"🚫 <b>{name}</b> has already reached the <b>MAX level ({MAX_LEVEL})</b>. No further level-ups allowed."]
 
-    while True:
-        required_exp = int(15000 * (level ** 1.4)) if level > 0 else 25000
+        # Fetch character-specific max EXP
+    cursor.execute("""
+    SELECT max_exp FROM character_base_stats WHERE character_id = ?
+    """, (char_id,))
+    result = cursor.fetchone()
+    char_max_exp = result[0] if result else 1000000  # fallback to prevent crash
 
-        if exp >= required_exp and level < MAX_LEVEL:
-            old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
+# If level >= 100, set exp and max_exp equal to show full bar
+    if lvl >= 100:
+        current_exp = char_max_exp
+        exp_display = f"{char_max_exp} / {char_max_exp}"
+        bar = "[██████████]"
+    else:
+    # Use actual EXP and calculate progress
+        progress = min(int((exp / char_max_exp) * 10), 10)
+        bar = '█' * progress + '░' * (10 - progress)
+        exp_display = f"{exp} / {char_max_exp}"
+    if exp >= required_exp and level < MAX_LEVEL:
+        old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
 
             # Apply level-up changes
             level += 1
