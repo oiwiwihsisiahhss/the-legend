@@ -285,10 +285,11 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 def check_and_level_up_character(user_id, character_id, cursor, conn):
     MAX_LEVEL = 100
 
-    # Get user character data
+    # Fetch data from user_characters + base stats
     cursor.execute("""
-        SELECT uc.level, uc.exp, uc.attack, uc.defense, uc.speed, uc.precision, uc.instinct
+        SELECT uc.level, uc.exp, uc.attack, uc.defense, uc.speed, uc.precision, uc.instinct, cb.name
         FROM user_characters uc
+        JOIN character_base_stats cb ON uc.character_id = cb.character_id
         WHERE uc.character_id = ? AND uc.user_id = ?
     """, (character_id, user_id))
     data = cursor.fetchone()
@@ -296,26 +297,32 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
     if not data:
         return None
 
-    level, exp, atk, df, spd, prc, ins = data
+    level, exp, atk, df, spd, prc, ins, name = data
+
+    # Handle None values from new columns
+    level = level or 1
+    exp = exp or 0
+    atk = atk or 0
+    df = df or 0
+    spd = spd or 0
+    prc = prc or 0
+    ins = ins or 0
+
     leveled_up = False
     messages = []
 
-    while True:
-        if level >= MAX_LEVEL:
-            # Clamp exp to final threshold
-            final_required_exp = int(15000 * ((MAX_LEVEL - 1) ** 1.4))
-            cursor.execute("""
-                UPDATE user_characters
-                SET exp = ?
-                WHERE user_id = ? AND character_id = ?
-            """, (final_required_exp, user_id, character_id))
-            conn.commit()
-            return [f"🚫 <b>This character has already reached the max level ({MAX_LEVEL}).</b>"]
+    # Stop EXP overflow if already max level
+    if level >= MAX_LEVEL:
+        cursor.execute("""
+            UPDATE user_characters SET exp = 0 WHERE user_id = ? AND character_id = ?
+        """, (user_id, character_id))
+        conn.commit()
+        return [f"🚫 <b>{name}</b> has already reached the max level (<b>{MAX_LEVEL}</b>)."]
 
+    while True:
         required_exp = int(15000 * (level ** 1.4)) if level > 0 else 25000
 
-        if exp >= required_exp:
-            # Backup old stats
+        if exp >= required_exp and level < MAX_LEVEL:
             old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
 
             # Level up
@@ -328,14 +335,14 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
             ins += 1
             leveled_up = True
 
-            # Update user_characters with new stats
+            # Update main user character stats
             cursor.execute("""
                 UPDATE user_characters
                 SET level = ?, exp = ?, attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
                 WHERE character_id = ? AND user_id = ?
             """, (level, exp, atk, df, spd, prc, ins, character_id, user_id))
 
-            # Update explore stats if they exist
+            # Update explore stats
             cursor.execute("""
                 SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth
                 FROM explore_character_base_stats
@@ -356,10 +363,7 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
                     WHERE character_id = ?
                 """, (new_hp, new_dmg1, new_dmg2, new_dmg3, character_id))
 
-            # Get character name
-            cursor.execute("SELECT name FROM character_base_stats WHERE character_id = ?", (character_id,))
-            name = cursor.fetchone()[0]
-
+            # Build level up message
             msg = f"""
 🎉 <b>{name}</b> leveled up to <b>Level {level}</b>!
 ━━━━━━━━━━━━━
@@ -376,14 +380,13 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
 
     if leveled_up:
         conn.commit()
-
-    if messages:
-        conn.commit()
         for msg in messages:
             try:
                 bot.send_message(user_id, msg, parse_mode="HTML")
             except Exception as e:
                 print(f"[❌] Failed to DM user {user_id}: {e}")
+
+    return messages if messages else None            
 # Establishing database connection
 def generate_team_stats_text(user_id, team_number):
     conn = sqlite3.connect("chainsaw.db")
