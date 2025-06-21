@@ -378,10 +378,10 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
         conn.commit()
 
     if messages:
-    conn.commit()
-    for msg in messages:
-        try:
-            bot.send_message(user_id, msg, parse_mode="HTML")
+        conn.commit()
+        for msg in messages:
+            try:
+                bot.send_message(user_id, msg, parse_mode="HTML")
         except Exception as e:
             print(f"[❌] Failed to DM user {user_id}: {e}")
 # Establishing database connection
