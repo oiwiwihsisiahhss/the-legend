@@ -1338,12 +1338,15 @@ def stats(message):
 
     # EXP bar logic
     if lvl >= 100:
-        required_exp = exp  # Fake required_exp = exp to keep the ratio 1.0
-        bar = '█' * 10
+        max_exp = int(15000 * (99 ** 1.4))
+        progress = 10
+        bar = '█' * progress
+        exp_display = f"{max_exp} / {max_exp}"
     else:
-        required_exp = int(15000 * (lvl ** 1.4)) if lvl > 0 else 25000
-        progress = min(int((exp / required_exp) * 10), 10)
+        max_exp = int(15000 * (lvl ** 1.4)) if lvl > 0 else 25000
+        progress = min(int((exp / max_exp) * 10), 10)
         bar = '█' * progress + '░' * (10 - progress)
+        exp_display = f"{exp} / {max_exp}"
 
     caption = f"""<b>📖 Devil Hunter Profile</b>
 ━━━━━━━━━━━━━━━━  
@@ -1352,8 +1355,8 @@ def stats(message):
 <b>🧾 Description:</b> {desc}  
 
 <b>✨ EXP Progress:</b>  
-<code>{exp} / {required_exp}</code>  
-<code>[{bar}]</code>  
+<code>{exp_display}</code>  
+<code>[{bar}]</code>
 
 <b>⚔️ Battle Stats:</b>  
 ━━━━━━━━━━━━━━━━  
@@ -1444,17 +1447,16 @@ def return_to_stats(call):
     # Unpack stored values
     name, desc, atk, defense, spd, prec, inst, img, exp, lvl = result
 
-    # EXP bar logic
-    # EXP bar logic
     if lvl >= 100:
+        max_exp = int(15000 * (99 ** 1.4))
         progress = 10
-        bar = '█' * 10
-        exp_display = f"{exp} / {exp}"  # Or: "MAXED OUT"
+        bar = '█' * progress
+        exp_display = f"{max_exp} / {max_exp}"
     else:
-        required_exp = int(15000 * (lvl ** 1.4)) if lvl > 0 else 25000
-        progress = min(int((exp / required_exp) * 10), 10)
+        max_exp = int(15000 * (lvl ** 1.4)) if lvl > 0 else 25000
+        progress = min(int((exp / max_exp) * 10), 10)
         bar = '█' * progress + '░' * (10 - progress)
-        exp_display = f"{exp} / {required_exp}"
+        exp_display = f"{exp} / {max_exp}"
 
     # Caption
     caption = f"""<b>🧾 Character Info</b>
@@ -1463,8 +1465,8 @@ def return_to_stats(call):
 <b>⭐ Level:</b> {lvl}
 <b>🧾 Description:</b> {desc}
 
-<b>🔥 EXP Progress</b>
-<code>{exp_display}</code>
+<b>✨ EXP Progress:</b>  
+<code>{exp_display}</code>  
 <code>[{bar}]</code>
 
 <b>⚔️ Battle Stats</b>
