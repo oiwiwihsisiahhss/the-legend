@@ -2417,7 +2417,7 @@ def user_info(message):
 
         # Fetch resources
         cursor.execute('''
-            SELECT yens, crystals, tickets, exp, level FROM user_data WHERE user_id = ?
+        SELECT yens, crystals, tickets, exp, level FROM user_data WHERE user_id = ?
         ''', (user_id,))
         data = cursor.fetchone()
 
