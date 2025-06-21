@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#mn# -*- coding: utf-8 -*-
 import telebot
 import random
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -211,7 +211,14 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     character_id INTEGER NOT NULL,
     level INTEGER DEFAULT 1,
     exp INTEGER DEFAULT 0,
-    PRIMARY KEY (user_id, character_id)
+    PRIMARY KEY (user_id, character_id), 
+    choosen_character_id INTEGER NOT NULL
+
+
+
+
+
+
 )
   ''' ) 
     
