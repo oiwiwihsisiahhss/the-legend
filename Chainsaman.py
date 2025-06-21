@@ -354,9 +354,9 @@ def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
 
             # Update user stats
             cursor.execute("""
-                UPDATE user_characters
-                SET level = ?, exp = ?, attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
-                WHERE character_id = ? AND user_id = ?
+            UPDATE user_characters
+            SET level = ?, exp = ?, attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
+            WHERE character_id = ? AND user_id = ?
             """, (level, exp, atk, df, spd, prc, ins, character_id, user_id))
 
             # Update explore stats if they exist
