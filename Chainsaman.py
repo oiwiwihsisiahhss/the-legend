@@ -215,6 +215,18 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     PRIMARY KEY (user_id, character_id)
 )
    ''' ) 
+    cursor.execute("""
+    UPDATE user_characters
+    SET 
+        attack = (SELECT attack FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
+        defense = (SELECT defense FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
+        speed = (SELECT speed FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
+        precision = (SELECT precision FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
+        instinct = (SELECT instinct FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id)
+    WHERE attack IS NULL
+""")
+conn.commit()
+    
 
     # Create teams table
     cursor.execute('''
@@ -283,33 +295,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 
 
 
-def check_and_level_up_character(user_id, character_id, cursor, conn):
-    MAX_LEVEL = 100
-
-    # Fetch current user-character data
-    cursor.execute("""
-        SELECT uc.level, uc.exp, uc.attack, uc.defense, uc.speed, uc.precision, uc.instinct, cb.name
-        FROM user_characters uc
-        JOIN character_base_stats cb ON uc.character_id = cb.character_id
-        WHERE uc.character_id = ? AND uc.user_id = ?
-    """, (character_id, user_id))
-    data = cursor.fetchone()
-
-    if not data:
-        return None
-
-    level, exp, atk, df, spd, prc, ins, name = data
-
-    # Use original stats from base if any stat is missing
-    cursor.execute("SELECT attack, defense, speed, precision, instinct FROM character_base_stats WHERE character_id = ?", (character_id,))
-    base_stats = cursor.fetchone()
-
-    if atk is None: atk = base_stats[0]
-    if df is None: df = base_stats[1]
-    if spd is None: spd = base_stats[2]
-    if prc is None: prc = base_stats[3]
-    if ins is None: ins = base_stats[4]
-    if level is None: level = 1
+   if level is None: level = 1
     if exp is None: exp = 0
 
     leveled_up = False
@@ -366,8 +352,84 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
                     SET base_hp = ?, move_1_damage = ?, move_2_damage = ?, move_3_damage = ?
                     WHERE character_id = ?
                 """, (new_hp, new_dmg1, new_dmg2, new_dmg3, character_id))
+def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
+    MAX_LEVEL = 100
 
-            # Build message
+    # Get user + base character stats
+    cursor.execute("""
+        SELECT uc.level, uc.exp, uc.attack, uc.defense, uc.speed, uc.precision, uc.instinct, cb.name,
+               cb.attack, cb.defense, cb.speed, cb.precision, cb.instinct
+        FROM user_characters uc
+        JOIN character_base_stats cb ON uc.character_id = cb.character_id
+        WHERE uc.character_id = ? AND uc.user_id = ?
+    """, (character_id, user_id))
+    data = cursor.fetchone()
+
+    if not data:
+        return None
+
+    (level, exp, atk, df, spd, prc, ins, name,
+     base_atk, base_df, base_spd, base_prc, base_ins) = data
+
+    # Use base stats if user's are None
+    atk = atk if atk is not None else base_atk
+    df = df if df is not None else base_df
+    spd = spd if spd is not None else base_spd
+    prc = prc if prc is not None else base_prc
+    ins = ins if ins is not None else base_ins
+
+    leveled_up = False
+    messages = []
+
+    # Block further leveling if already maxed
+    if level >= MAX_LEVEL:
+        cursor.execute("UPDATE user_characters SET exp = 0 WHERE user_id = ? AND character_id = ?", (user_id, character_id))
+        conn.commit()
+        return [f"🚫 <b>{name}</b> has already reached the <b>MAX level ({MAX_LEVEL})</b>. No further level-ups allowed."]
+
+    while True:
+        required_exp = int(15000 * (level ** 1.4)) if level > 0 else 25000
+
+        if exp >= required_exp and level < MAX_LEVEL:
+            old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
+
+            # Apply level-up changes
+            level += 1
+            exp -= required_exp
+            atk += 1
+            df += 1
+            spd += 1
+            prc += 1
+            ins += 1
+            leveled_up = True
+
+            # Update user stats
+            cursor.execute("""
+                UPDATE user_characters
+                SET level = ?, exp = ?, attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
+                WHERE character_id = ? AND user_id = ?
+            """, (level, exp, atk, df, spd, prc, ins, character_id, user_id))
+
+            # Update explore stats if they exist
+            cursor.execute("""
+                SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth 
+                FROM explore_character_base_stats 
+                WHERE character_id = ?
+            """, (character_id,))
+            explore = cursor.fetchone()
+            if explore:
+                base_hp, dmg1, dmg2, dmg3, hp_growth, dmg_growth = explore
+                new_hp = base_hp + (level - 1) * hp_growth
+                new_dmg1 = dmg1 + (level - 1) * dmg_growth
+                new_dmg2 = dmg2 + (level - 1) * dmg_growth
+                new_dmg3 = dmg3 + (level - 1) * dmg_growth
+
+                cursor.execute("""
+                    UPDATE explore_character_base_stats
+                    SET base_hp = ?, move_1_damage = ?, move_2_damage = ?, move_3_damage = ?
+                    WHERE character_id = ?
+                """, (new_hp, new_dmg1, new_dmg2, new_dmg3, character_id))
+
             msg = f"""
 🎉 <b>{name}</b> leveled up to <b>Level {level}</b>!
 ━━━━━━━━━━━━━
@@ -380,23 +442,30 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
 """.strip()
             messages.append(msg)
 
-            # Stop at max level
             if level == MAX_LEVEL:
-                exp = int(15000 * ((MAX_LEVEL - 1) ** 1.4))
-                cursor.execute("UPDATE user_characters SET exp = ? WHERE user_id = ? AND character_id = ?", (exp, user_id, character_id))
+                messages.append(f"🏁 <b>{name}</b> reached <b>MAX Level {MAX_LEVEL}</b>! 🎉")
+                exp = 0
                 break
         else:
             break
 
+    # Final commit & DM
     if leveled_up:
+        cursor.execute("""
+            UPDATE user_characters
+            SET level = ?, exp = ?, attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
+            WHERE character_id = ? AND user_id = ?
+        """, (level, exp, atk, df, spd, prc, ins, character_id, user_id))
         conn.commit()
-        for msg in messages:
-            try:
-                bot.send_message(user_id, msg, parse_mode="HTML")
-            except Exception as e:
-                print(f"[❌] Could not send DM to {user_id}: {e}")
 
-    return messages if messages else None            
+        if bot:
+            for msg in messages:
+                try:
+                    bot.send_message(user_id, msg, parse_mode="HTML")
+                except Exception as e:
+                    print(f"[❌] Couldn't DM user {user_id}: {e}")
+
+    return messages if messages else None         
 # Establishing database connection
 def generate_team_stats_text(user_id, team_number):
     conn = sqlite3.connect("chainsaw.db")
