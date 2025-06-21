@@ -1321,8 +1321,9 @@ def stats(message):
     cursor = conn.cursor()
 
     cursor.execute('''
-        SELECT cb.character_id, cb.name, cb.description, cb.attack, cb.defense, cb.speed, cb.precision,
-               cb.instinct, cb.image_link, uc.exp, uc.level
+        SELECT cb.character_id, cb.name, cb.description,
+               uc.attack, uc.defense, uc.speed, uc.precision, uc.instinct,
+               cb.image_link, uc.exp, uc.level
         FROM user_characters uc
         JOIN character_base_stats cb ON uc.character_id = cb.character_id
         WHERE uc.user_id = ? AND LOWER(cb.name) LIKE ?
@@ -1334,9 +1335,15 @@ def stats(message):
         return bot.reply_to(message, "❌ No Devil Hunter found with that name.")
 
     (char_id, name, desc, atk, defense, spd, prec, inst, img, exp, lvl) = result
-    required_exp = int(15000 * (lvl ** 1.4)) if lvl > 0 else 25000
-    progress = int((exp / required_exp) * 10)
-    bar = '█' * min(progress, 10) + '░' * (10 - min(progress, 10))
+
+    # EXP bar logic
+    if lvl >= 100:
+        required_exp = exp  # Fake required_exp = exp to keep the ratio 1.0
+        bar = '█' * 10
+    else:
+        required_exp = int(15000 * (lvl ** 1.4)) if lvl > 0 else 25000
+        progress = min(int((exp / required_exp) * 10), 10)
+        bar = '█' * progress + '░' * (10 - progress)
 
     caption = f"""<b>📖 Devil Hunter Profile</b>
 ━━━━━━━━━━━━━━━━  
@@ -1420,10 +1427,10 @@ def return_to_stats(call):
     conn = sqlite3.connect('chainsaw.db')
     cursor = conn.cursor()
 
-    # Fetch data directly from stored values (no calc)
+    # Fetch stored values (from user_characters, joined with image and desc from character_base_stats)
     cursor.execute('''
-        SELECT cb.name, cb.description, cb.attack, cb.defense, cb.speed, cb.precision,
-               cb.instinct, cb.image_link, uc.exp, uc.level
+        SELECT cb.name, cb.description, uc.attack, uc.defense, uc.speed, uc.precision,
+               uc.instinct, cb.image_link, uc.exp, uc.level
         FROM user_characters uc
         JOIN character_base_stats cb ON uc.character_id = cb.character_id
         WHERE uc.user_id = ? AND uc.character_id = ?
@@ -1437,12 +1444,11 @@ def return_to_stats(call):
     # Unpack stored values
     name, desc, atk, defense, spd, prec, inst, img, exp, lvl = result
 
-    # EXP bar (static logic, no level-up calc)
-    # Calculate EXP progress bar and values
-    max_exp = int(15000 * (lvl ** 1.4)) if lvl < 100 else int(15000 * (99 ** 1.4))
-    progress = min(int((exp / max_exp) * 10), 10)
+    # EXP bar logic
+    required_exp = int(15000 * (lvl ** 1.4)) if lvl < 100 else exp
+    progress = min(int((exp / required_exp) * 10), 10)
     bar = '█' * progress + '░' * (10 - progress)
-    exp_display = f"{exp} / {max_exp}"
+    exp_display = f"{exp} / {required_exp}"
 
     # Caption
     caption = f"""<b>🧾 Character Info</b>
@@ -1464,16 +1470,18 @@ def return_to_stats(call):
 <b>✨ Instinct:</b> {inst}
 ━━━━━━━━━━━━━━"""
 
-    # Add button to go back to abilities
+    # Inline button back to abilities
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("🌀 Abilities", callback_data=f"abilities:{char_id}"))
 
-    # Edit the original message
-    bot.edit_message_caption(chat_id=call.message.chat.id,
-                             message_id=call.message.message_id,
-                             caption=caption,
-                             parse_mode="HTML",
-                             reply_markup=markup)
+    # Update original message caption
+    bot.edit_message_caption(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        caption=caption,
+        parse_mode="HTML",
+        reply_markup=markup
+    )
 
    # except Exception as e:
      #   bot.answer_callback_query(call.id, f"⚠️ Error: {e}")
