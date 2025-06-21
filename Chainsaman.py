@@ -214,7 +214,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     choosen_character_id INTEGER DEFAULT NULL,
     PRIMARY KEY (user_id, character_id)
 )
-    
+   ''' ) 
 
     # Create teams table
     cursor.execute('''
