@@ -1445,10 +1445,16 @@ def return_to_stats(call):
     name, desc, atk, defense, spd, prec, inst, img, exp, lvl = result
 
     # EXP bar logic
-    required_exp = int(15000 * (lvl ** 1.4)) if lvl < 100 else exp
-    progress = min(int((exp / required_exp) * 10), 10)
-    bar = '█' * progress + '░' * (10 - progress)
-    exp_display = f"{exp} / {required_exp}"
+    # EXP bar logic
+    if lvl >= 100:
+        progress = 10
+        bar = '█' * 10
+        exp_display = f"{exp} / {exp}"  # Or: "MAXED OUT"
+    else:
+        required_exp = int(15000 * (lvl ** 1.4)) if lvl > 0 else 25000
+        progress = min(int((exp / required_exp) * 10), 10)
+        bar = '█' * progress + '░' * (10 - progress)
+        exp_display = f"{exp} / {required_exp}"
 
     # Caption
     caption = f"""<b>🧾 Character Info</b>
