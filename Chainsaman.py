@@ -382,7 +382,7 @@ def check_and_level_up_character(user_id, character_id, cursor, conn):
         for msg in messages:
             try:
                 bot.send_message(user_id, msg, parse_mode="HTML")
-        except Exception as e:
+            except Exception as e:
             print(f"[❌] Failed to DM user {user_id}: {e}")
 # Establishing database connection
 def generate_team_stats_text(user_id, team_number):
