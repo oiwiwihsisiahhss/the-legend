@@ -211,6 +211,11 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     character_id INTEGER NOT NULL,
     level INTEGER DEFAULT 1,
     exp INTEGER DEFAULT 0,
+    attack INTEGER,
+    defense INTEGER,
+    speed INTEGER,
+    precision INTEGER,
+    instinct INTEGER,
     choosen_character_id INTEGER DEFAULT NULL,
     PRIMARY KEY (user_id, character_id)
 )
