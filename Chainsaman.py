@@ -206,17 +206,14 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
    # User's unlocked characters
     # User's unlocked characters
     cursor.execute('''
-UPDATE user_characters
-SET 
-    attack = (SELECT attack FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
-    defense = (SELECT defense FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
-    speed = (SELECT speed FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
-    precision = (SELECT precision FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
-    instinct = (SELECT instinct FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
-    level = 1,
-    exp = 0
-WHERE attack IS NULL
-''')
+    CREATE TABLE IF NOT EXISTS user_characters (
+    user_id INTEGER NOT NULL,
+    character_id INTEGER NOT NULL,
+    level INTEGER DEFAULT 1,
+    exp INTEGER DEFAULT 0,
+    PRIMARY KEY (user_id, character_id)
+)
+  ''' ) 
     
 
     # Create teams table
