@@ -295,63 +295,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 
 
 
-   if level is None: level = 1
-    if exp is None: exp = 0
 
-    leveled_up = False
-    messages = []
-
-    if level >= MAX_LEVEL:
-        # Set exp to cap value and return max message
-        max_exp = int(15000 * ((MAX_LEVEL - 1) ** 1.4))
-        cursor.execute("UPDATE user_characters SET exp = ? WHERE user_id = ? AND character_id = ?", (max_exp, user_id, character_id))
-        conn.commit()
-        return [f"🚫 <b>{name}</b> has already reached <b>MAX LEVEL {MAX_LEVEL}</b>. Further leveling is not possible."]
-
-    while True:
-        required_exp = int(15000 * (level ** 1.4)) if level > 0 else 25000
-
-        if exp >= required_exp and level < MAX_LEVEL:
-            # Save previous values for message
-            old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
-
-            # Increment stats and level
-            level += 1
-            exp -= required_exp
-            atk += 1
-            df += 1
-            spd += 1
-            prc += 1
-            ins += 1
-            leveled_up = True
-
-            # Update user character
-            cursor.execute("""
-                UPDATE user_characters
-                SET level = ?, exp = ?, attack = ?, defense = ?, speed = ?, precision = ?, instinct = ?
-                WHERE character_id = ? AND user_id = ?
-            """, (level, exp, atk, df, spd, prc, ins, character_id, user_id))
-
-            # Update explore stats if needed
-            cursor.execute("""
-                SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth
-                FROM explore_character_base_stats
-                WHERE character_id = ?
-            """, (character_id,))
-            explore = cursor.fetchone()
-
-            if explore:
-                base_hp, dmg1, dmg2, dmg3, hp_growth, dmg_growth = explore
-                new_hp = base_hp + (level - 1) * hp_growth
-                new_dmg1 = dmg1 + (level - 1) * dmg_growth
-                new_dmg2 = dmg2 + (level - 1) * dmg_growth
-                new_dmg3 = dmg3 + (level - 1) * dmg_growth
-
-                cursor.execute("""
-                    UPDATE explore_character_base_stats
-                    SET base_hp = ?, move_1_damage = ?, move_2_damage = ?, move_3_damage = ?
-                    WHERE character_id = ?
-                """, (new_hp, new_dmg1, new_dmg2, new_dmg3, character_id))
 def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
     MAX_LEVEL = 100
 
