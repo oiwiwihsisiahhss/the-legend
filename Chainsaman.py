@@ -775,63 +775,60 @@ def handle_character_selection(call):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Create users table if not exists (optional safety)
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS users (
-        user_id INTEGER PRIMARY KEY,
-        choosen_character_id INTEGER
-    )
-    ''')
+    # ✅ Check if character already chosen (from user_characters)
+    cursor.execute("""
+        SELECT choosen_character_id FROM user_characters
+        WHERE user_id = ? AND choosen_character_id IS NOT NULL
+    """, (user_id,))
+    row = cursor.fetchone()
 
-    # Check if user already selected a character
-    cursor.execute("SELECT choosen_character_id FROM users WHERE user_id = ?", (user_id,))
-    existing = cursor.fetchone()
-    if existing and existing[0] is not None:
+    if row:
         bot.answer_callback_query(call.id, "❌ You’ve already selected a character!")
         conn.close()
         return
 
-    # Store owned character (if not already owned)
-    cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
-    if not cursor.fetchone():
-        # Fetch base stats from character_base_stats
+    # 🔄 Check if character is already owned
+    cursor.execute("""
+        SELECT 1 FROM user_characters WHERE user_id = ? AND character_id = ?
+    """, (user_id, character_id))
+    owned = cursor.fetchone()
+
+    if not owned:
+        # 🧠 Fetch base stats from character_base_stats
         cursor.execute("""
-            SELECT attack, defense, speed, precision, instinct
+            SELECT attack, defense, speed, precision, instinct, name, special_ability
             FROM character_base_stats WHERE character_id = ?
         """, (character_id,))
         stats = cursor.fetchone()
 
         if stats:
-            atk, df, spd, prc, ins = stats
+            atk, df, spd, prc, ins, name, ability = stats
             cursor.execute("""
                 INSERT INTO user_characters (
-                    user_id, character_id, level, exp, attack, defense, speed, precision, instinct
-                ) VALUES (?, ?, 1, 0, ?, ?, ?, ?, ?)
-            """, (user_id, character_id, atk, df, spd, prc, ins))
+                    user_id, character_id, level, exp, attack, defense, speed, precision, instinct, choosen_character_id
+                ) VALUES (?, ?, 1, 0, ?, ?, ?, ?, ?, ?)
+            """, (user_id, character_id, atk, df, spd, prc, ins, character_id))
+    else:
+        # 🛠️ If already owned, just update chosen ID
+        cursor.execute("""
+            UPDATE user_characters SET choosen_character_id = ?
+            WHERE user_id = ? AND character_id = ?
+        """, (character_id, user_id, character_id))
 
-    # Save the selected character in users table
-    cursor.execute("INSERT OR REPLACE INTO users (user_id, choosen_character_id) VALUES (?, ?)", (user_id, character_id))
     conn.commit()
-
-    # Fetch character info to show
-    cursor.execute("""
-        SELECT name, attack, defense, speed, special_ability
-        FROM character_base_stats WHERE character_id = ?
-    """, (character_id,))
-    char = cursor.fetchone()
     conn.close()
 
-    if char:
-        name, atk, df, spd, ability = char
-        try:
-            bot.delete_message(call.message.chat.id, call.message.message_id)
-        except:
-            pass
+    # ✅ Show selection confirmation
+    bot.answer_callback_query(call.id)
+    try:
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+    except:
+        pass
 
-        bot.send_message(
-            chat_id=call.message.chat.id,
-            text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
-            parse_mode="Markdown"
+    bot.send_message(
+        chat_id=call.message.chat.id,
+        text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
+        parse_mode="Markdown"
     )
 @bot.message_handler(commands=['myhunters'])        
 def show_user_characters(message):
