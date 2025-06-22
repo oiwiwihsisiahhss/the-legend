@@ -777,12 +777,27 @@ def handle_character_selection(call):
         conn.close()
         return
 
-    # Store owned character (if not already owned)
+    # Check if already owned
     cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
-    if not cursor.fetchone():
-        cursor.execute("INSERT INTO user_characters (user_id, character_id, level) VALUES (?, ?, ?)", (user_id, character_id, 1))
+    already_owned = cursor.fetchone()
 
-    # Update choosen_character_id
+    if not already_owned:
+        # Fetch full base stats
+        cursor.execute("""
+            SELECT attack, defense, speed, precision, instinct
+            FROM character_base_stats WHERE character_id = ?
+        """, (character_id,))
+        stats = cursor.fetchone()
+
+        if stats:
+            atk, df, spd, prc, ins = stats
+            cursor.execute("""
+                INSERT INTO user_characters 
+                (user_id, character_id, level, exp, attack, defense, speed, precision, instinct)
+                VALUES (?, ?, 1, 0, ?, ?, ?, ?, ?)
+            """, (user_id, character_id, atk, df, spd, prc, ins))
+
+    # Update chosen character
     cursor.execute("UPDATE user_characters SET choosen_character_id = ? WHERE user_id = ?", (character_id, user_id))
     conn.commit()
 
