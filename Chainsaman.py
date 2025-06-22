@@ -829,13 +829,21 @@ def handle_character_selection(call):
     conn.close()
 
     if char:
-        name, atk, df, spd, ability = char
+    name, atk, df, spd, ability = char
 
-        try:
-            bot.delete_message(call.message.chat.id, call.message.message_id)
-        except:
-            pass
-
+    try:
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=f"✅ <b>{name} Selected!</b>\n\n"
+                 f"⚔️ Attack: <b>{atk}</b>\n"
+                 f"🛡️ Defense: <b>{df}</b>\n"
+                 f"⚡ Speed: <b>{spd}</b>\n"
+                 f"🌟 Special Ability: <b>{ability}</b>",
+            parse_mode="HTML"
+        )
+    except:
+        # fallback if edit fails
         bot.send_message(
             chat_id=call.message.chat.id,
             text=f"✅ <b>{name} Selected!</b>\n\n"
