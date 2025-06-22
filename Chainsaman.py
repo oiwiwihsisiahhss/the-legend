@@ -767,57 +767,7 @@ def show_character_options(call):
     )
 
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
-def handle_character_selection(call):
-    user_id = call.from_user.id
-    character_id = int(call.data.split("_")[-1])
-
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
-
-    # ✅ Check if the user has already chosen any character
-    cursor.execute("""
-        SELECT 1 FROM user_characters 
-        WHERE user_id = ? AND choosen_character_id IS NOT NULL
-        LIMIT 1
-    """, (user_id,))
-    already_chosen = cursor.fetchone()
-
-    if already_chosen:
-        bot.answer_callback_query(call.id, "❌ You’ve already selected a character!")
-        conn.close()
-        return
-
-    # ✅ Check if this specific character is already in user_characters
-    cursor.execute("""
-        SELECT 1 FROM user_characters WHERE user_id = ? AND character_id = ?
-    """, (user_id, character_id))
-    exists = cursor.fetchone()
-
-    if not exists:
-        # ➕ Insert new character with base stats
-        cursor.execute("""
-            SELECT name, attack, defense, speed, precision, instinct, special_ability
-            FROM character_base_stats WHERE character_id = ?
-        """, (character_id,))
-        stats = cursor.fetchone()
-
-        if not stats:
-            bot.answer_callback_query(call.id, "❌ Character data not found.")
-            conn.close()
-            return
-
-        name, atk, df, spd, prc, ins, ability = stats
-
-        cursor.execute("""
-            INSERT INTO user_characters (
-                user_id, character_id, level, exp,
-                attack, defense, speed, precision, instinct,
-                choosen_character_id
-            ) VALUES (?, ?, 1, 0, ?, ?, ?, ?, ?, ?)
-        """, (user_id, character_id, atk, df, spd, prc, ins, character_id))
-
-    else:
+:
         # Just update that character to be chosen
 @bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
 def handle_character_selection(call):
