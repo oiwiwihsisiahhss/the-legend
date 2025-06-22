@@ -767,7 +767,8 @@ def show_character_options(call):
     )
 
 
-:
+
+
         # Just update that character to be chosen
 @bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
 def handle_character_selection(call):
