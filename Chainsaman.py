@@ -819,33 +819,66 @@ def handle_character_selection(call):
 
     else:
         # Just update that character to be chosen
-        cursor.execute("""
-            UPDATE user_characters
-            SET choosen_character_id = ?
-            WHERE user_id = ? AND character_id = ?
-        """, (character_id, user_id, character_id))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
+def handle_character_selection(call):
+    user_id = call.from_user.id
+    character_id = int(call.data.split("_")[-1])
 
-        # Fetch name and ability to show confirmation
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+
+    # STEP 1: Check if user already chose a character
+    cursor.execute("SELECT choosen_character_id FROM user_data WHERE user_id = ?", (user_id,))
+    existing = cursor.fetchone()
+
+    if existing and existing[0]:
+        bot.answer_callback_query(call.id, "❌ You’ve already selected a character!")
+        conn.close()
+        return
+
+    # STEP 2: Insert character into user_characters if not already owned
+    cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
+    if not cursor.fetchone():
+        # Fetch base stats from character_base_stats
         cursor.execute("""
-            SELECT name, attack, defense, speed, special_ability
+            SELECT attack, defense, speed, precision, instinct
             FROM character_base_stats WHERE character_id = ?
         """, (character_id,))
-        name, atk, df, spd, ability = cursor.fetchone()
+        stats = cursor.fetchone()
 
+        if stats:
+            atk, df, spd, prc, ins = stats
+            cursor.execute("""
+                INSERT INTO user_characters (
+                    user_id, character_id, level, exp, attack, defense, speed, precision, instinct
+                ) VALUES (?, ?, 1, 0, ?, ?, ?, ?, ?)
+            """, (user_id, character_id, atk, df, spd, prc, ins))
+
+    # STEP 3: Set chosen character in user_data
+    cursor.execute("INSERT OR IGNORE INTO user_data (user_id) VALUES (?)", (user_id,))
+    cursor.execute("UPDATE user_data SET choosen_character_id = ? WHERE user_id = ?", (character_id, user_id))
     conn.commit()
+
+    # STEP 4: Send confirmation message
+    cursor.execute("""
+        SELECT name, attack, defense, speed, special_ability
+        FROM character_base_stats WHERE character_id = ?
+    """, (character_id,))
+    char = cursor.fetchone()
     conn.close()
 
-    # ✅ Confirm to user
-    try:
-        bot.delete_message(call.message.chat.id, call.message.message_id)
-    except:
-        pass
+    if char:
+        name, atk, df, spd, ability = char
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except:
+            pass
 
-    bot.send_message(
-        chat_id=call.message.chat.id,
-        text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
-        parse_mode="Markdown"
-    )
+        bot.send_message(
+            chat_id=call.message.chat.id,
+            text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
+            parse_mode="Markdown"
+        )
 @bot.message_handler(commands=['myhunters'])        
 def show_user_characters(message):
     conn = sqlite3.connect("chainsaw.db")
