@@ -829,7 +829,7 @@ def handle_character_selection(call):
     conn.close()
 
     if char:
-    name, atk, df, spd, ability = char
+        name, atk, df, spd, ability = char
 
     try:
         bot.edit_message_text(
