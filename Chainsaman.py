@@ -754,18 +754,26 @@ def show_back_message(message):
 
 @bot.callback_query_handler(func=lambda call: call.data == "choose_char")
 def show_character_options(call):
+    bot.answer_callback_query(call.id)  # Always answer callback
+
     keyboard = InlineKeyboardMarkup(row_width=1)
     keyboard.add(
         InlineKeyboardButton("Hirokazu Arai", callback_data="select_char_1"),
         InlineKeyboardButton("Akane Sawatari", callback_data="select_char_2"),
         InlineKeyboardButton("Kobeni Higashiyama", callback_data="select_char_3")
     )
+
+    # Optional: Delete the previous inline button message
+    try:
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+    except:
+        pass
+
     bot.send_message(
         chat_id=call.message.chat.id,
-        text="Choose your character:",
+        text="🔻 Choose your character:",
         reply_markup=keyboard
     )
-
 
 
 
