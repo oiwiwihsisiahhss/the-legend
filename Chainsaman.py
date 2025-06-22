@@ -775,51 +775,67 @@ def handle_character_selection(call):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # ✅ Check if character already chosen (from user_characters)
+    # ✅ Check if the user has already chosen any character
     cursor.execute("""
-        SELECT choosen_character_id FROM user_characters
+        SELECT 1 FROM user_characters 
         WHERE user_id = ? AND choosen_character_id IS NOT NULL
+        LIMIT 1
     """, (user_id,))
-    row = cursor.fetchone()
+    already_chosen = cursor.fetchone()
 
-    if row:
+    if already_chosen:
         bot.answer_callback_query(call.id, "❌ You’ve already selected a character!")
         conn.close()
         return
 
-    # 🔄 Check if character is already owned
+    # ✅ Check if this specific character is already in user_characters
     cursor.execute("""
         SELECT 1 FROM user_characters WHERE user_id = ? AND character_id = ?
     """, (user_id, character_id))
-    owned = cursor.fetchone()
+    exists = cursor.fetchone()
 
-    if not owned:
-        # 🧠 Fetch base stats from character_base_stats
+    if not exists:
+        # ➕ Insert new character with base stats
         cursor.execute("""
-            SELECT attack, defense, speed, precision, instinct, name, special_ability
+            SELECT name, attack, defense, speed, precision, instinct, special_ability
             FROM character_base_stats WHERE character_id = ?
         """, (character_id,))
         stats = cursor.fetchone()
 
-        if stats:
-            atk, df, spd, prc, ins, name, ability = stats
-            cursor.execute("""
-                INSERT INTO user_characters (
-                    user_id, character_id, level, exp, attack, defense, speed, precision, instinct, choosen_character_id
-                ) VALUES (?, ?, 1, 0, ?, ?, ?, ?, ?, ?)
-            """, (user_id, character_id, atk, df, spd, prc, ins, character_id))
-    else:
-        # 🛠️ If already owned, just update chosen ID
+        if not stats:
+            bot.answer_callback_query(call.id, "❌ Character data not found.")
+            conn.close()
+            return
+
+        name, atk, df, spd, prc, ins, ability = stats
+
         cursor.execute("""
-            UPDATE user_characters SET choosen_character_id = ?
+            INSERT INTO user_characters (
+                user_id, character_id, level, exp,
+                attack, defense, speed, precision, instinct,
+                choosen_character_id
+            ) VALUES (?, ?, 1, 0, ?, ?, ?, ?, ?, ?)
+        """, (user_id, character_id, atk, df, spd, prc, ins, character_id))
+
+    else:
+        # Just update that character to be chosen
+        cursor.execute("""
+            UPDATE user_characters
+            SET choosen_character_id = ?
             WHERE user_id = ? AND character_id = ?
         """, (character_id, user_id, character_id))
+
+        # Fetch name and ability to show confirmation
+        cursor.execute("""
+            SELECT name, attack, defense, speed, special_ability
+            FROM character_base_stats WHERE character_id = ?
+        """, (character_id,))
+        name, atk, df, spd, ability = cursor.fetchone()
 
     conn.commit()
     conn.close()
 
-    # ✅ Show selection confirmation
-    bot.answer_callback_query(call.id)
+    # ✅ Confirm to user
     try:
         bot.delete_message(call.message.chat.id, call.message.message_id)
     except:
