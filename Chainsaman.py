@@ -761,67 +761,54 @@ def show_character_options(call):
         reply_markup=keyboard
     )
 
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
 def handle_character_selection(call):
-    bot.answer_callback_query(call.id)
-    
     user_id = call.from_user.id
     character_id = int(call.data.split("_")[-1])
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Check if user already selected a character
+    # Check if user already chose a character
     cursor.execute("SELECT choosen_character_id FROM user_characters WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
-
     if row and row[0] is not None:
+        bot.answer_callback_query(call.id, "❌ You’ve already selected a character!")
         conn.close()
-        return bot.answer_callback_query(call.id, "You’ve already selected a character!")
+        return
 
-    # Check if already owns the character
+    # Check if already owns it
     cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
-    already_owned = cursor.fetchone()
+    already_has = cursor.fetchone()
 
-    # Get base stats from character_base_stats
+    if not already_has:
+        # Fetch base stats
+        cursor.execute("""
+            SELECT attack, defense, speed, precision, instinct
+            FROM character_base_stats
+            WHERE character_id = ?
+        """, (character_id,))
+        base = cursor.fetchone()
+
+        if base:
+            atk, df, spd, prc, ins = base
+            # Insert character with base stats
+            cursor.execute("""
+                INSERT INTO user_characters (user_id, character_id, level, exp, attack, defense, speed, precision, instinct)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, character_id, 1, 0, atk, df, spd, prc, ins))
+
+    # Update chosen character
     cursor.execute("""
-        SELECT attack, defense, speed, precision, instinct
-        FROM character_base_stats
-        WHERE character_id = ?
-    """, (character_id,))
-    stats = cursor.fetchone()
-
-    if not stats:
-        conn.close()
-        return bot.answer_callback_query(call.id, "❌ Character data not found!")
-
-    atk, df, spd, prc, ins = stats
-
-    # Insert character if not owned yet
-    if not already_owned:
-        cursor.execute("""
-            INSERT INTO user_characters (
-                user_id, character_id, level, exp,
-                attack, defense, speed, precision, instinct,
-                choosen_character_id
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            user_id, character_id, 1, 0,
-            atk, df, spd, prc, ins,
-            character_id
-        ))
-    else:
-        # Just update the chosen character ID if already owns
-        cursor.execute("""
-            UPDATE user_characters
-            SET choosen_character_id = ?
-            WHERE user_id = ?
-        """, (character_id, user_id))
+        UPDATE user_characters
+        SET choosen_character_id = ?
+        WHERE user_id = ? AND character_id = ?
+    """, (character_id, user_id, character_id))
 
     conn.commit()
 
-    # Show confirmation message
+    # Confirm selection
     cursor.execute("SELECT name, attack, defense, speed, special_ability FROM character_base_stats WHERE character_id = ?", (character_id,))
     char = cursor.fetchone()
     conn.close()
@@ -835,8 +822,8 @@ def handle_character_selection(call):
 
         bot.send_message(
             chat_id=call.message.chat.id,
-            text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
-            parse_mode="Markdown"
+            text=f"✅ <b>{name} Selected!</b>\n\n⚔️ Attack: <b>{atk}</b>\n🛡 Defense: <b>{df}</b>\n⚡ Speed: <b>{spd}</b>\n✨ Ability: <b>{ability}</b>",
+            parse_mode="HTML"
         )
 @bot.message_handler(commands=['myhunters'])        
 def show_user_characters(message):
