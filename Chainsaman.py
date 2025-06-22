@@ -78,7 +78,12 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     
     
     
-
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY,
+    choosen_character_id INTEGER
+    )
+    ''')
     # Create user_team_selection table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_team_selection (
@@ -770,46 +775,49 @@ def handle_character_selection(call):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Check if user already chose a character
-    cursor.execute("SELECT choosen_character_id FROM user_characters WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-    if row and row[0] is not None:
+    # Create users table if not exists (optional safety)
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+        user_id INTEGER PRIMARY KEY,
+        choosen_character_id INTEGER
+    )
+    ''')
+
+    # Check if user already selected a character
+    cursor.execute("SELECT choosen_character_id FROM users WHERE user_id = ?", (user_id,))
+    existing = cursor.fetchone()
+    if existing and existing[0] is not None:
         bot.answer_callback_query(call.id, "❌ You’ve already selected a character!")
         conn.close()
         return
 
-    # Check if already owns it
+    # Store owned character (if not already owned)
     cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
-    already_has = cursor.fetchone()
-
-    if not already_has:
-        # Fetch base stats
+    if not cursor.fetchone():
+        # Fetch base stats from character_base_stats
         cursor.execute("""
             SELECT attack, defense, speed, precision, instinct
-            FROM character_base_stats
-            WHERE character_id = ?
+            FROM character_base_stats WHERE character_id = ?
         """, (character_id,))
-        base = cursor.fetchone()
+        stats = cursor.fetchone()
 
-        if base:
-            atk, df, spd, prc, ins = base
-            # Insert character with base stats
+        if stats:
+            atk, df, spd, prc, ins = stats
             cursor.execute("""
-                INSERT INTO user_characters (user_id, character_id, level, exp, attack, defense, speed, precision, instinct)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (user_id, character_id, 1, 0, atk, df, spd, prc, ins))
+                INSERT INTO user_characters (
+                    user_id, character_id, level, exp, attack, defense, speed, precision, instinct
+                ) VALUES (?, ?, 1, 0, ?, ?, ?, ?, ?)
+            """, (user_id, character_id, atk, df, spd, prc, ins))
 
-    # Update chosen character
-    cursor.execute("""
-        UPDATE user_characters
-        SET choosen_character_id = ?
-        WHERE user_id = ? AND character_id = ?
-    """, (character_id, user_id, character_id))
-
+    # Save the selected character in users table
+    cursor.execute("INSERT OR REPLACE INTO users (user_id, choosen_character_id) VALUES (?, ?)", (user_id, character_id))
     conn.commit()
 
-    # Confirm selection
-    cursor.execute("SELECT name, attack, defense, speed, special_ability FROM character_base_stats WHERE character_id = ?", (character_id,))
+    # Fetch character info to show
+    cursor.execute("""
+        SELECT name, attack, defense, speed, special_ability
+        FROM character_base_stats WHERE character_id = ?
+    """, (character_id,))
     char = cursor.fetchone()
     conn.close()
 
@@ -822,9 +830,9 @@ def handle_character_selection(call):
 
         bot.send_message(
             chat_id=call.message.chat.id,
-            text=f"✅ <b>{name} Selected!</b>\n\n⚔️ Attack: <b>{atk}</b>\n🛡 Defense: <b>{df}</b>\n⚡ Speed: <b>{spd}</b>\n✨ Ability: <b>{ability}</b>",
-            parse_mode="HTML"
-        )
+            text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
+            parse_mode="Markdown"
+    )
 @bot.message_handler(commands=['myhunters'])        
 def show_user_characters(message):
     conn = sqlite3.connect("chainsaw.db")
