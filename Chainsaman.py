@@ -226,16 +226,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     PRIMARY KEY (user_id, character_id)
 )
    ''' ) 
-    cursor.execute("""
-    UPDATE user_characters
-    SET 
-        attack = (SELECT attack FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
-        defense = (SELECT defense FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
-        speed = (SELECT speed FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
-        precision = (SELECT precision FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id),
-        instinct = (SELECT instinct FROM character_base_stats WHERE character_base_stats.character_id = user_characters.character_id)
-    WHERE attack IS NULL
-""")
+    
 #conn.commit()
     
 
