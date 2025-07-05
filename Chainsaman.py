@@ -1353,8 +1353,8 @@ def stats(message):
     cursor = conn.cursor()
 
     cursor.execute('''
-        SELECT cb.character_id, cb.name, cb.description, cb.attack, cb.defense, cb.speed, cb.precision,
-               cb.instinct, cb.image_link, cb.required_exp, uc.exp, uc.level
+        SELECT cb.character_id, cb.name, cb.description, uc.attack, uc.defense, uc.speed, uc.precision,
+               uc.instinct, cb.image_link, cb.required_exp, uc.exp, uc.level
         FROM user_characters uc
         JOIN character_base_stats cb ON uc.character_id = cb.character_id
         WHERE uc.user_id = ? AND LOWER(cb.name) LIKE ?
