@@ -306,12 +306,17 @@ def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
 
     # Fetch user character data and base required EXP
     cursor.execute("""
-        SELECT uc.level, uc.exp, uc.attack, uc.defense, uc.speed, uc.precision, uc.instinct,
-               cb.name, cb.required_exp
-        FROM user_characters uc
-        JOIN character_base_stats cb ON uc.character_id = cb.character_id
-        WHERE uc.user_id = ? AND uc.character_id = ?
-    """, (user_id, character_id))
+    SELECT uc.level, uc.exp,
+           COALESCE(uc.attack, cb.attack), 
+           COALESCE(uc.defense, cb.defense),
+           COALESCE(uc.speed, cb.speed),
+           COALESCE(uc.precision, cb.precision),
+           COALESCE(uc.instinct, cb.instinct),
+           cb.name, cb.required_exp
+    FROM user_characters uc
+    JOIN character_base_stats cb ON uc.character_id = cb.character_id
+    WHERE uc.user_id = ? AND uc.character_id = ?
+""", (user_id, character_id))
     data = cursor.fetchone()
 
     if not data:
