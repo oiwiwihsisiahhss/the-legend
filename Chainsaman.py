@@ -1338,45 +1338,8 @@ def add_character(message):
 
 # -*- coding: utf-8 -*-
   
+
 @bot.message_handler(commands=['stats'])
-def stats(message):
-    args = message.text.split(' ', 1)
-    if len(args) == 1:
-        return bot.reply_to(message, "❌ Please provide a character name. Example: /stats Himeno")
-
-    name_input = args[1].strip().lower()
-    user_id = message.from_user.id
-    is_private = message.chat.type == "private"
-
-    conn = sqlite3.connect('chainsaw.db')
-    cursor = conn.cursor()
-
-    # Fetch full character and user stats including required_exp
-    cursor.execute('''
-        SELECT cb.character_id, cb.name, cb.description, cb.attack, cb.defense, cb.speed, cb.precision,
-               cb.instinct, cb.image_link, cb.required_exp, uc.exp, uc.level
-        FROM user_characters uc
-        JOIN character_base_stats cb ON uc.character_id = cb.character_id
-        WHERE uc.user_id = ? AND LOWER(cb.name) LIKE ?
-    ''', (user_id, f"{name_input}%"))
-    result = cursor.fetchone()
-    conn.close()
-
-    if not result:
-        return bot.reply_to(message, "❌ No Devil Hunter found with that name.")
-
-    (char_id, name, desc, atk, defense, spd, prec, inst, img, base_required_exp, exp, lvl) = result
-
-    if lvl >= 100:
-        exp_display = f"{base_required_exp} / {base_required_exp}"
-        bar = "[██████████]"
-    else:
-        required_exp = int(base_required_exp * (lvl ** 1.4)) if lvl > 0 else base_required_exp
-        progress = min(int((exp / required_exp) * 10), 10)
-        bar = '█' * progress + '░' * (10 - progress)
-        exp_display = f"{exp} / {required_exp}"
-
-    caption = f"""<b>📖 Devil Hunter Profile</b>@bot.message_handler(commands=['stats'])
 def stats(message):
     args = message.text.split(' ', 1)
     if len(args) == 1:
