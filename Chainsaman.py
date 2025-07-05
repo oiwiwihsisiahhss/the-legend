@@ -296,9 +296,8 @@ CREATE TABLE IF NOT EXISTS user_characters (
     conn.close()
 def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
     MAX_LEVEL = 100
-    messages = []
 
-    # Fetch user character data and base required EXP from base stats
+    # Fetch user character and base stats
     cursor.execute("""
         SELECT uc.level, uc.exp,
                COALESCE(uc.attack, cb.attack), 
@@ -317,18 +316,11 @@ def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
         return None
 
     level, exp, atk, df, spd, prc, ins, name, base_required_exp = data
+    messages = []
     leveled_up = False
 
-    # Check max level
-    if level >= MAX_LEVEL:
-        cursor.execute("UPDATE user_characters SET exp = ? WHERE user_id = ? AND character_id = ?", 
-                       (base_required_exp, user_id, character_id))
-        conn.commit()
-        return [f"🚫 <b>{name} is already at MAX Level ({MAX_LEVEL})!</b>"]
-
-    # Level up loop
     while True:
-        required_exp = int(base_required_exp * (level ** 1.4)) if level > 0 else base_required_exp
+        required_exp = int(base_required_exp * (level ** 1.4))
 
         if exp >= required_exp and level < MAX_LEVEL:
             old_atk, old_df, old_spd, old_prc, old_ins = atk, df, spd, prc, ins
@@ -349,7 +341,7 @@ def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
                 WHERE user_id = ? AND character_id = ?
             """, (level, exp, atk, df, spd, prc, ins, user_id, character_id))
 
-            # Optional: update explore table stats
+            # Update explore stats if they exist
             cursor.execute("""
                 SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth
                 FROM explore_character_base_stats
@@ -369,25 +361,31 @@ def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
                     SET base_hp = ?, move_1_damage = ?, move_2_damage = ?, move_3_damage = ?
                     WHERE character_id = ?
                 """, (new_hp, new_dmg1, new_dmg2, new_dmg3, character_id))
+
+            # Add message for this level up
+            msg = f"""
+🎉 <b>{name}</b> leveled up to <b>Level {level}</b>!
+━━━━━━━━━━━━━
+⚔️ ATK: <code>{old_atk}</code> ➤ <code>{atk}</code>
+🛡️ DEF: <code>{old_df}</code> ➤ <code>{df}</code>
+⚡ SPD: <code>{old_spd}</code> ➤ <code>{spd}</code>
+🎯 PRC: <code>{old_prc}</code> ➤ <code>{prc}</code>
+🧠 INS: <code>{old_ins}</code> ➤ <code>{ins}</code>
+━━━━━━━━━━━━━
+""".strip()
+            messages.append(msg)
         else:
             break
 
-    # Always show final status
-    cursor.execute("""
-        SELECT uc.level, uc.exp, uc.attack, uc.defense, uc.speed, uc.precision, uc.instinct, cb.required_exp, cb.name
-        FROM user_characters uc
-        JOIN character_base_stats cb ON uc.character_id = cb.character_id
-        WHERE uc.user_id = ? AND uc.character_id = ?
-    """, (user_id, character_id))
-    lvl, exp, atk, df, spd, prc, ins, base_required_exp, name = cursor.fetchone()
-    required_exp = int(base_required_exp * (lvl ** 1.4)) if lvl > 0 else base_required_exp
-    percent = int((exp / required_exp) * 100) if required_exp > 0 else 0
+    # Final bar message
+    required_exp = int(base_required_exp * (level ** 1.4))
+    percent = min(int((exp / required_exp) * 100), 100)
     bar = "▓" * (percent // 10) + "░" * (10 - (percent // 10))
 
-    msg = f"""
+    final_msg = f"""
 <b>🆙 {name}'s Stats</b>
 ━━━━━━━━━━━━━
-📈 Level: <b>{lvl}</b>
+📈 Level: <b>{level}</b>
 💥 EXP: <code>{exp} / {required_exp}</code> ({percent}%)
 {bar}
 ━━━━━━━━━━━━━
@@ -398,8 +396,8 @@ def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
 🧠 INS: <code>{ins}</code>
 ━━━━━━━━━━━━━
 """.strip()
-    messages.append(msg)
 
+    messages.append(final_msg)
     conn.commit()
 
     if bot:
@@ -410,6 +408,7 @@ def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
                 print(f"[❌] Failed to send DM to user {user_id}: {e}")
 
     return messages
+
 
 
 def generate_team_stats_text(user_id, team_number):
@@ -1373,6 +1372,44 @@ def stats(message):
         bar = "[██████████]"
     else:
         required_exp = int(base_required_exp * (lvl ** 1.4)) if lvl > 0 else base_required_exp
+        progress = min(int((exp / required_exp) * 10), 10)
+        bar = '█' * progress + '░' * (10 - progress)
+        exp_display = f"{exp} / {required_exp}"
+
+    caption = f"""<b>📖 Devil Hunter Profile</b>@bot.message_handler(commands=['stats'])
+def stats(message):
+    args = message.text.split(' ', 1)
+    if len(args) == 1:
+        return bot.reply_to(message, "❌ Please provide a character name. Example: /stats Himeno")
+
+    name_input = args[1].strip().lower()
+    user_id = message.from_user.id
+    is_private = message.chat.type == "private"
+
+    conn = sqlite3.connect('chainsaw.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT cb.character_id, cb.name, cb.description, cb.attack, cb.defense, cb.speed, cb.precision,
+               cb.instinct, cb.image_link, cb.required_exp, uc.exp, uc.level
+        FROM user_characters uc
+        JOIN character_base_stats cb ON uc.character_id = cb.character_id
+        WHERE uc.user_id = ? AND LOWER(cb.name) LIKE ?
+    ''', (user_id, f"{name_input}%"))
+    result = cursor.fetchone()
+    conn.close()
+
+    if not result:
+        return bot.reply_to(message, "❌ No Devil Hunter found with that name.")
+
+    (char_id, name, desc, atk, defense, spd, prec, inst, img, base_required_exp, exp, lvl) = result
+
+    if lvl >= 100:
+        required_exp = int(base_required_exp * (lvl ** 1.4))
+        exp_display = f"{required_exp} / {required_exp}"
+        bar = "[██████████]"
+    else:
+        required_exp = int(base_required_exp * (lvl ** 1.4))
         progress = min(int((exp / required_exp) * 10), 10)
         bar = '█' * progress + '░' * (10 - progress)
         exp_display = f"{exp} / {required_exp}"
