@@ -163,7 +163,7 @@ CREATE TABLE IF NOT EXISTS user_data (
     energy INTEGER DEFAULT 10000,
     max_energy INTEGER DEFAULT 10000,
     last_energy_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    choosen_character_id INTEGER DEFAULT NULL,
+    choosen_character_id INTEGER DEFAULT 0,
     FOREIGN KEY (choosen_character_id) REFERENCES character_base_stats(character_id)
 )
 ''')
@@ -666,68 +666,29 @@ def start_in_group(message):
 @bot.message_handler(commands=['start'], chat_types=['private'])
 def start_in_dm(message):
     user_id = message.from_user.id
-    username = message.from_user.username
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # Ensure user_data exists
-    cursor.execute("SELECT 1 FROM user_data WHERE user_id = ?", (user_id,))
-    if not cursor.fetchone():
-        cursor.execute("INSERT INTO user_data (user_id, username) VALUES (?, ?)", (user_id, username))
-        conn.commit()
+    # ✅ Check if user_data row exists
+    cursor.execute("SELECT choosen_character_id FROM user_data WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
 
-    # Check if character is selected
-    cursor.execute("SELECT choosen_character_id FROM user_characters WHERE user_id = ?", (user_id,))
-    char = cursor.fetchone()
-
-    if not char:
-        # Insert a user_characters row with placeholder character
-        cursor.execute("INSERT INTO user_characters (user_id, character_id, choosen_character_id) VALUES (?, ?, ?)", (user_id, 0, 0))
+    if result is None:
+        # First time user: insert with default character ID 0
+        cursor.execute("INSERT INTO user_data (user_id, choosen_character_id) VALUES (?, ?)", (user_id, 0))
         conn.commit()
         show_start_screen(message)
-    elif char[0] == 0:
+
+    elif result[0] == 0:
+        # User exists but hasn't selected a character yet
         show_start_screen(message)
+
     else:
+        # User already selected a character
         show_back_message(message)
 
     conn.close()
-
-def show_start_screen(message):
-    start_message = (
-        "🔥 <b>WELCOME TO THE CHAINSAW MAN GAME</b> 🔥\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "💀 <b>ENTER IF YOU DARE...</b>\n"
-        "You've just crossed into a world where <b>Devils rule the shadows</b>,\n"
-        "and <i>only the strongest Hunters survive.</i>\n\n"
-        "Your soul is the price.\n"
-        "Your blade is your answer.\n"
-        "Your fate? Still unwritten.\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "⚔️ <b>YOUR MISSION:</b>\n"
-        "• 🧍‍♂️ Choose your Hunter\n"
-        "• 👹 Hunt Devils\n"
-        "• 🤝 Make Contracts\n"
-        "• 🪙 Earn Yens, EXP & Gems\n"
-        "• 🩸 Survive – Or die trying.\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🕹️ <b>HOW TO BEGIN:</b>\n"
-        "Press /choose_char to begin your contract.\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🤖 <i>“The chainsaw roars. Are you ready to bleed?”</i>"
-    )
-
-    choose_btn = types.InlineKeyboardMarkup()
-    choose_btn.add(types.InlineKeyboardButton("🧍 Choose Character", callback_data="choose_char"))
-
-    bot.send_photo(
-        message.chat.id,
-        photo="https://files.catbox.moe/bghkj1.jpg",
-        caption=start_message,
-        reply_markup=choose_btn,
-        parse_mode="HTML"
-    )
-
 
 def show_back_message(message):
     back_message = (
