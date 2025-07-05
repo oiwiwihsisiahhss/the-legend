@@ -117,7 +117,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          move_2_unlock_level INTEGER DEFAULT 25,
          move_3 TEXT NOT NULL,
          move_3_unlock_level INTEGER DEFAULT 50,
-         special_ability_unlock_level INTEGER DEFAULT 50,
+         special_ability_unlock_level INTEGER DEFAULT 50
          
        )
     ''')
