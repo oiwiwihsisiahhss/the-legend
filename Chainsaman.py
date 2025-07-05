@@ -2527,4 +2527,4 @@ def user_info(message):
     finally:
         conn.close()
         
-bot.polling(none_stop=True)
+bot.infinity_polling(none_stop=True)
