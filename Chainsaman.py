@@ -2526,5 +2526,5 @@ def user_info(message):
         bot.reply_to(message, "Something went wrong.")
     finally:
         conn.close()
-        
+bot.remove_webhook()      
 bot.infinity_polling(none_stop=True)
