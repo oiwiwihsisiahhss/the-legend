@@ -118,7 +118,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          move_3 TEXT NOT NULL,
          move_3_unlock_level INTEGER DEFAULT 50,
          special_ability_unlock_level INTEGER DEFAULT 50,
-         exp_multiplier INTEGER NOT NULL
+         
        )
     ''')
 
@@ -150,23 +150,23 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 
     # Create user_data table
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_data (
-            user_id INTEGER PRIMARY KEY,
-            username TEXT,
-            join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            level INTEGER DEFAULT 1,
-            exp INTEGER DEFAULT 0,
-            required_exp INTEGER DEFAULT 12345,
-            yens INTEGER DEFAULT 250,
-            crystals INTEGER DEFAULT 0,
-            tickets INTEGER DEFAULT 0,
-            energy INTEGER DEFAULT 10000,
-            max_energy INTEGER DEFAULT 10000,
-            last_energy_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            choosen_character_id INTEGER DEFAULT NULL,
-            FOREIGN KEY (choosen_character_id) REFERENCES character_base_stats(character_id)
-        )
-    ''')
+CREATE TABLE IF NOT EXISTS user_data (
+    user_id INTEGER PRIMARY KEY,
+    username TEXT,
+    join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    level INTEGER DEFAULT 1,
+    exp INTEGER DEFAULT 0,
+    required_exp INTEGER DEFAULT 10000,
+    yens INTEGER DEFAULT 250,
+    crystals INTEGER DEFAULT 0,
+    tickets INTEGER DEFAULT 0,
+    energy INTEGER DEFAULT 10000,
+    max_energy INTEGER DEFAULT 10000,
+    last_energy_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    choosen_character_id INTEGER DEFAULT NULL,
+    FOREIGN KEY (choosen_character_id) REFERENCES character_base_stats(character_id)
+)
+''')
 
     # Create daily_rewards table
     cursor.execute('''
@@ -212,7 +212,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
    # User's unlocked characters
     # User's unlocked characters
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS user_characters (
+CREATE TABLE IF NOT EXISTS user_characters (
     user_id INTEGER NOT NULL,
     character_id INTEGER NOT NULL,
     level INTEGER DEFAULT 1,
@@ -223,9 +223,10 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     precision INTEGER,
     instinct INTEGER,
     choosen_character_id INTEGER DEFAULT NULL,
-    PRIMARY KEY (user_id, character_id)
+    PRIMARY KEY (user_id, character_id),
+    FOREIGN KEY (character_id) REFERENCES character_base_stats(character_id)
 )
-   ''' ) 
+''')
     
 #conn.commit()
     
@@ -771,31 +772,33 @@ def show_character_options(call):
         # Just update that character to be chosen
 @bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
 def handle_character_selection(call):
+    bot.answer_callback_query(call.id)  # ✅ Acknowledge early to prevent timeout
+
     user_id = call.from_user.id
     character_id = int(call.data.split("_")[-1])
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
 
-    # STEP 1: Check if user already chose a character
+    # STEP 1: Ensure user_data row exists
+    cursor.execute("INSERT OR IGNORE INTO user_data (user_id) VALUES (?)", (user_id,))
+
+    # STEP 2: Check if user already selected a character
     cursor.execute("SELECT choosen_character_id FROM user_data WHERE user_id = ?", (user_id,))
     existing = cursor.fetchone()
-
-    if existing and existing[0]:
-        bot.answer_callback_query(call.id, "❌ You’ve already selected a character!")
+    if existing and existing[0] is not None:
         conn.close()
-        return
+        return  # Already acknowledged above
 
-    # STEP 2: Insert character into user_characters if not already owned
+    # STEP 3: Check if user owns this character already
     cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
     if not cursor.fetchone():
-        # Fetch base stats from character_base_stats
         cursor.execute("""
             SELECT attack, defense, speed, precision, instinct
-            FROM character_base_stats WHERE character_id = ?
+            FROM character_base_stats
+            WHERE character_id = ?
         """, (character_id,))
         stats = cursor.fetchone()
-
         if stats:
             atk, df, spd, prc, ins = stats
             cursor.execute("""
@@ -804,12 +807,11 @@ def handle_character_selection(call):
                 ) VALUES (?, ?, 1, 0, ?, ?, ?, ?, ?)
             """, (user_id, character_id, atk, df, spd, prc, ins))
 
-    # STEP 3: Set chosen character in user_data
-    cursor.execute("INSERT OR IGNORE INTO user_data (user_id) VALUES (?)", (user_id,))
+    # STEP 4: Save chosen character
     cursor.execute("UPDATE user_data SET choosen_character_id = ? WHERE user_id = ?", (character_id, user_id))
     conn.commit()
 
-    # STEP 4: Send confirmation message
+    # STEP 5: Show character stats
     cursor.execute("""
         SELECT name, attack, defense, speed, special_ability
         FROM character_base_stats WHERE character_id = ?
@@ -826,7 +828,11 @@ def handle_character_selection(call):
 
         bot.send_message(
             chat_id=call.message.chat.id,
-            text=f"**{name} Selected!**\n\nAttack: {atk}\nDefense: {df}\nSpeed: {spd}\nSpecial Ability: {ability}",
+            text=f"**{name} Selected!**\n\n"
+                 f"⚔️ Attack: {atk}\n"
+                 f"🛡️ Defense: {df}\n"
+                 f"⚡ Speed: {spd}\n"
+                 f"🎯 Special Ability: {ability}",
             parse_mode="Markdown"
         )
 @bot.message_handler(commands=['myhunters'])        
