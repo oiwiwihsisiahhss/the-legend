@@ -1414,7 +1414,7 @@ def stats(message):
         bar = '█' * progress + '░' * (10 - progress)
         exp_display = f"{exp} / {required_exp}"
 
-    caption = f"""<b>📖 Devil Hunter Profile</b>
+    caption = (f"""<b>📖 Devil Hunter Profile</b>
 ━━━━━━━━━━━━━━━━  
 <b>📛 Name:</b> {name}  
 <b>⭐ Level:</b> {lvl}  
@@ -1431,7 +1431,7 @@ def stats(message):
 • ⚡ Speed: <b>{spd}</b>  
 • 🎯 Precision: <b>{prec}</b>  
 • 🧠 Instinct: <b>{inst}</b>  
-━━━━━━━━━━━━━━━━"""
+━━━━━━━━━━━━━━━━""") 
 
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("🌀 Abilities", callback_data=f"abilities:{char_id}"))
