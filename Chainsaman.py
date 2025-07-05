@@ -294,29 +294,23 @@ CREATE TABLE IF NOT EXISTS user_characters (
 
     conn.commit()
     conn.close()
-
-
-
-
-
-
 def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
     MAX_LEVEL = 100
     messages = []
 
-    # Fetch user character data and base required EXP
+    # Fetch user character data and base required EXP from base stats
     cursor.execute("""
-    SELECT uc.level, uc.exp,
-           COALESCE(uc.attack, cb.attack), 
-           COALESCE(uc.defense, cb.defense),
-           COALESCE(uc.speed, cb.speed),
-           COALESCE(uc.precision, cb.precision),
-           COALESCE(uc.instinct, cb.instinct),
-           cb.name, cb.required_exp
-    FROM user_characters uc
-    JOIN character_base_stats cb ON uc.character_id = cb.character_id
-    WHERE uc.user_id = ? AND uc.character_id = ?
-""", (user_id, character_id))
+        SELECT uc.level, uc.exp,
+               COALESCE(uc.attack, cb.attack), 
+               COALESCE(uc.defense, cb.defense),
+               COALESCE(uc.speed, cb.speed),
+               COALESCE(uc.precision, cb.precision),
+               COALESCE(uc.instinct, cb.instinct),
+               cb.name, cb.required_exp
+        FROM user_characters uc
+        JOIN character_base_stats cb ON uc.character_id = cb.character_id
+        WHERE uc.user_id = ? AND uc.character_id = ?
+    """, (user_id, character_id))
     data = cursor.fetchone()
 
     if not data:
@@ -325,12 +319,14 @@ def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
     level, exp, atk, df, spd, prc, ins, name, base_required_exp = data
     leveled_up = False
 
+    # Check max level
     if level >= MAX_LEVEL:
         cursor.execute("UPDATE user_characters SET exp = ? WHERE user_id = ? AND character_id = ?", 
                        (base_required_exp, user_id, character_id))
         conn.commit()
         return [f"🚫 <b>{name} is already at MAX Level ({MAX_LEVEL})!</b>"]
 
+    # Level up loop
     while True:
         required_exp = int(base_required_exp * (level ** 1.4)) if level > 0 else base_required_exp
 
@@ -353,7 +349,7 @@ def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
                 WHERE user_id = ? AND character_id = ?
             """, (level, exp, atk, df, spd, prc, ins, user_id, character_id))
 
-            # Update explore stats if present
+            # Optional: update explore table stats
             cursor.execute("""
                 SELECT base_hp, move_1_damage, move_2_damage, move_3_damage, hp_growth, damage_growth
                 FROM explore_character_base_stats
@@ -376,14 +372,14 @@ def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
         else:
             break
 
-    # Always fetch updated stats for bar + status
+    # Always show final status
     cursor.execute("""
-        SELECT level, exp, attack, defense, speed, precision, instinct, required_exp
+        SELECT uc.level, uc.exp, uc.attack, uc.defense, uc.speed, uc.precision, uc.instinct, cb.required_exp, cb.name
         FROM user_characters uc
         JOIN character_base_stats cb ON uc.character_id = cb.character_id
         WHERE uc.user_id = ? AND uc.character_id = ?
     """, (user_id, character_id))
-    lvl, exp, atk, df, spd, prc, ins, base_required_exp = cursor.fetchone()
+    lvl, exp, atk, df, spd, prc, ins, base_required_exp, name = cursor.fetchone()
     required_exp = int(base_required_exp * (lvl ** 1.4)) if lvl > 0 else base_required_exp
     percent = int((exp / required_exp) * 100) if required_exp > 0 else 0
     bar = "▓" * (percent // 10) + "░" * (10 - (percent // 10))
@@ -413,8 +409,9 @@ def check_and_level_up_character(user_id, character_id, cursor, conn, bot=None):
             except Exception as e:
                 print(f"[❌] Failed to send DM to user {user_id}: {e}")
 
-    return messages                
-# Establishing database connection
+    return messages
+
+
 def generate_team_stats_text(user_id, team_number):
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
