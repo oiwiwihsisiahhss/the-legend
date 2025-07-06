@@ -19,8 +19,47 @@ last_explore_time = {}
 # Initialize bot with your API key
 API_KEY = '7215821191:AAEzFPwyx8FjlXMr2mpVTbYzpHoMbPsaCDc'
 bot = telebot.TeleBot(API_KEY)
+images = {
+    "warning": "https://envs.sh/E87.jpg/IMG20250621169.jpg",             # ⚠️ Shown during roulette popup
 
+    "devil_pact": "https://envs.sh/E84.jpg/IMG20250621963.jpg",          # 📜 Devil Pact
+    "contract_burn": "https://envs.sh/E81.jpg/IMG20250621543.jpg",       # 🔥 Contract Burn
+    "yen_drop": "https://envs.sh/E8l.jpg/IMG2025062116.jpg",             # 💰 Yen Drop
+    "crystal_surge": "https://envs.sh/E8U.jpg/IMG20250621119.jpg",       # 💎 Crystal Surge
+    "ton_of_tickets": "https://envs.sh/E8R.jpg/IMG20250621473.jpg"       # 🎟️ Ton of Tickets
+}
+def try_roulette(chat_id):
+    if random.random() > 0.015:
+        return  # 98.5% of the time: stay silent
 
+    # First: Demonic Seal Trigger message
+    bot.send_message(
+        chat_id,
+        "🔱 <b>You have triggered the <u>Demonic Seal</u>!</b>\n"
+        "🌑 <i>Only 1 in 1,000 ever witness this moment...</i>",
+    )
+
+    # Then: send the roulette image + message + buttons
+    markup = types.InlineKeyboardMarkup(row_width=3)
+    buttons = [types.InlineKeyboardButton("🌀", callback_data=str(i)) for i in range(9)]
+    markup.add(*buttons)
+
+    caption = (
+        "🔮 <b>FATE HAS CHOSEN YOU!</b> 🔮\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "👹 <b>A mysterious devil has emerged from the shadows...</b>\n"
+        "💀 <b>He offers a single chance — a spin of the <u>forbidden Contract Roulette</u>.</b>\n"
+        "⚠️ <b>One click may lead to <u>riches</u>... or <u>ruin</u>.</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "🎯 <b>Choose a portal below and seal your destiny.</b>"
+    )
+
+    bot.send_photo(
+        chat_id=chat_id,
+        photo=images["warning"],
+        caption=caption,
+        reply_markup=markup
+    )
 import sqlite3
 
 def create_connection():
@@ -2436,7 +2475,7 @@ def hunt_devil(call):
     character_id = char_result[0]
 
     # (Optional) devil battle logic here...
-
+    try_roulette (user_id, chat_id) 
     # Then handle the chest drop
     handle_chest_drop(user_id, chat_id)
     start_battle(user_id, character_id, call)
