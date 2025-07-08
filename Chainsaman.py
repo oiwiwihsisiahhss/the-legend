@@ -17,7 +17,7 @@ temp_swaps = {}
 last_explore_time = {}
 # {user_id: {"team_number": 1, "first_slot": 0}}
 # Initialize bot with your API key
-API_KEY = '7215821191:AAEzFPwyx8FjlXMr2mpVTbYzpHoMbPsaCDc'
+API_KEY = '7215821191:AAHgfByxwtx5ds2FQV5uwfOb8cKEtzpSumE'
 bot = telebot.TeleBot(API_KEY)
 images = {
     "warning": "https://envs.sh/E87.jpg/IMG20250621169.jpg",             # ⚠️ Shown during roulette popup
