@@ -754,7 +754,44 @@ def show_back_message(message):
         parse_mode="HTML"
     )
 
-    
+from telebot import types
+
+def show_start_screen(message):
+    chat_id = message.chat.id
+
+    caption = (
+        "🔥 <b>WELCOME TO THE CHAINSAW MAN GAME</b> 🔥\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "💀 <b>ENTER IF YOU DARE...</b>\n"
+        "You've just crossed into a world where Devils rule the shadows,\n"
+        "and only the strongest Hunters survive.\n\n"
+        "Your soul is the price.\n"
+        "Your blade is your answer.\n"
+        "Your fate? Still unwritten.\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "<b>⚔️ YOUR MISSION:</b>\n"
+        "• 🧍‍♂️ Choose your Hunter\n"
+        "• 👹 Hunt Devils\n"
+        "• 🤝 Make Contracts\n"
+        "• 🪙 Earn Yens, EXP & Gems\n"
+        "• 🩸 Survive – Or die trying.\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "<b>🕹️ HOW TO BEGIN:</b>\n"
+        "Press <code>/choose_char</code> to begin your contract.\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🤖 “The chainsaw roars. Are you ready to bleed?”"
+    )
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("⚔️ Choose Character", callback_data="choose_char"))
+
+    bot.send_photo(
+        chat_id=chat_id,
+        photo="https://files.catbox.moe/bghkj1.jpg",
+        caption=caption,
+        parse_mode="HTML",
+        reply_markup=markup
+    )    
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "choose_char")
