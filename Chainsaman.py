@@ -29,7 +29,7 @@ images = {
     "ton_of_tickets": "https://envs.sh/E8R.jpg/IMG20250621473.jpg"       # 🎟️ Ton of Tickets
 }
 def try_roulette(chat_id):
-    if random.random() > 0.015:
+    if random.random() > 5:
         return  # 98.5% of the time: stay silent
 
     # First: Demonic Seal Trigger message
@@ -2256,6 +2256,7 @@ def get_all_devils():
 
 @bot.message_handler(commands=['explore'])
 def explore(message):
+    try_roulette (user_id, chat_id) 
     if message.chat.type != "private":
         bot.reply_to(message, "❌ You can only explore in private chat. Message the bot directly.")
         return
@@ -2522,7 +2523,7 @@ def hunt_devil(call):
     character_id = char_result[0]
 
     # (Optional) devil battle logic here...
-    try_roulette (user_id, chat_id) 
+    
     # Then handle the chest drop
     handle_chest_drop(user_id, chat_id)
     start_battle(user_id, character_id, call)
