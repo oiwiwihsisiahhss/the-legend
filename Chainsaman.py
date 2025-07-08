@@ -822,9 +822,10 @@ def show_character_options(call):
         # Just update that character to be chosen
 @bot.callback_query_handler(func=lambda call: call.data.startswith("select_char_"))
 def handle_character_selection(call):
-    bot.answer_callback_query(call.id)  # ✅ Acknowledge early to prevent timeout
+    bot.answer_callback_query(call.id)
 
     user_id = call.from_user.id
+    chat_id = call.message.chat.id
     character_id = int(call.data.split("_")[-1])
 
     conn = sqlite3.connect("chainsaw.db")
@@ -835,12 +836,14 @@ def handle_character_selection(call):
 
     # STEP 2: Check if user already selected a character
     cursor.execute("SELECT choosen_character_id FROM user_data WHERE user_id = ?", (user_id,))
-    existing = cursor.fetchone()
-    if existing and existing[0] is not None:
-        conn.close()
-        return  # Already acknowledged above
+    result = cursor.fetchone()
+    already_selected = result and result[0] not in (None, 0)
 
-    # STEP 3: Check if user owns this character already
+    if already_selected:
+        conn.close()
+        return  # Character already selected, silently exit
+
+    # STEP 3: Assign character to user if not already owned
     cursor.execute("SELECT 1 FROM user_characters WHERE user_id = ? AND character_id = ?", (user_id, character_id))
     if not cursor.fetchone():
         cursor.execute("""
@@ -849,6 +852,7 @@ def handle_character_selection(call):
             WHERE character_id = ?
         """, (character_id,))
         stats = cursor.fetchone()
+
         if stats:
             atk, df, spd, prc, ins = stats
             cursor.execute("""
@@ -857,32 +861,35 @@ def handle_character_selection(call):
                 ) VALUES (?, ?, 1, 0, ?, ?, ?, ?, ?)
             """, (user_id, character_id, atk, df, spd, prc, ins))
 
-    # STEP 4: Save chosen character
+    # STEP 4: Save selected character in user_data
     cursor.execute("UPDATE user_data SET choosen_character_id = ? WHERE user_id = ?", (character_id, user_id))
     conn.commit()
 
-    # STEP 5: Show character stats
+    # STEP 5: Fetch and show selected character info
     cursor.execute("""
         SELECT name, attack, defense, speed, special_ability
-        FROM character_base_stats WHERE character_id = ?
+        FROM character_base_stats
+        WHERE character_id = ?
     """, (character_id,))
     char = cursor.fetchone()
     conn.close()
 
     if char:
         name, atk, df, spd, ability = char
+
         try:
-            bot.delete_message(call.message.chat.id, call.message.message_id)
+            bot.delete_message(chat_id, call.message.message_id)
         except:
-            pass
+            pass  # Ignore if message already deleted
 
         bot.send_message(
-            chat_id=call.message.chat.id,
-            text=f"**{name} Selected!**\n\n"
-                 f"⚔️ Attack: {atk}\n"
-                 f"🛡️ Defense: {df}\n"
-                 f"⚡ Speed: {spd}\n"
-                 f"🎯 Special Ability: {ability}",
+            chat_id=chat_id,
+            text=f"*✅ {name} Selected!*\n"
+                 f"━━━━━━━━━━━━━━\n"
+                 f"⚔️ *Attack:* `{atk}`\n"
+                 f"🛡️ *Defense:* `{df}`\n"
+                 f"⚡ *Speed:* `{spd}`\n"
+                 f"🎯 *Special Ability:* `{ability}`",
             parse_mode="Markdown"
         )
 @bot.message_handler(commands=['myhunters'])        
