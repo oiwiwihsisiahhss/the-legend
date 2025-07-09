@@ -2261,6 +2261,9 @@ def get_all_devils():
 
 @bot.message_handler(commands=['explore'])
 def explore(message):
+    user_id = message.from_user.id
+    now = datetime.utcnow()
+    chat_id = message.chat.id
     if user_id in roulette_trigger_time:
         if (now - roulette_trigger_time[user_id]).total_seconds() < 2.5:
             return  # 🧊 Frozen due to recent roulette trigger
@@ -2270,8 +2273,7 @@ def explore(message):
         bot.reply_to(message, "❌ You can only explore in private chat. Message the bot directly.")
         return
 
-    user_id = message.from_user.id
-    now = datetime.utcnow()
+    
 
     # Anti-spam: 15 second cooldown
     if user_id in last_explore_time:
