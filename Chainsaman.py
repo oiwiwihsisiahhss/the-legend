@@ -29,7 +29,7 @@ images = {
     "ton_of_tickets": "https://envs.sh/E8R.jpg/IMG20250621473.jpg"       # 🎟️ Ton of Tickets
 }
 def try_roulette(chat_id):
-    if random.random() > 5:
+    if random.random() > 50:
         return  # 98.5% of the time: stay silent
 
     # First: Demonic Seal Trigger message
@@ -2292,11 +2292,9 @@ def explore(message):
     slot1 = cursor.fetchone()
     conn.close()
 
+    # Check for empty, null, or zero values
     if not slot1 or slot1[0] in (None, "", "0"):
-        bot.reply_to(
-        message,
-        "⚠️ You don't have a character assigned to your team.\nUse /myteam to select one."
-    )
+        bot.reply_to(message, "⚠️ You don't have a character assigned to your team.\nUse /myteam to select one.")
         return
 
     # Fetch devils
