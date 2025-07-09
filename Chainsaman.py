@@ -28,7 +28,7 @@ images = {
     "crystal_surge": "https://envs.sh/E8U.jpg/IMG20250621119.jpg",       # 💎 Crystal Surge
     "ton_of_tickets": "https://envs.sh/E8R.jpg/IMG20250621473.jpg"       # 🎟️ Ton of Tickets
 }
-def try_roulette(user_id,chat_id):
+def try_roulette(chat_id):
     if random.random() > 50:
         return  # 98.5% of the time: stay silent
 
