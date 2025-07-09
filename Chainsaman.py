@@ -59,7 +59,7 @@ def try_roulette(chat_id):
         chat_id=chat_id,
         photo=images["warning"],
         caption=caption,
-        reply_markup=markup
+        reply_markup=markup, 
         parse_mode="HTML"
     )
 import sqlite3
