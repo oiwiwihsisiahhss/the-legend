@@ -2256,7 +2256,7 @@ def get_all_devils():
 
 @bot.message_handler(commands=['explore'])
 def explore(message):
-    try_roulette (user_id, chat_id) 
+    try_roulette(chat_id=message.chat.id)
     if message.chat.type != "private":
         bot.reply_to(message, "❌ You can only explore in private chat. Message the bot directly.")
         return
