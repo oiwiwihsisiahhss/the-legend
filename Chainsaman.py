@@ -11,6 +11,8 @@ from datetime import datetime, timedelta
 
 import html
 # Temporary in-memory sel pgection before saving
+# Track roulette trigger time
+roulette_trigger_time = {}  # user_id: datetime
 temp_team_selection = {}
 swap_selection = {}
 temp_swaps = {} 
@@ -28,10 +30,10 @@ images = {
     "crystal_surge": "https://envs.sh/E8U.jpg/IMG20250621119.jpg",       # 💎 Crystal Surge
     "ton_of_tickets": "https://envs.sh/E8R.jpg/IMG20250621473.jpg"       # 🎟️ Ton of Tickets
 }
-def try_roulette(chat_id):
-    if random.random() > 0.015:
+def try_roulette(user_id,chat_id):
+    if random.random() > 0.02:
         return False  # 98.5% of the time: stay silent, continue explore
-
+    roulette_trigger_time[user_id] = datetime.utcnow()
     # Rare event triggered
     bot.send_message(
         chat_id,
@@ -2259,8 +2261,11 @@ def get_all_devils():
 
 @bot.message_handler(commands=['explore'])
 def explore(message):
-    if try_roulette(chat_id=message.chat.id):
-        return  # 🔇 Stop explore if rare event triggered
+    if user_id in roulette_trigger_time:
+        if (now - roulette_trigger_time[user_id]).total_seconds() < 2.5:
+            return  # 🧊 Frozen due to recent roulette trigger
+    if try_roulette(chat_id=chat_id, user_id=user_id):
+        return  # 🔇 Stop explore if roulette triggered
     if message.chat.type != "private":
         bot.reply_to(message, "❌ You can only explore in private chat. Message the bot directly.")
         return
