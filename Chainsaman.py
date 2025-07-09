@@ -65,6 +65,103 @@ def try_roulette(user_id,chat_id):
     )
 
     return True  # 🔁 VERY IMPORTANT: let explore() know we triggered this
+@bot.callback_query_handler(func=lambda call: call.data in [str(i) for i in range(9)])
+def handle_roulette_spin(call):
+    user_id = call.from_user.id
+    chat_id = call.message.chat.id
+
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+
+    # Delete the roulette message
+    try:
+        bot.delete_message(chat_id, call.message.message_id)
+    except:
+        pass
+
+    # --- Weighted random reward ---
+    import random
+
+    weights = {
+        "devil_pact": 30,
+        "contract_burn": 25,
+        "yen_drop": 25,
+        "crystal_surge": 10,
+        "ton_of_tickets": 10
+    }
+
+    options = list(weights.keys())
+    probabilities = [weights[key] for key in options]
+    reward_type = random.choices(options, weights=probabilities, k=1)[0]
+
+    # --- Image links ---
+    images = {
+        "yen_drop": "https://envs.sh/E8l.jpg/IMG2025062116.jpg",
+        "crystal_surge": "https://envs.sh/E8U.jpg/IMG20250621119.jpg",
+        "contract_burn": "https://envs.sh/E81.jpg/IMG20250621543.jpg",
+        "devil_pact": "https://envs.sh/E84.jpg/IMG20250621963.jpg",
+        "ton_of_tickets": "https://envs.sh/E8R.jpg/IMG20250621473.jpg"
+    }
+
+    if reward_type == "contract_burn":
+        cursor.execute("UPDATE user_data SET yens = yens - 45000, crystals = crystals - 800 WHERE user_id = ?", (user_id,))
+        conn.commit()
+
+        bot.send_photo(
+            chat_id,
+            photo=images["contract_burn"],
+            caption="🔥 <b>CONTRACT BURNED!</b>\n━━━━━━━━━━━━━\n💸 <b>Yens:</b> -45,000\n💎 <b>Crystals:</b> -800",
+            parse_mode="HTML"
+        )
+
+    elif reward_type == "devil_pact":
+        msg = bot.send_photo(
+            chat_id,
+            photo=images["devil_pact"],
+            caption="👹 <b>DEVIL PACT FORMED!</b>\n━━━━━━━━━━━━━\n📜 You’ve entered a forbidden pact...\nA secret mission awaits you.",
+            parse_mode="HTML"
+        )
+        try:
+            bot.pin_chat_message(chat_id, msg.message_id, disable_notification=True)
+        except:
+            pass  # Bot might not have pin rights
+
+        # Placeholder: Store timer logic or mission here if needed
+
+    elif reward_type == "yen_drop":
+        cursor.execute("UPDATE user_data SET yens = yens + 100000 WHERE user_id = ?", (user_id,))
+        conn.commit()
+
+        bot.send_photo(
+            chat_id,
+            photo=images["yen_drop"],
+            caption="💰 <b>YEN DROP!</b>\n━━━━━━━━━━━━━\nYou’ve received <b>100,000 Yens</b>!",
+            parse_mode="HTML"
+        )
+
+    elif reward_type == "crystal_surge":
+        cursor.execute("UPDATE user_data SET crystals = crystals + 355 WHERE user_id = ?", (user_id,))
+        conn.commit()
+
+        bot.send_photo(
+            chat_id,
+            photo=images["crystal_surge"],
+            caption="💎 <b>CRYSTAL SURGE!</b>\n━━━━━━━━━━━━━\nYou gained <b>355 Crystals</b>!",
+            parse_mode="HTML"
+        )
+
+    elif reward_type == "ton_of_tickets":
+        cursor.execute("UPDATE user_data SET tokens = tokens + 225 WHERE user_id = ?", (user_id,))
+        conn.commit()
+
+        bot.send_photo(
+            chat_id,
+            photo=images["ton_of_tickets"],
+            caption="🎟️ <b>TON OF TICKETS!</b>\n━━━━━━━━━━━━━\nYou earned <b>225 Tokens</b>!",
+            parse_mode="HTML"
+        )
+
+    conn.close()    
 import sqlite3
 
 def create_connection():
