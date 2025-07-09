@@ -29,10 +29,10 @@ images = {
     "ton_of_tickets": "https://envs.sh/E8R.jpg/IMG20250621473.jpg"       # 🎟️ Ton of Tickets
 }
 def try_roulette(chat_id):
-    if random.random() > 2.3:
-        return  # 98.5% of the time: stay silent
+    if random.random() > 0.015:
+        return False  # 98.5% of the time: stay silent, continue explore
 
-    # First: Demonic Seal Trigger message
+    # Rare event triggered
     bot.send_message(
         chat_id,
         "🔱 <b>You have triggered the <u>Demonic Seal</u>!</b>\n"
@@ -40,7 +40,6 @@ def try_roulette(chat_id):
         parse_mode="HTML"
     )
 
-    # Then: send the roulette image + message + buttons
     markup = types.InlineKeyboardMarkup(row_width=3)
     buttons = [types.InlineKeyboardButton("🌀", callback_data=str(i)) for i in range(9)]
     markup.add(*buttons)
@@ -62,6 +61,8 @@ def try_roulette(chat_id):
         reply_markup=markup, 
         parse_mode="HTML"
     )
+
+    return True  # 🔁 VERY IMPORTANT: let explore() know we triggered this
 import sqlite3
 
 def create_connection():
@@ -2258,7 +2259,8 @@ def get_all_devils():
 
 @bot.message_handler(commands=['explore'])
 def explore(message):
-    try_roulette(chat_id=message.chat.id)
+    if try_roulette(chat_id=message.chat.id):
+        return  # 🔇 Stop explore if rare event triggered
     if message.chat.type != "private":
         bot.reply_to(message, "❌ You can only explore in private chat. Message the bot directly.")
         return
