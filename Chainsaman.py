@@ -29,7 +29,7 @@ images = {
     "ton_of_tickets": "https://envs.sh/E8R.jpg/IMG20250621473.jpg"       # 🎟️ Ton of Tickets
 }
 def try_roulette(chat_id):
-    if random.random() > 50:
+    if random.random() > 2.3:
         return  # 98.5% of the time: stay silent
 
     # First: Demonic Seal Trigger message
@@ -37,6 +37,7 @@ def try_roulette(chat_id):
         chat_id,
         "🔱 <b>You have triggered the <u>Demonic Seal</u>!</b>\n"
         "🌑 <i>Only 1 in 1,000 ever witness this moment...</i>",
+        parse_mode="HTML"
     )
 
     # Then: send the roulette image + message + buttons
@@ -59,6 +60,7 @@ def try_roulette(chat_id):
         photo=images["warning"],
         caption=caption,
         reply_markup=markup
+        parse_mode="HTML"
     )
 import sqlite3
 
