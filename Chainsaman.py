@@ -10,6 +10,29 @@ from telebot import types
 from datetime import datetime, timedelta
 
 import html
+game_info_text = """
+📖 CONTRACT ROULETTE — Game Info
+
+❔ What is it?
+A mysterious and rare event where players spin the forbidden Contract Roulette to face fate and earn powerful rewards.
+
+🎯 How to Play:
+Players are offered 9 mysterious portals to choose from — only one holds their reward.
+
+⚠️ Requirements:
+• 💠 800 Crystals
+• 💴 45,000 Yens
+
+🎁 Possible Outcomes:
+• 🧧 Devil Pact: Triggers a special mission with a ticking timer.
+• 🔥 Contract Burn: A dangerous outcome — resources lost.
+• 💰 Yen Drop: Instantly gain 100,000 Yens.
+• 🔮 Crystal Surge: Gain 355 Crystals.
+• 🎟️ Ton of Tickets: Win 225 Tokens.
+
+🛑 Warning:
+Once entered, you cannot cancel. You must choose your fate!
+""".strip()
 # Temporary in-memory sel pgection before saving
 # Track roulette trigger time
 roulette_trigger_time = {}  # user_id: datetime
@@ -21,6 +44,9 @@ last_explore_time = {}
 # Initialize bot with your API key
 API_KEY = '7215821191:AAFDsUUKlo0MOkQdRuCR6dbNBIA1Q2WaBxA'
 bot = telebot.TeleBot(API_KEY)
+
+
+
 images = {
     "warning": "https://envs.sh/E87.jpg/IMG20250621169.jpg",             # ⚠️ Shown during roulette popup
 
@@ -78,7 +104,44 @@ def handle_escape(call):
             reply_markup=None  # This removes all buttons
         )
     except Exception as e:
-        print(f"[❌] Failed to edit caption on escape: {e}")    
+        print(f"[❌] Failed to edit caption on escape: {e}")   
+
+import io
+
+@bot.callback_query_handler(func=lambda call: call.data == "game_info")
+def game_info_callback(call):
+    bot.answer_callback_query(call.id)
+
+    # Create in-memory text file
+    file_buffer = io.BytesIO()
+    file_buffer.write(game_info_text.encode("utf-8"))
+    file_buffer.seek(0)
+
+    # Send as document
+    bot.send_document(
+        call.message.chat.id,
+        document=file_buffer,
+        caption="📄 <b>Contract Roulette Details</b>",
+        parse_mode="HTML",
+        visible_file_name="contract_roulette_info.txt"
+    )
+@bot.callback_query_handler(func=lambda call: call.data == "game_info")
+def game_info_callback(call):
+    bot.answer_callback_query(call.id)
+
+    # Create in-memory text file
+    file_buffer = io.BytesIO()
+    file_buffer.write(game_info_text.encode("utf-8"))
+    file_buffer.seek(0)
+
+    # Send as document
+    bot.send_document(
+        call.message.chat.id,
+        document=file_buffer,
+        caption="📄 <b>Contract Roulette Details</b>",
+        parse_mode="HTML",
+        visible_file_name="contract_roulette_info.txt"
+    )
 @bot.callback_query_handler(func=lambda call: call.data in [str(i) for i in range(9)])
 def handle_roulette_spin(call):
     user_id = call.from_user.id
@@ -90,7 +153,7 @@ def handle_roulette_spin(call):
     res = cursor.fetchone()
 
     if not res or res[0] < 800 or res[1] < 45000:
-        bot.send_message(user_id, "🚫 <b>Insufficient Resources</b>\nYou need at least <b>800 Crystals</b> and <b>45,000 Yens</b> to face the Contract Roulette.", parse_mode="HTML")
+        bot.answer_callback_query(callback_query_id=call.id, "🚫 <b>Insufficient Resources</b>\nYou need at least <b>800 Crystals</b> and <b>45,000 Yens</b> to face the Contract Roulette.", parse_mode="HTML",show_alert=True)
         return  # Stop execution if not eligible
 
     # --- Weighted random reward ---
