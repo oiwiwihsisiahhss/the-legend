@@ -135,7 +135,7 @@ def handle_roulette_spin(call):
         bot.send_photo(
             chat_id,
             photo=images["yen_drop"],
-            caption="💸<b>YEN DROP</b>\n<b>Luck floods your pockets like a storm — you're showered in riches!</b>\n\n🎁<b><u>REWARDS</u>:</b>\n💴<b>Yens: +100,000</b>",
+            caption="💸<b><u>YEN DROP</u></b>\n<b>Luck floods your pockets like a storm — you're showered in riches!</b>\n\n🎁<b><u>REWARDS</u>:</b>\n💴<b>Yens: +100,000</b>",
             parse_mode="HTML"
         )
 
