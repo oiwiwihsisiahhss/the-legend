@@ -110,7 +110,7 @@ def handle_roulette_spin(call):
         bot.send_photo(
             chat_id,
             photo=images["contract_burn"],
-            caption="🔥 <b>CONTRACT BURNED!</b>\n━━━━━━━━━━━━━\n💸 <b>Yens:</b> -45,000\n💎 <b>Crystals:</b> -800",
+            caption="🔥<b><u>CONTRACT BURN</u></b>\n<b>Guided by fortune, you conquer the Contract Roulette and seize your prize...</b>\n\n🎁<b><u>REWARDS</u>:</b>\n💴<b>Yens: -45,000</b>\n🔮<b>Crystals: -800</b>",
             parse_mode="HTML"
         )
 
@@ -118,7 +118,7 @@ def handle_roulette_spin(call):
         msg = bot.send_photo(
             chat_id,
             photo=images["devil_pact"],
-            caption="👹 <b>DEVIL PACT FORMED!</b>\n━━━━━━━━━━━━━\n📜 You’ve entered a forbidden pact...\nA secret mission awaits you.",
+            caption="😈<b><u>DEVIL PACT</u></b>\n<b>Destiny bends to your will — a forbidden pact is formed in shadows...</b>\n\n🎁<b><u>REWARDS</u>:</b>\n• 🧩 Special Mission Granted (Details coming soon)\n• ⏳ Countdown begins... (Pinned message with timer)",
             parse_mode="HTML"
         )
         try:
@@ -135,7 +135,7 @@ def handle_roulette_spin(call):
         bot.send_photo(
             chat_id,
             photo=images["yen_drop"],
-            caption="💰 <b>YEN DROP!</b>\n━━━━━━━━━━━━━\nYou’ve received <b>100,000 Yens</b>!",
+            caption="💸<b>YEN DROP</b>\n<b>Luck floods your pockets like a storm — you're showered in riches!</b>\n\n🎁<b><u>REWARDS</u>:</b>\n💴<b>Yens: +100,000</b>",
             parse_mode="HTML"
         )
 
@@ -146,18 +146,18 @@ def handle_roulette_spin(call):
         bot.send_photo(
             chat_id,
             photo=images["crystal_surge"],
-            caption="💎 <b>CRYSTAL SURGE!</b>\n━━━━━━━━━━━━━\nYou gained <b>355 Crystals</b>!",
+            caption="🔮<b><u>CRYSTAL SURGE</u></b>\n<b>Fate aligns in your favor as a surge of crystals pierces reality...</b>\n\n🎁<b><u>REWARDS</u>:</b>\n🔮Crystals: +355",
             parse_mode="HTML"
         )
 
     elif reward_type == "ton_of_tickets":
-        cursor.execute("UPDATE user_data SET tokens = tokens + 225 WHERE user_id = ?", (user_id,))
+        cursor.execute("UPDATE user_data SET tickets = tickets + 225 WHERE user_id = ?", (user_id,))
         conn.commit()
 
         bot.send_photo(
             chat_id,
             photo=images["ton_of_tickets"],
-            caption="🎟️ <b>TON OF TICKETS!</b>\n━━━━━━━━━━━━━\nYou earned <b>225 Tokens</b>!",
+            caption="🎟️<b>TON OF TICKETS</b>\n<b>A whirlwind of chance spins in your favor — the tickets rain down!</b>\n\n🎁<b><u>REWARDS</u>:</b>\n🎟Tickets: +225",
             parse_mode="HTML"
         )
 
