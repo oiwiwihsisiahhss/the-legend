@@ -67,6 +67,18 @@ def try_roulette(user_id,chat_id):
     )
 
     return True  # 🔁 VERY IMPORTANT: let explore() know we triggered this
+@bot.callback_query_handler(func=lambda call: call.data == "escape_menu")
+def handle_escape(call):
+    try:
+        bot.edit_message_caption(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            caption="✅ <b>You have successfully escaped the <u>Contract Roulette</u>!</b>\nNo rewards, no risks — maybe next time...",
+            parse_mode="HTML",
+            reply_markup=None  # This removes all buttons
+        )
+    except Exception as e:
+        print(f"[❌] Failed to edit caption on escape: {e}")    
 @bot.callback_query_handler(func=lambda call: call.data in [str(i) for i in range(9)])
 def handle_roulette_spin(call):
     user_id = call.from_user.id
@@ -74,12 +86,12 @@ def handle_roulette_spin(call):
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
+    cursor.execute("SELECT crystals, yens FROM user_balance WHERE user_id = ?", (user_id,))
+    res = cursor.fetchone()
 
-    # Delete the roulette message
-    try:
-        bot.delete_message(chat_id, call.message.message_id)
-    except:
-        pass
+    if not res or res[0] < 800 or res[1] < 45000:
+        bot.send_message(user_id, "🚫 <b>Insufficient Resources</b>\nYou need at least <b>800 Crystals</b> and <b>45,000 Yens</b> to face the Contract Roulette.", parse_mode="HTML")
+        return  # Stop execution if not eligible
 
     # --- Weighted random reward ---
     import random
