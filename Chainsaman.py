@@ -45,7 +45,10 @@ def try_roulette(user_id,chat_id):
     markup = types.InlineKeyboardMarkup(row_width=3)
     buttons = [types.InlineKeyboardButton("🌀", callback_data=str(i)) for i in range(9)]
     markup.add(*buttons)
-
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    btn1 = types.InlineKeyboardButton("🚪 Escape", callback_data="escape_menu")
+    btn2 = types.InlineKeyboardButton("📖 Game Info", callback_data="game_info")
+    markup.add(btn1, btn2)
     caption = (
         "🔮 <b>FATE HAS CHOSEN YOU!</b> 🔮\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
