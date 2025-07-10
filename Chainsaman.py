@@ -10,29 +10,7 @@ from telebot import types
 from datetime import datetime, timedelta
 
 import html
-game_info_text = """
-📖 CONTRACT ROULETTE — Game Info
 
-❔ What is it?
-A mysterious and rare event where players spin the forbidden Contract Roulette to face fate and earn powerful rewards.
-
-🎯 How to Play:
-Players are offered 9 mysterious portals to choose from — only one holds their reward.
-
-⚠️ Requirements:
-• 💠 800 Crystals
-• 💴 45,000 Yens
-
-🎁 Possible Outcomes:
-• 🧧 Devil Pact: Triggers a special mission with a ticking timer.
-• 🔥 Contract Burn: A dangerous outcome — resources lost.
-• 💰 Yen Drop: Instantly gain 100,000 Yens.
-• 🔮 Crystal Surge: Gain 355 Crystals.
-• 🎟️ Ton of Tickets: Win 225 Tokens.
-
-🛑 Warning:
-Once entered, you cannot cancel. You must choose your fate!
-""".strip()
 # Temporary in-memory sel pgection before saving
 # Track roulette trigger time
 roulette_trigger_time = {}  # user_id: datetime
@@ -112,18 +90,63 @@ import io
 def game_info_callback(call):
     bot.answer_callback_query(call.id)
 
-    # Create in-memory text file
+    # Your HTML content
+    html_content = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Contract Roulette Info</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <h2>📖 <u>CONTRACT ROULETTE — Game Info</u></h2>
+
+  <h3>❔ What is it?</h3>
+  <p>A mysterious and rare event where players spin the <strong><u>forbidden Contract Roulette</u></strong> to face fate and earn powerful rewards.</p>
+
+  <h3>🎯 How to Play:</h3>
+  <p>Players are offered 9 mysterious portals to choose from — only one holds their reward.</p>
+
+  <h3>⚠️ Requirements:</h3>
+  <ul>
+    <li>💠 800 Crystals</li>
+    <li>💴 45,000 Yens</li>
+  </ul>
+
+  <h3>🎁 Possible Outcomes:</h3>
+  <ul>
+    <li>🧧 <strong>Devil Pact</strong>: Triggers a special mission with a ticking timer.</li>
+    <li>🔥 <strong>Contract Burn</strong>: A dangerous outcome — resources lost.</li>
+    <li>💰 <strong>Yen Drop</strong>: Instantly gain 100,000 Yens.</li>
+    <li>🔮 <strong>Crystal Surge</strong>: Gain 355 Crystals.</li>
+    <li>🎟️ <strong>Ton of Tickets</strong>: Win 225 Tokens.</li>
+  </ul>
+
+  <h3>🛑 Warning:</h3>
+  <p>Once entered, you cannot cancel. You must choose your fate!</p>
+</body>
+</html>
+    """
+
+    # Create in-memory file
     file_buffer = io.BytesIO()
-    file_buffer.write(game_info_text.encode("utf-8"))
+    file_buffer.write(html_content.encode("utf-8"))
+    file_buffer.name = "contract_roulette_info.html"  # ✅ Set proper filename
     file_buffer.seek(0)
 
     # Send as document
     bot.send_document(
-        call.message.chat.id,
+        chat_id=call.message.chat.id,
         document=file_buffer,
-        caption="📄 <b>Contract Roulette Details</b>",
-        parse_mode="HTML",
-        visible_file_name="contract_roulette_info.txt"
+        caption="📄 <b>Contract Roulette Guide</b>",
+        parse_mode="HTML"
     )
 @bot.callback_query_handler(func=lambda call: call.data == "game_info")
 def game_info_callback(call):
