@@ -197,7 +197,10 @@ def handle_roulette_spin(call):
     options = list(weights.keys())
     probabilities = [weights[key] for key in options]
     reward_type = random.choices(options, weights=probabilities, k=1)[0]
-
+    try:
+        bot.delete_message(chat_id, call.message.message_id)
+    except:
+        pass  # In case bot lacks permission or message already deleted
     # --- Image links ---
     images = {
         "yen_drop": "https://envs.sh/E8l.jpg/IMG2025062116.jpg",
