@@ -175,9 +175,13 @@ def handle_roulette_spin(call):
     cursor.execute("SELECT crystals, yens FROM user_balance WHERE user_id = ?", (user_id,))
     res = cursor.fetchone()
 
-    if not res or res[0] < 800 or res[1] < 45000:
-        bot.answer_callback_query(call.id, "🚫 <b>Insufficient Resources</b>\nYou need at least <b>800 Crystals</b> and <b>45,000 Yens</b> to face the Contract Roulette.",show_alert=True)
-        return  # Stop execution if not eligible
+    if not res or int(res[0]) < 800 or int(res[1]) < 45000:
+        bot.answer_callback_query(
+        call.id,
+        "🚫 Insufficient Resources\nYou need at least 800 Crystals and 45,000 Yens to face the Contract Roulette.",
+        show_alert=True
+    )
+        return
 
     # --- Weighted random reward ---
     import random
