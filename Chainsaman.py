@@ -172,7 +172,7 @@ def handle_roulette_spin(call):
 
     conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT crystals, yens FROM user_balance WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT crystals, yens FROM user_data WHERE user_id = ?", (user_id,))
     res = cursor.fetchone()
 
     if not res or int(res[0]) < 800 or int(res[1]) < 45000:
