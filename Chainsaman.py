@@ -2827,7 +2827,7 @@ import threading
 import time
 from telebot import TeleBot, types
 
-bot = TeleBot("YOUR_BOT_TOKEN")  # Replace with your token
+  # Replace with your token
 
 # Mission Timer Function
 def start_mission_timer(chat_id, total_seconds=180):
