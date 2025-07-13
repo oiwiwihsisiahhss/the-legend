@@ -2815,41 +2815,43 @@ from telebot import TeleBot, types
 
 
 
-def start_test_timer(chat_id, message_id):
-    total_seconds = 300  # 5 minutes
-    update_interval = 1  # every 30 seconds
-    end_time = datetime.utcnow() + timedelta(seconds=total_seconds)
+import time
+import threading
+from telebot import types
 
-    def update():
-        while True:
-            remaining = int((end_time - datetime.utcnow()).total_seconds())
-            if remaining <= 0:
+def start_clock_timer(bot, chat_id):
+    total_duration = 60  # Set to 300 for 5 minutes
+    message = bot.send_message(chat_id, "<b>⏳ Timer started!</b>\n<b>⬛</b>", parse_mode="HTML")
+    message_id = message.message_id
+
+    def update_timer():
+        for i in range(1, total_duration + 1):
+            progress_bar = "<b>" + "⬛" * i + "</b>"
+            remaining = total_duration - i
+
+            try:
                 bot.edit_message_text(
                     chat_id=chat_id,
                     message_id=message_id,
-                    text="⏰ <b>Time's up!</b>\nYour mission window has closed.",
+                    text=f"<b>⏳ Time Remaining: {remaining} sec</b>\n{progress_bar}",
                     parse_mode="HTML"
                 )
-                break
+            except Exception as e:
+                print("Edit failed:", e)
 
-            mins, secs = divmod(remaining, 60)
-            progress = int((total_seconds - remaining) / total_seconds * 10)
-            bar = "■" * progress + "□" * (10 - progress)
+            time.sleep(1)
 
+        # Final message
+        try:
             bot.edit_message_text(
                 chat_id=chat_id,
                 message_id=message_id,
-                text=f"⏳ <b>Mission Timer</b>\n{bar}  {mins:02d}:{secs:02d} remaining",
+                text="<b>⏰ Time's up!</b>\n<b>✅ Mission window closed.</b>",
                 parse_mode="HTML"
             )
-            time.sleep(update_interval)
-
-    threading.Thread(target=update).start()
-
-@bot.message_handler(commands=["test_timer"])
-def test_timer_command(message):
-    msg = bot.send_message(message.chat.id, "⏳ <b>Mission Timer</b>\n□□□□□□□□□□  05:00 remaining", parse_mode="HTML")
-    start_test_timer(message.chat.id, msg.message_id)
+        except:
+            pass
+    threading.Thread(target=update_timer).start()
 
 
 bot.infinity_polling(none_stop=True)
