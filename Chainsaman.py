@@ -2819,42 +2819,55 @@ import time
 import threading
 from telebot import types
 
-def start_clock_timer(bot, chat_id):
-    total_duration = 60  # Set to 300 for 5 minutes
-    message = bot.send_message(chat_id, "<b>⏳ Timer started!</b>\n<b>⬛</b>", parse_mode="HTML")
-    message_id = message.message_id
+import threading
+import time
+from datetime import timedelta
 
-    def update_timer():
-        for i in range(1, total_duration + 1):
-            progress_bar = "<b>" + "⬛" * i + "</b>"
-            remaining = total_duration - i
+@bot.message_handler(commands=["mission_clock"])
+def mission_clock_handler(message):
+    chat_id = message.chat.id
+
+    # Send initial message
+    msg = bot.send_message(
+        chat_id,
+        text="⏳ <b>Mission Timer</b>\n□□□□□□□□□□  <b>05:00 remaining</b>",
+        parse_mode="HTML"
+    )
+
+    def update_clock():
+        total_time = 300  # 5 minutes in seconds
+        total_blocks = 10
+
+        for elapsed in range(total_time + 1):
+            blocks_filled = elapsed * total_blocks // total_time
+            blocks_empty = total_blocks - blocks_filled
+            bar = "■" * blocks_filled + "□" * blocks_empty
+
+            remaining_time = str(timedelta(seconds=total_time - elapsed))[2:]  # MM:SS
+            if len(remaining_time) == 4:
+                remaining_time = "00:" + remaining_time  # edge case fix
+
+            text = f"⏳ <b>Mission Timer</b>\n{bar}  <b>{remaining_time} remaining</b>"
 
             try:
                 bot.edit_message_text(
                     chat_id=chat_id,
-                    message_id=message_id,
-                    text=f"<b>⏳ Time Remaining: {remaining} sec</b>\n{progress_bar}",
+                    message_id=msg.message_id,
+                    text=text,
                     parse_mode="HTML"
                 )
-            except Exception as e:
-                print("Edit failed:", e)
+            except:
+                break
 
             time.sleep(1)
 
-        # Final message
-        try:
-            bot.edit_message_text(
-                chat_id=chat_id,
-                message_id=message_id,
-                text="<b>⏰ Time's up!</b>\n<b>✅ Mission window closed.</b>",
-                parse_mode="HTML"
-            )
-        except:
-            pass
-    threading.Thread(target=update_timer).start()
+        # Final message after time is over
+        bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=msg.message_id,
+            text="✅ <b>Mission Time Over!</b>\n■" * 10,
+            parse_mode="HTML"
+        )
 
-@bot.message_handler(commands=['test_timer'])
-def test_timer_command(message):
-    chat_id = message.chat.id
-    start_clock_timer(bot, chat_id)
+    threading.Thread(target=update_clock, daemon=True).start()
 bot.infinity_polling(none_stop=True)
