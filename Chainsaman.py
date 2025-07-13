@@ -2830,7 +2830,13 @@ def start_mission_timer(bot, chat_id):
             remaining = int((end - now).total_seconds())
             if remaining <= 0:
                 break
-
+            # 🔔 Warnings
+            if remaining <= 120 and not warned_2min:
+                bot.send_message(chat_id, "⚠️ <b>2 minutes remaining!</b>", parse_mode="HTML")
+                warned_2min = True
+            if remaining <= 30 and not warned_30s:
+                bot.send_message(chat_id, "⏳ <b>Only 30 seconds left!</b>", parse_mode="HTML")
+                warned_30s = True
             seconds_elapsed = total_seconds - remaining
             filled_blocks = seconds_elapsed % (block_count + 1)
             bar = "■" * filled_blocks + "□" * (block_count - filled_blocks)
