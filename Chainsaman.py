@@ -2853,5 +2853,8 @@ def start_clock_timer(bot, chat_id):
             pass
     threading.Thread(target=update_timer).start()
 
-
+@bot.message_handler(commands=['test_timer'])
+def test_timer_command(message):
+    chat_id = message.chat.id
+    start_clock_timer(bot, chat_id)
 bot.infinity_polling(none_stop=True)
