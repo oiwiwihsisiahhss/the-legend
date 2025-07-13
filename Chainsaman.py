@@ -2817,7 +2817,7 @@ from telebot import TeleBot, types
 
 def start_test_timer(chat_id, message_id):
     total_seconds = 300  # 5 minutes
-    update_interval = 30  # every 30 seconds
+    update_interval = 1  # every 30 seconds
     end_time = datetime.utcnow() + timedelta(seconds=total_seconds)
 
     def update():
