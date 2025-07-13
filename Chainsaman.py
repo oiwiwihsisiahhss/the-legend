@@ -2808,13 +2808,6 @@ def user_info(message):
     finally:
         conn.close()
 bot.remove_webhook() 
-import time
-import threading
-from datetime import datetime, timedelta
-from telebot import TeleBot, types
-
-
-
 import threading
 import time
 from datetime import datetime, timedelta
@@ -2822,49 +2815,47 @@ from telebot import types
 
 def start_mission_timer(bot, chat_id):
     def update_timer():
-        total_duration = 5 * 60  # 5 minutes in seconds
-        bar_length = 10
-        interval = 1  # 1 second per block
+        total_seconds = 3 * 60  # ⏳ 3 minutes
+        block_count = 10
+        interval = 1  # ⏱ 1 second per block
 
-        start_time = datetime.utcnow()
-        end_time = start_time + timedelta(seconds=total_duration)
+        start = datetime.utcnow()
+        end = start + timedelta(seconds=total_seconds)
 
-        blocks_filled = 0
-        msg = bot.send_message(chat_id, "<b>⏳ Mission Timer</b>\n□□□□□□□□□□ 05:00", parse_mode="HTML")
-        msg_id = msg.message_id
+        msg = bot.send_message(chat_id, "<b>⏳ Mission Timer</b>\n□□□□□□□□□□ 03:00", parse_mode="HTML")
+        msg_id = msg.message_id  # 🆗 Save message ID for editing
 
         while True:
             now = datetime.utcnow()
-            remaining = int((end_time - now).total_seconds())
-
+            remaining = int((end - now).total_seconds())
             if remaining <= 0:
                 break
 
-            blocks_filled = (blocks_filled + 1) % (bar_length + 1)
-            blocks = "■" * blocks_filled + "□" * (bar_length - blocks_filled)
-            mins, secs = divmod(remaining, 60)
-            time_text = f"{mins:02d}:{secs:02d}"
+            seconds_elapsed = total_seconds - remaining
+            filled_blocks = seconds_elapsed % (block_count + 1)
+            bar = "■" * filled_blocks + "□" * (block_count - filled_blocks)
 
-            new_text = f"<b>⏳ Mission Timer</b>\n{blocks} {time_text}"
+            mins, secs = divmod(remaining, 60)
+            timer = f"{mins:02}:{secs:02}"
+            text = f"<b>⏳ Mission Timer</b>\n{bar} {timer}"
 
             try:
-                bot.edit_message_text(new_text, chat_id, msg_id, parse_mode="HTML")
+                bot.edit_message_text(text, chat_id, msg_id, parse_mode="HTML")
             except:
                 pass
 
             time.sleep(interval)
 
-        # When mission ends
+        # ✅ Final message after time up
         final_text = "<b>✅ Mission Time Over!</b>\n■■■■■■■■■■"
         try:
             bot.edit_message_text(final_text, chat_id, msg_id, parse_mode="HTML")
         except:
             pass
 
-    # Run in separate thread
     threading.Thread(target=update_timer).start()
 @bot.message_handler(commands=["start_mission"])
 def mission_command(message):
-    start_mission_timer(bot, chat_id)
+    start_mission_timer(bot,message.chat.id)
 
 bot.infinity_polling(none_stop=True)
