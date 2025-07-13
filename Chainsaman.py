@@ -2823,51 +2823,47 @@ import threading
 import time
 from datetime import timedelta
 
-@bot.message_handler(commands=["mission_clock"])
-def mission_clock_handler(message):
-    chat_id = message.chat.id
+import threading
+import time
+from telebot import TeleBot, types
 
-    # Send initial message
-    msg = bot.send_message(
-        chat_id,
-        text="⏳ <b>Mission Timer</b>\n□□□□□□□□□□  <b>05:00 remaining</b>",
-        parse_mode="HTML"
-    )
+bot = TeleBot("YOUR_BOT_TOKEN")  # Replace with your token
 
-    def update_clock():
-        total_time = 300  # 5 minutes in seconds
-        total_blocks = 10
+# Mission Timer Function
+def start_mission_timer(chat_id, total_seconds=180):
+    def update_timer():
+        message = bot.send_message(chat_id, "<b>⏳ Mission Timer</b>\n□" * 10 + "  03:00 remaining", parse_mode="HTML")
+        msg_id = message.message_id
 
-        for elapsed in range(total_time + 1):
-            blocks_filled = elapsed * total_blocks // total_time
-            blocks_empty = total_blocks - blocks_filled
-            bar = "■" * blocks_filled + "□" * blocks_empty
+        filled = 0
+        while total_seconds > 0:
+            mins, secs = divmod(total_seconds, 60)
+            time_str = f"{mins:02}:{secs:02}"
 
-            remaining_time = str(timedelta(seconds=total_time - elapsed))[2:]  # MM:SS
-            if len(remaining_time) == 4:
-                remaining_time = "00:" + remaining_time  # edge case fix
-
-            text = f"⏳ <b>Mission Timer</b>\n{bar}  <b>{remaining_time} remaining</b>"
+            bar = "■" * filled + "□" * (10 - filled)
+            text = f"<b>⏳ Mission Timer</b>\n{bar}  {time_str} remaining"
 
             try:
-                bot.edit_message_text(
-                    chat_id=chat_id,
-                    message_id=msg.message_id,
-                    text=text,
-                    parse_mode="HTML"
-                )
+                bot.edit_message_text(text, chat_id, msg_id, parse_mode="HTML")
             except:
-                break
+                pass  # message might be deleted
 
+            filled = (filled + 1) % 11  # loop back to 0 after full bar
             time.sleep(1)
+            total_seconds -= 1
 
-        # Final message after time is over
-        bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=msg.message_id,
-            text="✅ <b>Mission Time Over!</b>\n■" * 10,
-            parse_mode="HTML"
-        )
+        # When time ends
+        final_text = "<b>✅ Mission Time Over!</b>\n" + "■" * 10
+        try:
+            bot.edit_message_text(final_text, chat_id, msg_id, parse_mode="HTML")
+        except:
+            pass
 
-    threading.Thread(target=update_clock, daemon=True).start()
+    threading.Thread(target=update_timer).start()
+
+# Example handler to test it
+@bot.message_handler(commands=["start_mission"])
+def mission_command(message):
+    start_mission_timer(message.chat.id)
+
 bot.infinity_polling(none_stop=True)
