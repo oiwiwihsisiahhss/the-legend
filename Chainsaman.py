@@ -2807,5 +2807,49 @@ def user_info(message):
         bot.reply_to(message, "Something went wrong.")
     finally:
         conn.close()
-bot.remove_webhook()      
+bot.remove_webhook() 
+import time
+import threading
+from datetime import datetime, timedelta
+from telebot import TeleBot, types
+
+
+
+def start_test_timer(chat_id, message_id):
+    total_seconds = 300  # 5 minutes
+    update_interval = 30  # every 30 seconds
+    end_time = datetime.utcnow() + timedelta(seconds=total_seconds)
+
+    def update():
+        while True:
+            remaining = int((end_time - datetime.utcnow()).total_seconds())
+            if remaining <= 0:
+                bot.edit_message_text(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    text="⏰ <b>Time's up!</b>\nYour mission window has closed.",
+                    parse_mode="HTML"
+                )
+                break
+
+            mins, secs = divmod(remaining, 60)
+            progress = int((total_seconds - remaining) / total_seconds * 10)
+            bar = "■" * progress + "□" * (10 - progress)
+
+            bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=message_id,
+                text=f"⏳ <b>Mission Timer</b>\n{bar}  {mins:02d}:{secs:02d} remaining",
+                parse_mode="HTML"
+            )
+            time.sleep(update_interval)
+
+    threading.Thread(target=update).start()
+
+@bot.message_handler(commands=["test_timer"])
+def test_timer_command(message):
+    msg = bot.send_message(message.chat.id, "⏳ <b>Mission Timer</b>\n□□□□□□□□□□  05:00 remaining", parse_mode="HTML")
+    start_test_timer(message.chat.id, msg.message_id)
+
+
 bot.infinity_polling(none_stop=True)
