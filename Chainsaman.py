@@ -2818,7 +2818,8 @@ def start_mission_timer(bot, chat_id):
         total_seconds = 300  # ⏳ 3 minutes
         block_count = 10
         interval = 1  # ⏱ 1 second per block
-
+        warned_2min = False
+        warned_30s = False
         start = datetime.utcnow()
         end = start + timedelta(seconds=total_seconds)
 
