@@ -2815,7 +2815,7 @@ from telebot import types
 
 def start_mission_timer(bot, chat_id):
     def update_timer():
-        total_seconds = 3 * 60  # ⏳ 3 minutes
+        total_seconds = 300  # ⏳ 3 minutes
         block_count = 10
         interval = 1  # ⏱ 1 second per block
 
