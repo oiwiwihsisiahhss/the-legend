@@ -2878,8 +2878,7 @@ def fetch_template():
 def send_balance_card(message):
     img = fetch_template()
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size=28)
-
+    font = ImageFont.truetype("Hamston.ttf", size=28)
     # Set your values
     name = "XYZ"
     uid = "99999999"
