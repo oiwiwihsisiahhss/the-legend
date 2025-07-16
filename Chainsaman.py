@@ -2878,40 +2878,41 @@ def fetch_template():
 def send_balance_card(message):
     img = fetch_template()
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype("Hamston.ttf", size=28)
-    # Set your values
+    font = ImageFont.truetype("Hamston.ttf", size=44)
+
+    # Dynamic values
     name = "XYZ"
     uid = "99999999"
     joined = datetime.now().strftime("%Y-%m-%d")
     level = "1"
-    yens = "¥ 15200"
-    crystals = "🔮 850"
-    tickets = "🎟️ 3"
-    energy = "⚡ 94"
-    exp = "✨ 760 / 1000"
-    rank = "⚔️ 1"
+    yens = "15200"
+    crystals = "850"
+    tickets = "3"
+    energy = "94"
+    exp = "760 / 1000"
+    rank = "1"
 
-    # Add text to image at specific coordinates (based on earlier analysis)
-    draw.text((150, 160), name, font=font, fill="white")
-    draw.text((150, 210), f"UID: {uid}", font=font, fill="white")
-    draw.text((150, 260), f"Joined: {joined}", font=font, fill="white")
-    draw.text((150, 310), f"Level: {level}", font=font, fill="white")
+    # Draw values only (no repeated labels!)
+    draw.text((430, 160), name, font=font, fill="white")              # NAME
+    draw.text((430, 210), uid, font=font, fill="white")               # UID
+    draw.text((430, 260), joined, font=font, fill="white")            # JOINED
+    draw.text((430, 310), level, font=font, fill="white")             # LEVEL
 
-    draw.text((150, 420), yens, font=font, fill="white")
-    draw.text((150, 470), crystals, font=font, fill="white")
-    draw.text((150, 520), tickets, font=font, fill="white")
+    draw.text((430, 420), yens, font=font, fill="white")              # YENS
+    draw.text((430, 470), crystals, font=font, fill="white")          # CRYSTALS
+    draw.text((430, 520), tickets, font=font, fill="white")           # TICKETS
 
-    draw.text((150, 630), energy, font=font, fill="white")
-    draw.text((150, 680), exp, font=font, fill="white")
-    draw.text((150, 730), rank, font=font, fill="white")
+    draw.text((430, 630), energy, font=font, fill="white")            # ENERGY
+    draw.text((430, 680), exp, font=font, fill="white")               # EXP
+    draw.text((430, 730), rank, font=font, fill="white")              # RANK
 
-    # Save in memory and send
+    # Send
     img_bytes = BytesIO()
     img_bytes.name = "balance.png"
     img.save(img_bytes, format='PNG')
     img_bytes.seek(0)
 
-    bot.send_photo(message.chat.id, photo=img_bytes, caption=f"🧾 Here's your Hunter's Balance!")
+    bot.send_photo(message.chat.id, photo=img_bytes, caption="🧾 Here's your Hunter's Balance!")
 
 
 bot.infinity_polling(none_stop=True)
