@@ -2870,7 +2870,7 @@ def mission_command(message):
 
 # Download your GitHub image (one-time use or move to local)
 def fetch_template():
-    url = "https://raw.githubusercontent.com/rishi-kayal-bio/the-legend/main/HUNTERS%20BALANCE.jpg"
+    url = "https://raw.githubusercontent.com/oiwiwihsisiahhss/the-legend/main/HUNTERS%20BALANCE.jpg"
     response = requests.get(url)
     return Image.open(BytesIO(response.content)).convert("RGBA")
 
