@@ -2893,18 +2893,18 @@ def send_balance_card(message):
     rank = "1"
 
     # Draw values only (no repeated labels!)
-    draw.text((420, 185), name, font=font, fill="white")              # NAME
-    draw.text((420, 235), uid, font=font, fill="white")               # UID
-    draw.text((420, 285), joined, font=font, fill="white")            # JOINED
-    draw.text((420, 335), level, font=font, fill="white")             # LEVEL
+    draw.text((300, 240), name, font=font, fill="white")              # NAME
+    draw.text((300, 290), uid, font=font, fill="white")               # UID
+    draw.text((300, 340), joined, font=font, fill="white")            # JOINED
+    draw.text((300, 390), level, font=font, fill="white")             # LEVEL
 
-    draw.text((420, 465), yens, font=font, fill="white")              # YENS
-    draw.text((420, 525), crystals, font=font, fill="white")          # CRYSTALS
-    draw.text((420, 565), tickets, font=font, fill="white")           # TICKETS
+    draw.text((300, 490), yens, font=font, fill="white")              # YENS
+    draw.text((300, 540), crystals, font=font, fill="white")          # CRYSTALS
+    draw.text((300, 590), tickets, font=font, fill="white")           # TICKETS
 
-    draw.text((420, 695), energy, font=font, fill="white")            # ENERGY
-    draw.text((420, 745), exp, font=font, fill="white")               # EXP
-    draw.text((420, 795), rank, font=font, fill="white")              # RANK
+    draw.text((300, 690), energy, font=font, fill="white")            # ENERGY
+    draw.text((300, 740), exp, font=font, fill="white")               # EXP
+    draw.text((300, 790), rank, font=font, fill="white")              # RANK
 
     # Send
     img_bytes = BytesIO()
