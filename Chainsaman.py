@@ -2869,10 +2869,31 @@ def mission_command(message):
 
 
 # Download your GitHub image (one-time use or move to local)
+from telebot import types
+from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
+import requests
+from datetime import datetime
+
 def fetch_template():
     url = "https://raw.githubusercontent.com/oiwiwihsisiahhss/the-legend/main/HUNTERS%20BALANCE.jpg"
     response = requests.get(url)
     return Image.open(BytesIO(response.content)).convert("RGBA")
+
+def fetch_user_dp(user_id):
+    try:
+        photos = bot.get_user_profile_photos(user_id)
+        if photos.total_count > 0:
+            file_id = photos.photos[0][0].file_id
+            file_info = bot.get_file(file_id)
+            file_url = f"https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}"
+            dp_response = requests.get(file_url)
+            return Image.open(BytesIO(dp_response.content)).convert("RGBA")
+        else:
+            return None  # No profile pic
+    except Exception as e:
+        print(f"Error fetching DP: {e}")
+        return None
 
 @bot.message_handler(commands=['image'])
 def send_balance_card(message):
@@ -2881,8 +2902,8 @@ def send_balance_card(message):
     font = ImageFont.truetype("Poppins-BlackItalic.ttf", size=50)
 
     # Dynamic values
-    name = "XYZ"
-    uid = "99999999"
+    name = message.from_user.first_name
+    uid = str(message.from_user.id)
     joined = datetime.now().strftime("%Y-%m-%d")
     level = "1"
     yens = "15200"
@@ -2890,9 +2911,15 @@ def send_balance_card(message):
     tickets = "3"
     energy = "94"
     exp = "760 / 1000"
-    rank = "1"
+    rank = "E RANK"
 
-    # Draw values only (no repeated labels!)
+    # Insert profile picture (if available)
+    dp_img = fetch_user_dp(message.from_user.id)
+    if dp_img:
+        dp_img = dp_img.resize((210, 210))
+        img.paste(dp_img, (578, 55), dp_img)  # Paste with transparency support
+
+    # Draw text values
     draw.text((450, 345), name, font=font, fill="white")              # NAME
     draw.text((450, 425), uid, font=font, fill="white")               # UID
     draw.text((450, 495), joined, font=font, fill="white")            # JOINED
@@ -2902,17 +2929,16 @@ def send_balance_card(message):
     draw.text((450, 820), crystals, font=font, fill="white")          # CRYSTALS
     draw.text((450, 900), tickets, font=font, fill="white")           # TICKETS
 
-    draw.text((450, 1080), energy, font=font, fill="white")            # ENERGY
-    draw.text((450, 1150), exp, font=font, fill="white")               # EXP
-    draw.text((450, 1220), rank, font=font, fill="white")              # RANK
+    draw.text((450, 1080), energy, font=font, fill="white")           # ENERGY
+    draw.text((450, 1150), exp, font=font, fill="white")              # EXP
+    draw.text((450, 1220), rank, font=font, fill="white")             # RANK
 
-    # Send
+    # Send image
     img_bytes = BytesIO()
     img_bytes.name = "balance.png"
     img.save(img_bytes, format='PNG')
     img_bytes.seek(0)
 
     bot.send_photo(message.chat.id, photo=img_bytes, caption="🧾 Here's your Hunter's Balance!")
-
 
 bot.infinity_polling(none_stop=True)
