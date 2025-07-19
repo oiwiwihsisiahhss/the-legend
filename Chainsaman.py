@@ -2878,7 +2878,7 @@ def fetch_template():
 def send_balance_card(message):
     img = fetch_template()
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype("Hamston.ttf", size=80)
+    font = ImageFont.truetype("Hamston.ttf", size=50)
 
     # Dynamic values
     name = "XYZ"
@@ -2893,18 +2893,18 @@ def send_balance_card(message):
     rank = "1"
 
     # Draw values only (no repeated labels!)
-    draw.text((300, 240), name, font=font, fill="white")              # NAME
-    draw.text((300, 290), uid, font=font, fill="white")               # UID
-    draw.text((300, 340), joined, font=font, fill="white")            # JOINED
-    draw.text((300, 390), level, font=font, fill="white")             # LEVEL
+    draw.text((450, 345), name, font=font, fill="white")              # NAME
+    draw.text((450, 425), uid, font=font, fill="white")               # UID
+    draw.text((450, 495), joined, font=font, fill="white")            # JOINED
+    draw.text((450, 565), level, font=font, fill="white")             # LEVEL
 
-    draw.text((300, 490), yens, font=font, fill="white")              # YENS
-    draw.text((300, 540), crystals, font=font, fill="white")          # CRYSTALS
-    draw.text((300, 590), tickets, font=font, fill="white")           # TICKETS
+    draw.text((450, 740), yens, font=font, fill="white")              # YENS
+    draw.text((450, 820), crystals, font=font, fill="white")          # CRYSTALS
+    draw.text((450, 900), tickets, font=font, fill="white")           # TICKETS
 
-    draw.text((300, 690), energy, font=font, fill="white")            # ENERGY
-    draw.text((300, 740), exp, font=font, fill="white")               # EXP
-    draw.text((300, 790), rank, font=font, fill="white")              # RANK
+    draw.text((450, 1080), energy, font=font, fill="white")            # ENERGY
+    draw.text((450, 1150), exp, font=font, fill="white")               # EXP
+    draw.text((450, 1220), rank, font=font, fill="white")              # RANK
 
     # Send
     img_bytes = BytesIO()
