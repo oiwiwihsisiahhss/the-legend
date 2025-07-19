@@ -2878,7 +2878,7 @@ def fetch_template():
 def send_balance_card(message):
     img = fetch_template()
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype("Hamston.ttf", size=50)
+    font = ImageFont.truetype("Poppins-BlackItalic.ttf", size=50)
 
     # Dynamic values
     name = "XYZ"
