@@ -2895,50 +2895,50 @@ def fetch_user_dp(user_id):
         print(f"Error fetching DP: {e}")
         return None
 
-@bot.message_handler(commands=['image'])
-def send_balance_card(message):
-    img = fetch_template()
-    draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype("Poppins-BlackItalic.ttf", size=50)
-
-    # Dynamic values
-    name = message.from_user.first_name
-    uid = str(message.from_user.id)
-    joined = datetime.now().strftime("%Y-%m-%d")
-    level = "1"
-    yens = "15200"
-    crystals = "850"
-    tickets = "3"
-    energy = "94"
-    exp = "760 / 1000"
-    rank = "E RANK"
-
-    # Insert profile picture (if available)
-    dp_img = fetch_user_dp(message.from_user.id)
-    if dp_img:
-        dp_img = dp_img.resize((210, 210))
-        img.paste(dp_img, (578, 55), dp_img)  # Paste with transparency support
-
-    # Draw text values
-    draw.text((450, 345), name, font=font, fill="white")              # NAME
-    draw.text((450, 425), uid, font=font, fill="white")               # UID
-    draw.text((450, 495), joined, font=font, fill="white")            # JOINED
-    draw.text((450, 565), level, font=font, fill="white")             # LEVEL
-
-    draw.text((450, 740), yens, font=font, fill="white")              # YENS
-    draw.text((450, 820), crystals, font=font, fill="white")          # CRYSTALS
-    draw.text((450, 900), tickets, font=font, fill="white")           # TICKETS
-
-    draw.text((450, 1080), energy, font=font, fill="white")           # ENERGY
-    draw.text((450, 1150), exp, font=font, fill="white")              # EXP
-    draw.text((450, 1220), rank, font=font, fill="white")             # RANK
-
-    # Send image
-    img_bytes = BytesIO()
-    img_bytes.name = "balance.png"
-    img.save(img_bytes, format='PNG')
-    img_bytes.seek(0)
-
-    bot.send_photo(message.chat.id, photo=img_bytes, caption="🧾 Here's your Hunter's Balance!")
+@bot.message_handler(commands=['image'])  
+def send_balance_card(message):  
+    img = fetch_template()  
+    draw = ImageDraw.Draw(img)  
+    font = ImageFont.truetype("Poppins-BlackItalic.ttf", size=50)  
+  
+    # Dynamic values  
+    name = f"{message.from_user.first_name or ''} {message.from_user.last_name or ''}".strip()
+    uid = str(message.from_user.id)  
+    joined = datetime.now().strftime("%Y-%m-%d")  
+    level = "1"  
+    yens = "15200"  
+    crystals = "850"  
+    tickets = "3"  
+    energy = "94"  
+    exp = "760 / 1000"  
+    rank = "1"  
+  
+    # Insert profile picture (if available)  
+    dp_img = fetch_user_dp(message.from_user.id)  
+    if dp_img:  
+        dp_img = dp_img.resize((210, 210))  
+        img.paste(dp_img, (578, 55), dp_img)  # Paste with transparency support  
+  
+    # Draw text values  
+    draw.text((450, 345), name, font=font, fill="white")              # NAME  
+    draw.text((450, 425), uid, font=font, fill="white")               # UID  
+    draw.text((450, 495), joined, font=font, fill="white")            # JOINED  
+    draw.text((450, 565), level, font=font, fill="white")             # LEVEL  
+  
+    draw.text((450, 740), yens, font=font, fill="white")              # YENS  
+    draw.text((450, 820), crystals, font=font, fill="white")          # CRYSTALS  
+    draw.text((450, 900), tickets, font=font, fill="white")           # TICKETS  
+  
+    draw.text((450, 1080), energy, font=font, fill="white")           # ENERGY  
+    draw.text((450, 1150), exp, font=font, fill="white")              # EXP  
+    draw.text((450, 1220), rank, font=font, fill="white")             # RANK  
+  
+    # Send image  
+    img_bytes = BytesIO()  
+    img_bytes.name = "balance.png"  
+    img.save(img_bytes, format='PNG')  
+    img_bytes.seek(0)  
+  
+    bot.send_photo(message.chat.id, photo=img_bytes, caption="🧾 Here's your Hunter's Balance")
 
 bot.infinity_polling(none_stop=True)
