@@ -2914,7 +2914,7 @@ def send_balance_card(message):
 
     level, exp, required_exp, yens, crystals, tickets, energy, max_energy = result
 
-    name = f"{message.from_user.username}
+    name = f"@{message.from_user.username}" if message.from_user.username else "No Username"
     uid = str(user_id)
     joined = datetime.now().strftime("%Y-%m-%d")
     exp_text = f"{exp} / {required_exp}"
