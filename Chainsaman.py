@@ -2902,7 +2902,7 @@ def send_balance_card(message):
     user_id = message.from_user.id
 
     # --- Fetch user data ---
-    conn = sqlite3.connect("your_database.db")
+    conn = sqlite3.connect("chainsaw.db")
     cursor = conn.cursor()
     cursor.execute("SELECT level, exp, required_exp, yens, crystals, tickets, energy, max_energy FROM user_data WHERE user_id = ?", (user_id,))
     result = cursor.fetchone()
