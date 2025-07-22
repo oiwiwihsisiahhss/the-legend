@@ -2953,12 +2953,12 @@ def send_balance_card(message):
     )
 
     bot.send_photo(message.chat.id, photo=img_bytes, caption="🧾 Here's your Hunter's Balance", reply_markup=buttons)
-@bot.callback_query_handler(func=lambda call: call.data == "close_balance")
-def close_balance_handler(call):
-    bot.edit_message_caption(
+@bot.callback_query_handler(func=lambda call: call.data.startswith("close_balance"))
+def handle_close_callback(call):
+    bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        caption="✅ BALANCE SUCCESSFULLY CLOSED",
-        reply_markup=None
-    )    
+        text="💤 BALANCE SUCCESSFULLY CLOSED",
+        reply_markup=None  # 🔴 This removes the keyboard
+    )
 bot.infinity_polling(none_stop=True)
