@@ -2935,7 +2935,7 @@ def send_balance_card(message):
     # Create image and draw text
     img = fetch_template()
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype("Poppins-BlackItalic.ttf", size=40)
+    font = ImageFont.truetype("Roboto-Italic-VariableFont_wdth,wght.ttf", size=45)
 
     dp_img = fetch_user_dp(user_id)
     if dp_img:
