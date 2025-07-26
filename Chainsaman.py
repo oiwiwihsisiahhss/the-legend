@@ -2897,60 +2897,7 @@ def fetch_user_dp(user_id):
 
 from telebot import types
 
-@bot.message_handler(commands=['image'])
-def send_balance_card(message):
-    user_id = message.from_user.id
 
-    # --- Fetch user data ---
-    conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()  # Ensure cursor is created
-    cursor.execute("SELECT level, exp, required_exp, yens, crystals, tickets, energy, max_energy FROM user_data WHERE user_id = ?", (user_id,))
-    result = cursor.fetchone()
-    #conn.close()
-
-    if result is None:
-        bot.reply_to(message, "❌ You don't have an account yet. Please start with /start")
-        return
-
-    level, exp, required_exp, yens, crystals, tickets, energy, max_energy = result
-    # Determine rank
-    cursor.execute('''
-        SELECT rank FROM hunter_ranks 
-        WHERE required_level <= ? 
-        ORDER BY required_level DESC 
-        LIMIT 1
-    ''', (level,))
-    rank_result = cursor.fetchone()
-    rank = rank_result[0] if rank_result else "Unranked"
-    conn.close() 
-    name = f"@{message.from_user.username}" if message.from_user.username else "No Username"
-    uid = str(user_id)
-    joined = datetime.now().strftime("%Y-%m-%d")
-    exp_text = f"{exp} / {required_exp}"
-    energy_text = f"{energy}/{max_energy}"
-
-    # Create image and draw text
-    img = fetch_template()
-    draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype("Poppins-BlackItalic.ttf", size=40)
-
-    dp_img = fetch_user_dp(user_id)
-    if dp_img:
-        dp_img = dp_img.resize((210, 210))
-        img.paste(dp_img, (578, 55), dp_img)
-
-    # Coordinates for drawing
-    coords = {
-        "name": (315, 341),
-        "uid": (280, 424),
-        "joined": (450, 496),
-        "level": (315, 570),
-        "yens": (290, 745),
-        "crystals": (360, 820),
-        "tickets": (345, 900),
-        "energy": (330, 1080),
-        "exp": (280, 1150),
-        "rank": (295, 1220)
 @bot.message_handler(commands=['image'])
 def send_balance_card(message):
     user_id = message.from_user.id
