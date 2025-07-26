@@ -2923,11 +2923,11 @@ def send_balance_card(message):
     rank_result = cursor.fetchone()
     rank = rank_result[0] if rank_result else "Unranked"
     conn.close() 
-    name = f":@{message.from_user.username}" if message.from_user.username else "No Username"
+    name = f"@{message.from_user.username}" if message.from_user.username else "No Username"
     uid = str(user_id)
     joined = datetime.now().strftime("%Y-%m-%d")
-    exp_text = f":{exp} / {required_exp}"
-    energy_text = f":{energy}/{max_energy}"
+    exp_text = f"{exp} / {required_exp}"
+    energy_text = f"{energy}/{max_energy}"
 
     # Create image and draw text
     img = fetch_template()
@@ -2973,21 +2973,34 @@ def send_balance_card(message):
     img_bytes.seek(0)
 
     # --- Inline Buttons ---
-    buttons = types.InlineKeyboardMarkup()
+    buttons = types.InlineKeyboardMarkup(row_width=1)  # Makes buttons stack vertically
     buttons.add(
-        types.InlineKeyboardButton("VIEW WITH 🔗", url="https://envs.sh/iR3.jpg/IMG20250714650.jpg"),
-        types.InlineKeyboardButton("❌ Exit", callback_data="close_balance")
+        types.InlineKeyboardButton("VIEW WITH 🔗", url="https://envs.sh/iR3.jpg/IMG20250714650.jpg")
     )
+    buttons.add(
+        types.InlineKeyboardButton("❌ Exit", callback_data=f"close_balance:{user_id}")
+    )
+    return buttons
+
 
     bot.send_photo(message.chat.id, photo=img_bytes, caption="🧾 Here's your Hunter's Balance", reply_markup=buttons)
 
 # --- Callback for exit button ---
-@bot.callback_query_handler(func=lambda call: call.data == "close_balance")
-def close_balance_callback(call):
-    bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        text="✅ BALANCE SUCCESSFULLY CLOSED"
-    )
+@bot.callback_query_handler(func=lambda call: call.data.startswith("close_balance"))
+def handle_close_balance(call):
+    user_id = int(call.data.split(":")[1])
+    if call.from_user.id != user_id:
+        bot.answer_callback_query(call.id, "⛔ This button is not for you!", show_alert=True)
+        return
+    
+    try:
+        bot.edit_message_caption(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            caption="✅ BALANCE SUCCESSFULLY CLOSED",
+            reply_markup=None
+        )
+    except Exception as e:
+        bot.answer_callback_query(call.id, "❗ Error while closing")
 
 bot.infinity_polling(none_stop=True)
