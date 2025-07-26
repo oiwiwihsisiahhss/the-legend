@@ -2900,17 +2900,10 @@ from telebot import types
 @bot.message_handler(commands=['image'])
 def send_balance_card(message):
     user_id = message.from_user.id
-    cursor.execute('''
-    SELECT rank FROM hunter_ranks 
-    WHERE required_level <= ? 
-    ORDER BY required_level DESC 
-    LIMIT 1
-    ''', (level,))
-    rank_result = cursor.fetchone()
-    rank = rank_result[0] if rank_result else "Unranked"
+
     # --- Fetch user data ---
     conn = sqlite3.connect("chainsaw.db")
-    cursor = conn.cursor()
+    cursor = conn.cursor()  # Ensure cursor is created
     cursor.execute("SELECT level, exp, required_exp, yens, crystals, tickets, energy, max_energy FROM user_data WHERE user_id = ?", (user_id,))
     result = cursor.fetchone()
     conn.close()
@@ -2921,13 +2914,23 @@ def send_balance_card(message):
 
     level, exp, required_exp, yens, crystals, tickets, energy, max_energy = result
 
-    name = f":@{message.from_user.username}" if message.from_user.username else ":No Username"
-    uid = f":{user_id}"
-    joined = f":{datetime.now().strftime('%Y-%m-%d')}"
+    name = f":@{message.from_user.username}" if message.from_user.username else "No Username"
+    uid = str(user_id)
+    joined = datetime.now().strftime("%Y-%m-%d")
     exp_text = f":{exp} / {required_exp}"
-    energy_text = f":{energy} / {max_energy}"
+    energy_text = f":{energy}/{max_energy}"
 
-    # --- Coordinates ---
+    # Create image and draw text
+    img = fetch_template()
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.truetype("Poppins-BlackItalic.ttf", size=50)
+
+    dp_img = fetch_user_dp(user_id)
+    if dp_img:
+        dp_img = dp_img.resize((210, 210))
+        img.paste(dp_img, (578, 55), dp_img)
+
+    # Coordinates for drawing
     coords = {
         "name": (315, 341),
         "uid": (280, 424),
@@ -2941,25 +2944,28 @@ def send_balance_card(message):
         "rank": (295, 1220)
     }
 
-    img = fetch_template()
-    draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype("Poppins-BlackItalic.ttf", size=50)
-
-    dp_img = fetch_user_dp(user_id)
-    if dp_img:
-        dp_img = dp_img.resize((210, 210))
-        img.paste(dp_img, (578, 55), dp_img)
-
-    draw.text(coords["name"], name, font=font, fill="white")
-    draw.text(coords["uid"], uid, font=font, fill="white")
-    draw.text(coords["joined"], joined, font=font, fill="white")
+    draw.text(coords["name"], f":{name}", font=font, fill="white")
+    draw.text(coords["uid"], f":{uid}", font=font, fill="white")
+    draw.text(coords["joined"], f":{joined}", font=font, fill="white")
     draw.text(coords["level"], f":{level}", font=font, fill="white")
     draw.text(coords["yens"], f":{yens}", font=font, fill="white")
     draw.text(coords["crystals"], f":{crystals}", font=font, fill="white")
     draw.text(coords["tickets"], f":{tickets}", font=font, fill="white")
-    draw.text(coords["energy"], energy_text, font=font, fill="white")
-    draw.text(coords["exp"], exp_text, font=font, fill="white")
+    draw.text(coords["energy"], f":{energy_text}", font=font, fill="white")
+    draw.text(coords["exp"], f":{exp_text}", font=font, fill="white")
+    
+    # Determine rank
+    cursor.execute('''
+        SELECT rank FROM hunter_ranks 
+        WHERE required_level <= ? 
+        ORDER BY required_level DESC 
+        LIMIT 1
+    ''', (level,))
+    rank_result = cursor.fetchone()
+    rank = rank_result[0] if rank_result else "Unranked"
     draw.text(coords["rank"], f":{rank}", font=font, fill="white")
+
+    # Send image as photo
     img_bytes = BytesIO()
     img_bytes.name = "balance.png"
     img.save(img_bytes, format='PNG')
@@ -2972,8 +2978,7 @@ def send_balance_card(message):
         types.InlineKeyboardButton("❌ Exit", callback_data="close_balance")
     )
 
-    bot.send_photo(chat_id=message.chat.id, photo=img_bytes, reply_markup=buttons)
-
+    bot.send_photo(message.chat.id, photo=img_bytes, caption="🧾 Here's your Hunter's Balance", reply_markup=buttons)
 
 # --- Callback for exit button ---
 @bot.callback_query_handler(func=lambda call: call.data == "close_balance")
@@ -2983,12 +2988,5 @@ def close_balance_callback(call):
         message_id=call.message.message_id,
         text="✅ BALANCE SUCCESSFULLY CLOSED"
     )
-@bot.callback_query_handler(func=lambda call: call.data.startswith("close_balance"))
-def handle_close_callback(call):
-    bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        text="💤 BALANCE SUCCESSFULLY CLOSED",
-        reply_markup=None  # 🔴 This removes the keyboard
-    )
+
 bot.infinity_polling(none_stop=True)
