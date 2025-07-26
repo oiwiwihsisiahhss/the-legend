@@ -2955,16 +2955,16 @@ def send_balance_card(message):
         "rank": (295, 1220)
     }
 
-    draw.text(coords["name"], f":{name}", font=font, fill="white")
-    draw.text(coords["uid"], f":{uid}", font=font, fill="white")
-    draw.text(coords["joined"], f":{joined}", font=font, fill="white")
-    draw.text(coords["level"], f":{level}", font=font, fill="white")
-    draw.text(coords["yens"], f":{yens}", font=font, fill="white")
-    draw.text(coords["crystals"], f":{crystals}", font=font, fill="white")
-    draw.text(coords["tickets"], f":{tickets}", font=font, fill="white")
-    draw.text(coords["energy"], f":{energy_text}", font=font, fill="white")
-    draw.text(coords["exp"], f":{exp_text}", font=font, fill="white")
-    draw.text(coords["rank"], f":{rank}", font=font, fill="white")
+    draw.text(coords["name"], f": {name}", font=font, fill="white")
+    draw.text(coords["uid"], f": {uid}", font=font, fill="white")
+    draw.text(coords["joined"], f": {joined}", font=font, fill="white")
+    draw.text(coords["level"], f": {level}", font=font, fill="white")
+    draw.text(coords["yens"], f": {yens}", font=font, fill="white")
+    draw.text(coords["crystals"], f": {crystals}", font=font, fill="white")
+    draw.text(coords["tickets"], f": {tickets}", font=font, fill="white")
+    draw.text(coords["energy"], f": {energy_text}", font=font, fill="white")
+    draw.text(coords["exp"], f": {exp_text}", font=font, fill="white")
+    draw.text(coords["rank"], f": {rank}", font=font, fill="white")
 
     # Send image
     img_bytes = BytesIO()
@@ -2978,7 +2978,7 @@ def send_balance_card(message):
         types.InlineKeyboardButton("VIEW WITH 🔗", url="https://envs.sh/iR3.jpg/IMG20250714650.jpg")
     )
     buttons.add(
-        types.InlineKeyboardButton("❌ Exit", callback_data=f"close_balance:{user_id}")
+        types.InlineKeyboardButton("❌ Exit", callback_data=f"close_image:{user_id}")
     )
 
     bot.send_photo(
@@ -2988,7 +2988,7 @@ def send_balance_card(message):
         reply_markup=buttons
     )
 # --- Callback for exit button ---
-@bot.callback_query_handler(func=lambda call: call.data.startswith("close_balance"))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("close_image"))
 def handle_close_balance(call):
     user_id = int(call.data.split(":")[1])
     if call.from_user.id != user_id:
