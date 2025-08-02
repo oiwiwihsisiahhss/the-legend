@@ -3004,5 +3004,93 @@ def handle_close_balance(call):
         )
     except Exception as e:
         bot.answer_callback_query(call.id, "❗ Error while closing")
+from PIL import Image, ImageDraw, ImageFont, ImageOps
+import sqlite3
+import requests
+from io import BytesIO 
 
+def generate_profile_card(user_id, dp_url=None):
+    conn = sqlite3.connect("chainsaw.db")
+    cursor = conn.cursor()
+
+    # Check if user exists
+    cursor.execute("SELECT username, join_date, level FROM user_data WHERE user_id = ?", (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        return None, "User not found. They haven't started the bot."
+
+    username, join_date, level = user
+
+    # Fetch rank based on level
+    cursor.execute("""
+        SELECT rank FROM hunter_ranks 
+        WHERE required_level = (
+            SELECT MAX(required_level) FROM hunter_ranks 
+            WHERE required_level <= ?
+        )
+    """, (level,))
+    rank_data = cursor.fetchone()
+    rank = rank_data[0] if rank_data else "Unranked"
+
+    conn.close()
+
+    # Load base background image
+    bg = Image.open("your_base_image.jpg").convert("RGBA")
+    draw = ImageDraw.Draw(bg)
+
+    # Load font
+    font = ImageFont.truetype("Roboto-Italic-VariableFont_wdth,wght.ttf", 70)
+
+    # Add profile picture if URL is given
+    if dp_url:
+        try:
+            response = requests.get(dp_url)
+            pfp = Image.open(BytesIO(response.content)).convert("RGBA")
+            pfp = ImageOps.fit(pfp, (290, 282), method=Image.LANCZOS)
+            bg.paste(pfp, (977, 15), pfp)
+        except Exception:
+            pass  # Ignore DP if it fails
+
+    # Coordinates for text
+    coords = {
+        "username": (100, 220),
+        "user_id": (100, 320),
+        "joined": (100, 420),
+        "rank": (100, 520)
+    }
+
+    # Draw user data
+    draw.text(coords["username"], f"Name : {username}", font=font, fill="white")
+    draw.text(coords["user_id"], f"UID : {user_id}", font=font, fill="white")
+    draw.text(coords["joined"], f"Joined Date : {join_date[:10]}", font=font, fill="white")  # Only YYYY-MM-DD
+    draw.text(coords["rank"], f"Rank : {rank}", font=font, fill="white")
+
+    # Save final image to memory
+    img_bytes = BytesIO()
+    bg.save(img_bytes, format="PNG")
+    img_bytes.seek(0)
+
+    return img_bytes, None
+from telebot import types
+from io import BytesIO
+
+@bot.message_handler(commands=['prf'])
+def handle_profile(message):
+    user_id = message.from_user.id
+
+    # If you want to fetch username or full name from the Telegram user
+    username = message.from_user.username or ""
+    full_name = message.from_user.first_name or ""
+
+    # Optional: get user profile pic (Telegram API doesn't give it directly via telebot)
+    # You can skip pfp_url if you don't use profile pics
+    pfp_url = None  # You’ll need to fetch it using bot.get_user_profile_photos(user_id) if required
+
+    # Generate the profile image
+    profile_img, error_msg = generate_profile_card(user_id, pfp_url)
+
+    if error_msg:
+        bot.reply_to(message, "❌ You haven't started the bot yet.\nPlease use /start to begin.")
+    else:
+        bot.send_photo(message.chat.id, profile_img, caption="👤 Your Hunter Profile")    
 bot.infinity_polling(none_stop=True)
