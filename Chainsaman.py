@@ -3035,7 +3035,7 @@ def generate_profile_card(user_id, dp_url=None):
     conn.close()
 
     # Load base background image
-    bg = Image.open("your_base_image.jpg").convert("RGBA")
+    bg = Image.open("New Project 7 [89C78A0].png").convert("RGBA")
     draw = ImageDraw.Draw(bg)
 
     # Load font
@@ -3092,5 +3092,6 @@ def handle_profile(message):
     if error_msg:
         bot.reply_to(message, "❌ You haven't started the bot yet.\nPlease use /start to begin.")
     else:
-        bot.send_photo(message.chat.id, profile_img, caption="👤 Your Hunter Profile")    
+        bot.send_photo(message.chat.id, profile_img, caption="👤 Your Hunter Profile")  
+        
 bot.infinity_polling(none_stop=True)
